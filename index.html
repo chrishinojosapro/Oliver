@@ -293,6 +293,26 @@
   }
 
   .mic-btn.locked { opacity:0.3; cursor:default; pointer-events:none; }
+
+  /* ── CONTINUOUS CONVERSATION BUTTON ── */
+  .convo-btn {
+    width:46px; height:46px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0;
+    transition:background 0.2s, transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .convo-btn:hover { background:rgba(255,255,255,0.10); }
+  .convo-btn:active { transform:scale(0.93); }
+  .convo-btn svg { width:18px; height:18px; fill:rgba(255,255,255,0.45); transition:fill 0.2s; }
+
+  .convo-btn.active {
+    background:rgba(100,180,255,0.18);
+    border-color:rgba(120,180,255,0.50);
+    box-shadow:0 0 16px rgba(100,160,255,0.30);
+  }
+  .convo-btn.active svg { fill:rgba(160,210,255,1); }
 </style>
 </head>
 <body>
@@ -330,8 +350,7 @@
 <div id="voice-status"></div>
 
 <div class="controls">
-  <button class="mic-btn" id="mic-btn" onclick="toggleMic()" aria-label="Hold to speak">
-    <!-- Mic icon -->
+  <button class="mic-btn" id="mic-btn" onclick="toggleMic()" aria-label="Toggle mic">
     <svg viewBox="0 0 24 24">
       <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 16.93A8.001 8.001 0 0 0 19.94 12H18a6 6 0 0 1-12 0H4.06A8.001 8.001 0 0 0 10 17.93V21H8v2h8v-2h-2v-3.07z"/>
     </svg>
@@ -341,6 +360,13 @@
 
   <button class="send-btn" onclick="sendMessage()" aria-label="Send">
     <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
+
+  <!-- Continuous conversation toggle -->
+  <button class="convo-btn" id="convo-btn" onclick="toggleContinuous()" aria-label="Continuous conversation">
+    <svg viewBox="0 0 24 24">
+      <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"/>
+    </svg>
   </button>
 </div>
 
@@ -432,7 +458,7 @@ function unlockAudio() {
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
 const EDGE_FUNCTION_URL = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain';
 const XI_API_KEY        = 'sk_4474987f8187a823562d41e5886b84c531b82bb2832efe62';
-const XI_VOICE_ID       = '7GEvpCKf5Nlxqwoji96A';
+const XI_VOICE_ID       = 'lUTamkMw7gOzZbFIwmq4';
 const XI_URL            = `https://api.elevenlabs.io/v1/text-to-speech/${XI_VOICE_ID}`;
 
 /* ════════════════════════════════════════
@@ -445,6 +471,7 @@ const interimEl   = document.getElementById('interim-text');
 
 let isRecording   = false;
 let isSpeaking    = false;
+let isContinuous  = false;
 let recognition   = null;
 let currentAudio  = null;
 
@@ -505,7 +532,7 @@ async function pipeline(userText, speakReply = true) {
     addMessage(reply, 'oliver');
 
     if (speakReply) {
-      await speakText(reply);
+      await speakText(trimForTTS(reply));
     } else {
       setOrb(null); setStatus('');
     }
@@ -527,6 +554,60 @@ function addMessage(text, sender) {
   }
   c.appendChild(div);
   c.scrollTop = c.scrollHeight;
+}
+
+/* ════════════════════════════════════════
+   TTS TEXT TRIMMER
+   — strips markdown, keeps only the first
+     2 sentences or 280 chars (whichever
+     is shorter) to save ElevenLabs tokens
+════════════════════════════════════════ */
+function trimForTTS(text) {
+  // Strip markdown-ish formatting
+  let t = text
+    .replace(/\*\*(.+?)\*\*/g, '$1')   // bold
+    .replace(/\*(.+?)\*/g, '$1')        // italic
+    .replace(/`(.+?)`/g, '$1')          // inline code
+    .replace(/#+\s/g, '')               // headings
+    .replace(/\n{2,}/g, ' ')            // blank lines
+    .replace(/\n/g, ' ')                // single newlines
+    .replace(/\s{2,}/g, ' ')            // extra spaces
+    .trim();
+
+  // Keep first 2 sentences (split on . ! ?)
+  const sentences = t.match(/[^.!?]+[.!?]+/g) || [t];
+  let spoken = sentences.slice(0, 2).join(' ').trim();
+
+  // Hard cap at 280 characters
+  if (spoken.length > 280) spoken = spoken.slice(0, 280).replace(/\s+\S*$/, '') + '…';
+
+  return spoken || t.slice(0, 280);
+}
+
+/* ════════════════════════════════════════
+   CONTINUOUS CONVERSATION TOGGLE
+════════════════════════════════════════ */
+function toggleContinuous() {
+  unlockAudio();
+  isContinuous = !isContinuous;
+  const btn = document.getElementById('convo-btn');
+  btn.classList.toggle('active', isContinuous);
+
+  if (isContinuous) {
+    setStatus('conversation mode on', true);
+    setTimeout(() => { if (isContinuous && !isRecording && !isSpeaking) startListening(); }, 400);
+  } else {
+    setStatus('conversation mode off');
+    setTimeout(() => setStatus(''), 1800);
+    stopRecording();
+  }
+}
+
+function startListening() {
+  if (isRecording || isSpeaking) return;
+  recognition = buildRecognition();
+  if (!recognition) return;
+  try { recognition.start(); } catch(_) {}
 }
 
 /* ════════════════════════════════════════
@@ -579,6 +660,10 @@ async function speakText(text) {
     micBtn.classList.remove('locked');
     setOrb(null);
     setStatus('');
+    // Auto-restart listening in continuous mode
+    if (isContinuous) {
+      setTimeout(() => startListening(), 350);
+    }
   }
 }
 
@@ -629,7 +714,7 @@ function buildRecognition() {
 }
 
 function toggleMic() {
-  unlockAudio(); // must be inside user gesture
+  unlockAudio();
   if (isSpeaking) return;
   if (isRecording) { stopRecording(); return; }
 
@@ -639,13 +724,7 @@ function toggleMic() {
     currentAudio = null; isSpeaking = false; micBtn.classList.remove('locked');
   }
 
-  recognition = buildRecognition();
-  if (!recognition) {
-    setStatus('speech not supported in this browser');
-    setTimeout(() => setStatus(''), 3000);
-    return;
-  }
-  try { recognition.start(); } catch (_) {}
+  startListening();
 }
 
 function stopRecording() {
@@ -653,7 +732,7 @@ function stopRecording() {
   micBtn.classList.remove('recording');
   interimEl.textContent = '';
   try { if (recognition) recognition.stop(); } catch (_) {}
-  if (!isSpeaking) { setOrb(null); setStatus(''); }
+  if (!isSpeaking && !isContinuous) { setOrb(null); setStatus(''); }
 }
 </script>
 </body>
