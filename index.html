@@ -402,6 +402,31 @@
 })();
 
 /* ════════════════════════════════════════
+   AUDIO CONTEXT — unlocked on first gesture
+════════════════════════════════════════ */
+let audioCtx = null;
+let audioUnlocked = false;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// Call this inside any click/touch handler to satisfy autoplay policy
+function unlockAudio() {
+  if (audioUnlocked) return;
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  // Play a silent buffer to fully unlock
+  const buf = ctx.createBuffer(1, 1, 22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+  audioUnlocked = true;
+}
+
+/* ════════════════════════════════════════
    CONFIG
 ════════════════════════════════════════ */
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
@@ -448,6 +473,7 @@ function setStatus(msg, active = false) {
 function checkEnter(e) { if (e.key === 'Enter') sendMessage(); }
 
 async function sendMessage() {
+  unlockAudio(); // must be inside user gesture
   const inp  = document.getElementById('text-input');
   const text = inp.value.trim();
   if (!text) return;
@@ -513,6 +539,9 @@ async function speakText(text) {
   micBtn.classList.add('locked');
 
   try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') await ctx.resume();
+
     const res = await fetch(XI_URL, {
       method:  'POST',
       headers: {
@@ -527,21 +556,23 @@ async function speakText(text) {
       }),
     });
 
-    if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
+    if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
 
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
+    const arrayBuf = await res.arrayBuffer();
+    const decoded  = await ctx.decodeAudioData(arrayBuf);
 
     await new Promise((resolve, reject) => {
-      currentAudio.onended = resolve;
-      currentAudio.onerror = reject;
-      currentAudio.play().catch(reject);
+      const src = ctx.createBufferSource();
+      src.buffer = decoded;
+      src.connect(ctx.destination);
+      src.onended = resolve;
+      src.start(0);
+      currentAudio = src; // store so we can stop() on interrupt
     });
 
-    URL.revokeObjectURL(url);
   } catch (err) {
     console.warn('TTS error:', err);
+    addMessage('⚠ Voice error: ' + err.message, 'oliver');
   } finally {
     currentAudio = null;
     isSpeaking   = false;
@@ -598,11 +629,15 @@ function buildRecognition() {
 }
 
 function toggleMic() {
+  unlockAudio(); // must be inside user gesture
   if (isSpeaking) return;
   if (isRecording) { stopRecording(); return; }
 
   // Interrupt any ongoing playback
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; isSpeaking = false; micBtn.classList.remove('locked'); }
+  if (currentAudio) {
+    try { currentAudio.stop(); } catch(_) {}
+    currentAudio = null; isSpeaking = false; micBtn.classList.remove('locked');
+  }
 
   recognition = buildRecognition();
   if (!recognition) {
