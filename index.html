@@ -91,7 +91,7 @@
   /* ── HEADER ── */
   header {
     position:relative; z-index:10;
-    display:flex; justify-content:space-between; align-items:center;
+    display:flex; justify-content:center; align-items:center;
     padding:16px 20px 12px; flex-shrink:0;
   }
   .icon-btn {
@@ -150,24 +150,22 @@
   }
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.90); font-weight:300; line-height:1.65; }
 
-  /* ── STATUS STRIP ── */
-  #interim-text {
+  /* ── WAVEFORM BAR (replaces text status) ── */
+  #waveform {
     position:relative; z-index:10;
-    min-height:16px; flex-shrink:0;
-    padding:0 20px 1px;
-    font-size:0.82em; font-style:italic;
-    color:rgba(200,160,255,0.45); text-align:center;
+    height:28px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    gap:3px; padding:0 20px;
+    opacity:0; transition:opacity 0.35s;
+    pointer-events:none;
   }
-  #voice-status {
-    position:relative; z-index:10;
-    text-align:center;
-    font-size:0.74em; letter-spacing:0.09em;
-    color:rgba(255,255,255,0.26);
-    height:15px; line-height:15px;
-    transition:color 0.3s; flex-shrink:0;
-    margin-bottom:3px;
+  #waveform.visible { opacity:1; }
+  .wave-bar {
+    width:3px; border-radius:2px;
+    background:rgba(200,160,255,0.55);
+    height:4px;
   }
-  #voice-status.active { color:rgba(200,160,255,0.65); }
+  #waveform.thinking .wave-bar { background:rgba(255,255,255,0.35); }
 
   /* ── CONTROLS ── */
   .controls {
@@ -245,16 +243,10 @@
 </div>
 
 <header>
-  <button class="icon-btn" aria-label="Back">
-    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-  </button>
   <div class="header-center">
     <div class="status-pip"></div>
     <span class="header-title">Oliver AI</span>
   </div>
-  <button class="icon-btn" aria-label="More">
-    <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-  </button>
 </header>
 
 <div id="chat-container">
@@ -264,8 +256,7 @@
   </div>
 </div>
 
-<div id="interim-text"></div>
-<div id="voice-status"></div>
+<div id="waveform"></div>
 
 <div class="controls">
   <!-- Mic -->
@@ -341,9 +332,7 @@
 ════════════════════════════════════════ */
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
 const EDGE_FUNCTION_URL = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain';
-const XI_API_KEY        = 'sk_4474987f8187a823562d41e5886b84c531b82bb2832efe62';
-const XI_VOICE_ID       = 'lUTamkMw7gOzZbFIwmq4';
-const XI_URL            = `https://api.elevenlabs.io/v1/text-to-speech/${XI_VOICE_ID}`;
+const XI_URL            = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts';
 
 /* ════════════════════════════════════════
    STATE
@@ -351,8 +340,8 @@ const XI_URL            = `https://api.elevenlabs.io/v1/text-to-speech/${XI_VOIC
 const orb        = document.getElementById('ai-orb');
 const micBtn     = document.getElementById('mic-btn');
 const convoBtn   = document.getElementById('convo-btn');
-const statusEl   = document.getElementById('voice-status');
-const interimEl  = document.getElementById('interim-text');
+const waveform   = document.getElementById('waveform');
+const interimEl  = { textContent: '' }; // no-op shim — interim text removed
 
 let isRecording  = false;
 let isSpeaking   = false;
@@ -386,16 +375,67 @@ function unlockAudio(){
 }
 
 /* ════════════════════════════════════════
-   ORB + STATUS
+   ORB STATE
 ════════════════════════════════════════ */
 function setOrb(state){
   orb.classList.remove('thinking','speaking','listening');
   if(state) orb.classList.add(state);
 }
-function setStatus(msg, active=false){
-  statusEl.textContent = msg;
-  statusEl.className   = active ? 'active' : '';
+
+/* ════════════════════════════════════════
+   WAVEFORM — animated bars
+   listening: organic random bounce
+   thinking:  slow even pulse
+   speaking:  faster rhythmic wave
+════════════════════════════════════════ */
+const BAR_COUNT = 18;
+let waveRAF = null;
+let waveMode = null;
+
+// Build bars once
+for(let i=0;i<BAR_COUNT;i++){
+  const b=document.createElement('div');
+  b.className='wave-bar'; waveform.appendChild(b);
 }
+const bars = waveform.querySelectorAll('.wave-bar');
+
+function startWave(mode){
+  waveMode = mode;
+  waveform.className = 'visible' + (mode==='thinking' ? ' thinking' : '');
+  if(waveRAF) cancelAnimationFrame(waveRAF);
+  let t = 0;
+  const animate = () => {
+    t += 0.06;
+    bars.forEach((b, i) => {
+      let h;
+      if(mode==='listening'){
+        // organic: each bar has its own phase + some randomness feel
+        h = 4 + 14 * Math.abs(Math.sin(t * 1.8 + i * 0.55 + Math.sin(t*0.7+i)*0.4));
+      } else if(mode==='thinking'){
+        // slow calm pulse, all bars nearly in sync
+        h = 3 + 8 * Math.abs(Math.sin(t * 0.8 + i * 0.18));
+      } else if(mode==='speaking'){
+        // faster wave sweep
+        h = 4 + 18 * Math.abs(Math.sin(t * 2.5 + i * 0.42));
+      } else {
+        h = 4;
+      }
+      b.style.height = h + 'px';
+    });
+    waveRAF = requestAnimationFrame(animate);
+  };
+  animate();
+}
+
+function stopWave(){
+  waveMode = null;
+  waveform.className = '';
+  if(waveRAF){ cancelAnimationFrame(waveRAF); waveRAF=null; }
+  bars.forEach(b => b.style.height = '4px');
+}
+
+// Shim so old setStatus() calls are silent no-ops
+function setStatus(){}
 
 /* ════════════════════════════════════════
    TTS TEXT CLEANER
@@ -437,7 +477,7 @@ async function sendMessage(){
 async function pipeline(userText, speakReply=true){
   if(isSpeaking) return;
   addMessage(userText,'user');
-  setOrb('thinking'); setStatus('thinking…',true);
+  setOrb('thinking'); startWave('thinking');
 
   const elapsed    = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
@@ -446,15 +486,15 @@ async function pipeline(userText, speakReply=true){
     const res  = await fetch(EDGE_FUNCTION_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body:JSON.stringify({message:userText,sessionDuration:timeActive,sessionId:getSessionId()}),
+      body:JSON.stringify({message:userText,sessionDuration:timeActive,sessionId:getSessionId(),inputMode:speakReply?'voice':'text',voiceEnabled:true}),
     });
     const data  = await res.json();
     const reply = data.status==='success' ? data.reply : 'System error: '+(data.error||'Unknown error');
     addMessage(reply,'oliver');
     if(speakReply){ await speakText(cleanForTTS(reply)); }
-    else          { setOrb(null); setStatus(''); }
+    else          { setOrb(null); stopWave(); }
   }catch(err){
-    setOrb(null); setStatus('');
+    setOrb(null); stopWave();
     addMessage('Connection failed. '+err.message,'oliver');
   }
 }
@@ -481,7 +521,7 @@ function addMessage(text,sender){
 ════════════════════════════════════════ */
 async function speakText(text){
   isSpeaking=true;
-  setOrb('speaking'); setStatus('speaking…',true);
+  setOrb('speaking'); startWave('speaking');
   micBtn.classList.add('locked');
 
   try{
@@ -490,12 +530,8 @@ async function speakText(text){
 
     const res = await fetch(XI_URL,{
       method:'POST',
-      headers:{'xi-api-key':XI_API_KEY,'Content-Type':'application/json','Accept':'audio/mpeg'},
-      body:JSON.stringify({
-        text,
-        model_id:'eleven_turbo_v2_5',
-        voice_settings:{stability:0.45,similarity_boost:0.82,style:0.20,use_speaker_boost:true},
-      }),
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      body:JSON.stringify({text}),
     });
     if(!res.ok) throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
 
@@ -515,7 +551,7 @@ async function speakText(text){
   }finally{
     currentAudio=null;
     isSpeaking=false;
-    setOrb(null); setStatus('');
+    setOrb(null); stopWave();
     micBtn.classList.remove('locked');
 
     // Wait for speaker echo to clear before reopening mic
@@ -534,12 +570,9 @@ function toggleContinuous(){
   isContinuous=!isContinuous;
   convoBtn.classList.toggle('active',isContinuous);
   if(isContinuous){
-    setStatus('conversation on',true);
     setTimeout(()=>{ if(isContinuous&&!isRecording&&!isSpeaking) startListening(); },300);
   }else{
-    setStatus('conversation off');
-    setTimeout(()=>setStatus(''),1600);
-    stopRecording();
+    stopWave(); stopRecording();
   }
 }
 
@@ -562,7 +595,7 @@ function buildRecognition(){
   r.onstart=()=>{
     isRecording=true;
     micBtn.classList.add('recording');
-    setOrb('listening'); setStatus('listening…',true);
+    setOrb('listening'); startWave('listening');
   };
 
   r.onresult=(e)=>{
@@ -582,10 +615,6 @@ function buildRecognition(){
   r.onerror=(e)=>{
     console.warn('Speech error:',e.error);
     stopRecording();
-    if(e.error!=='no-speech'&&e.error!=='aborted'){
-      setStatus('mic error — try again');
-      setTimeout(()=>setStatus(''),2200);
-    }
   };
 
   r.onend=()=>{ if(isRecording) stopRecording(); };
@@ -605,7 +634,7 @@ function stopRecording(){
   micBtn.classList.remove('recording');
   interimEl.textContent='';
   try{ if(recognition) recognition.stop(); }catch(_){}
-  if(!isSpeaking&&!isContinuous){ setOrb(null); setStatus(''); }
+  if(!isSpeaking&&!isContinuous){ setOrb(null); stopWave(); }
 }
 </script>
 </body>
