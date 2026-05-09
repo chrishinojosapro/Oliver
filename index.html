@@ -220,9 +220,19 @@
 </div>
 
 <script>
-  const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzaRj3FA9UWchYqWh6YePy-wmEakuxvUymK76Yh8cjyhxuhW4yEUTKeb9t-zYjAZsi9/exec";
+  const SUPABASE_PROJECT_URL = "https://einfitykkorutgnbxwly.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU";
+  const EDGE_FUNCTION_URL = "https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain";
   
-  // Start a timer the moment the app loads
+  const getSessionId = () => {
+    let sid = sessionStorage.getItem('oliver_session_id');
+    if (!sid) {
+      sid = crypto.randomUUID();
+      sessionStorage.setItem('oliver_session_id', sid);
+    }
+    return sid;
+  };
+
   const sessionStartTime = Date.now();
 
   function checkEnter(e) { if (e.key === 'Enter') sendMessage(); }
@@ -237,24 +247,33 @@
     input.value = '';
     orb.classList.add('thinking');
 
-    // Calculate exactly how long the session has been active
     const elapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
     const mins = Math.floor(elapsedSeconds / 60);
     const secs = elapsedSeconds % 60;
     const timeActive = `${mins} minute(s) and ${secs} second(s)`;
 
     try {
-      const res = await fetch(GOOGLE_API_URL, {
+      const res = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
         body: JSON.stringify({ 
           message: text,
-          sessionDuration: timeActive 
+          sessionDuration: timeActive,
+          sessionId: getSessionId()
         })
       });
+      
       const data = await res.json();
       orb.classList.remove('thinking');
-      addMessage(data.status === 'success' ? data.reply : "System error: " + data.message, 'oliver');
+      
+      if (data.status === 'success') {
+          addMessage(data.reply, 'oliver');
+      } else {
+          addMessage("System error: " + (data.error || "Unknown error"), 'oliver');
+      }
     } catch (err) {
       orb.classList.remove('thinking');
       addMessage("Connection failed. " + err.message, 'oliver');
