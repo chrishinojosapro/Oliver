@@ -1,256 +1,276 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Oliver AI</title>
-  <style>
-    :root {
-      --bg-deep: #0D0E15;
-      --text-main: #FFFFFF;
-      --text-muted: #8A8D9E;
-      --glass-bg: rgba(255, 255, 255, 0.03);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --orb-glow: rgba(138, 180, 248, 0.6);
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Oliver AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #000;
+    color: #fff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .orb-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 340px; height: 340px;
+    margin: -170px 0 0 -170px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    border-radius: 50%;
+    animation: orb-enter 2s ease forwards, spin-cw 12s linear infinite;
+  }
+  .orb-wrap-inner {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 200px; height: 200px;
+    margin: -100px 0 0 -100px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: orb-enter 2s ease forwards;
+  }
+
+  @keyframes orb-enter {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  .orb-ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow:
+      0 0 60px rgba(255,255,255,0.12),
+      0 0 120px rgba(180,160,255,0.12),
+      0 0 200px rgba(100,130,255,0.08),
+      inset 0 0 60px rgba(255,255,255,0.05);
+  }
+  .orb-ring::before {
+    content: '';
+    position: absolute; inset: -14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .orb-ring::after {
+    content: '';
+    position: absolute; inset: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .orb-ring-inner {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    animation: spin-ccw 7s linear infinite;
+  }
+
+  @keyframes spin-cw  { to { transform: rotate(360deg); } }
+  @keyframes spin-ccw { to { transform: rotate(-360deg); } }
+
+  .orb-wrap.thinking .orb-ring {
+    animation: think-pulse 0.8s ease-in-out infinite alternate;
+    will-change: box-shadow, border-color;
+  }
+  
+  @keyframes think-pulse {
+    0% { 
+      border-color: rgba(255,255,255,0.25);
+      box-shadow: 
+        0 0 60px rgba(255,255,255,0.12), 
+        0 0 120px rgba(180,160,255,0.12), 
+        0 0 200px rgba(100,130,255,0.08), 
+        inset 0 0 60px rgba(255,255,255,0.05); 
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-deep);
-      color: var(--text-main);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+    100% { 
+      border-color: rgba(255,255,255,0.6);
+      box-shadow: 
+        0 0 100px rgba(255,255,255,0.7), 
+        0 0 200px rgba(180,160,255,0.5), 
+        0 0 300px rgba(100,130,255,0.3), 
+        inset 0 0 80px rgba(255,255,255,0.2); 
     }
+  }
 
-    /* Top Header */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 24px;
-      z-index: 10;
-    }
+  header {
+    position: relative; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 20px 14px;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.05); color: white; cursor: pointer;
+  }
+  .icon-btn svg { width: 16px; height: 16px; fill: white; }
+  .header-center { display: flex; align-items: center; gap: 8px; }
+  .status-pip {
+    width: 7px; height: 7px; border-radius: 50%; background: white;
+    box-shadow: 0 0 8px rgba(255,255,255,0.9);
+    animation: pip 2.5s ease-in-out infinite;
+  }
+  @keyframes pip {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.7); }
+  }
+  .header-title { font-size: 0.85em; color: rgba(255,255,255,0.45); font-weight: 500; letter-spacing: 0.04em; }
 
-    .icon-btn {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      border: 1px solid var(--glass-border);
-      display: flex; align-items: center; justify-content: center;
-      background: transparent; color: white; cursor: pointer;
-    }
+  #chat-container {
+    position: relative; z-index: 10;
+    flex: 1; min-height: 0;
+    padding: 12px 20px;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  #chat-container::-webkit-scrollbar { display: none; }
 
-    .icon-btn svg { width: 18px; height: 18px; fill: white; }
-    .header-title { font-size: 0.9em; color: var(--text-muted); font-weight: 500; }
+  .message { max-width: 88%; line-height: 1.55; animation: msg-in 0.3s ease forwards; }
+  @keyframes msg-in {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .message.user {
+    align-self: flex-end;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 10px 16px;
+    border-radius: 18px 18px 4px 18px;
+    color: rgba(255,255,255,0.55); font-size: 0.92em;
+  }
+  .message.oliver { align-self: flex-start; max-width: 92%; }
+  .sender-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .sender-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.5); }
+  .sender-name { font-size:10px; color:rgba(255,255,255,0.35); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }
+  .message.oliver .msg-text { font-size:1.05em; color:rgba(255,255,255,0.92); font-weight:300; line-height:1.6; }
 
-    /* The Orb System */
-    .orb-container {
-      position: relative;
-      width: 100%;
-      height: 180px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-top: 10px;
-      transition: all 0.5s ease;
-    }
-
-    .orb {
-      width: 140px; height: 140px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.4);
-      position: relative;
-      box-shadow: 0 0 40px var(--orb-glow), inset 0 0 20px rgba(255,255,255,0.2);
-      animation: slowSpin 8s linear infinite;
-    }
-
-    .orb::before, .orb::after {
-      content: '';
-      position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px;
-      border-radius: 50%; border: 1px solid rgba(255,255,255,0.3);
-    }
-    .orb::before { transform: scale(1.05); animation: pulse 4s ease-in-out infinite alternate; }
-    .orb::after { transform: scale(0.95); border: 2px solid rgba(255,255,255,0.1); }
-
-    /* Orb Animations */
-    @keyframes slowSpin { 100% { transform: rotate(360deg); } }
-    @keyframes pulse { 0% { transform: scale(1) rotate(0deg); opacity: 0.8; } 100% { transform: scale(1.15) rotate(45deg); opacity: 0.3; } }
-    @keyframes processing { 0% { box-shadow: 0 0 20px #fff; } 100% { box-shadow: 0 0 80px #fff, inset 0 0 40px #fff; } }
-
-    .orb.thinking {
-      animation: processing 0.8s ease-in-out infinite alternate, slowSpin 3s linear infinite;
-      border: 2px solid white;
-    }
-
-    /* Chat Area */
-    #chat-container {
-      flex: 1;
-      padding: 0 24px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      padding-bottom: 20px;
-    }
-
-    .message {
-      max-width: 85%;
-      line-height: 1.6;
-      font-size: 1.05em;
-      letter-spacing: 0.3px;
-      animation: fadeIn 0.4s ease forwards;
-    }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* Dark User Bubble */
-    .message.user {
-      align-self: flex-end;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      padding: 14px 20px;
-      border-radius: 20px 20px 4px 20px;
-      color: var(--text-muted);
-    }
-
-    /* AI Text (Big, clean, white) */
-    .message.oliver {
-      align-self: flex-start;
-      color: var(--text-main);
-      font-weight: 400;
-      font-size: 1.15em;
-    }
-
-    /* Controls Bottom */
-    .controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      padding: 20px 24px 40px 24px;
-      background: linear-gradient(to top, var(--bg-deep) 60%, transparent);
-    }
-
-    #text-input {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: white;
-      padding: 16px 20px;
-      border-radius: 30px;
-      width: 100%;
-      font-size: 1em;
-      outline: none;
-    }
-
-    #text-input::placeholder { color: var(--text-muted); }
-
-    .mic-btn {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    
-    .mic-btn:hover { background: rgba(255, 255, 255, 0.2); }
-    .mic-btn svg { width: 24px; height: 24px; fill: white; }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar { display: none; }
-  </style>
+  .controls {
+    position: relative; z-index: 10; flex-shrink: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px 28px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent);
+  }
+  #text-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: white; padding: 13px 18px; border-radius: 26px;
+    font-size: 0.93em; outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  #text-input:focus { border-color: rgba(255,255,255,0.35); }
+  #text-input::placeholder { color: rgba(255,255,255,0.28); }
+  .send-btn {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .send-btn:hover { background: rgba(255,255,255,0.2); }
+  .send-btn:active { transform: scale(0.94); }
+  .send-btn svg { width: 18px; height: 18px; fill: white; }
+</style>
 </head>
 <body>
 
-  <header>
-    <button class="icon-btn">
-      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    </button>
-    <div class="header-title">Speaking to Oliver</div>
-    <button class="icon-btn">
-      <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-    </button>
-  </header>
+<div id="ai-orb" class="orb-wrap">
+  <div class="orb-ring"></div>
+</div>
+<div class="orb-wrap-inner">
+  <div class="orb-ring-inner"></div>
+</div>
 
-  <div class="orb-container">
-    <div id="ai-orb" class="orb"></div>
+<header>
+  <button class="icon-btn" aria-label="Back">
+    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+  </button>
+  <div class="header-center">
+    <div class="status-pip"></div>
+    <span class="header-title">Oliver AI</span>
   </div>
+  <button class="icon-btn" aria-label="More">
+    <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+  </button>
+</header>
 
-  <div id="chat-container">
-    <div class="message oliver">I'm listening, Chris.</div>
+<div id="chat-container">
+  <div class="message oliver">
+    <div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
+    <div class="msg-text">I'm listening, Chris.</div>
   </div>
+</div>
 
-  <div class="controls">
-    <input type="text" id="text-input" placeholder="Type a message..." onkeydown="checkEnter(event)">
-    <button class="mic-btn" onclick="sendMessage()">
-      <!-- We will use this mic button as a Send button for now -->
-      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </button>
-  </div>
+<div class="controls">
+  <input type="text" id="text-input" placeholder="Message Oliver…" onkeydown="checkEnter(event)">
+  <button class="send-btn" onclick="sendMessage()" aria-label="Send">
+    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
+</div>
 
-  <script>
-    // --- INSERT YOUR GOOGLE WEB APP URL HERE ---
-    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyFjMs1le48pQ81vbLZJvSi0vN9d_O3EX_nTFkCYhxUBVaBOIQbI2-0usjwdsAwbYU4/exec"; 
+<script>
+  const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzaRj3FA9UWchYqWh6YePy-wmEakuxvUymK76Yh8cjyhxuhW4yEUTKeb9t-zYjAZsi9/exec";
+  
+  // Start a timer the moment the app loads
+  const sessionStartTime = Date.now();
 
-    function checkEnter(event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
+  function checkEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+  async function sendMessage() {
+    const input = document.getElementById('text-input');
+    const text = input.value.trim();
+    const orb = document.getElementById('ai-orb');
+    if (!text) return;
+    
+    addMessage(text, 'user');
+    input.value = '';
+    orb.classList.add('thinking');
+
+    // Calculate exactly how long the session has been active
+    const elapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const mins = Math.floor(elapsedSeconds / 60);
+    const secs = elapsedSeconds % 60;
+    const timeActive = `${mins} minute(s) and ${secs} second(s)`;
+
+    try {
+      const res = await fetch(GOOGLE_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ 
+          message: text,
+          sessionDuration: timeActive 
+        })
+      });
+      const data = await res.json();
+      orb.classList.remove('thinking');
+      addMessage(data.status === 'success' ? data.reply : "System error: " + data.message, 'oliver');
+    } catch (err) {
+      orb.classList.remove('thinking');
+      addMessage("Connection failed. " + err.message, 'oliver');
     }
+  }
 
-    async function sendMessage() {
-      const input = document.getElementById('text-input');
-      const text = input.value.trim();
-      const orb = document.getElementById('ai-orb');
-      
-      if (!text) return;
-
-      // 1. Add User Message
-      addMessage(text, 'user');
-      input.value = '';
-      
-      // 2. Trigger Orb "Thinking" Animation
-      orb.classList.add('thinking');
-
-      try {
-        // 3. Send data to Google Apps Script API
-        const response = await fetch(GOOGLE_API_URL, {
-          method: 'POST',
-          // Use text/plain to avoid complex browser CORS preflight issues
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-          body: JSON.stringify({ message: text })
-        });
-
-        const data = await response.json();
-        
-        // 4. Stop Animation & Add AI Message
-        orb.classList.remove('thinking');
-        
-        if (data.status === 'success') {
-          addMessage(data.reply, 'oliver');
-        } else {
-          addMessage("System Error: " + data.message, 'oliver');
-        }
-
-      } catch (error) {
-        orb.classList.remove('thinking');
-        addMessage("Connection to Oliver failed. " + error.message, 'oliver');
-      }
-    }
-
-    function addMessage(text, sender) {
-      const container = document.getElementById('chat-container');
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'message ' + sender;
-      msgDiv.innerHTML = text.replace(/\n/g, '<br>');
-      
-      container.appendChild(msgDiv);
-      container.scrollTop = container.scrollHeight;
-    }
-  </script>
+  function addMessage(text, sender) {
+    const c = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.className = 'message ' + sender;
+    div.innerHTML = sender === 'oliver'
+      ? `<div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div><div class="msg-text">${text.replace(/\n/g,'<br>')}</div>`
+      : text.replace(/\n/g,'<br>');
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
+  }
+</script>
 </body>
 </html>
