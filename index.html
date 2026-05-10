@@ -455,7 +455,7 @@
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
 const EDGE_FUNCTION_URL = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain';
-const XI_URL            = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts';
+const TTS_EDGE_URL      = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtzJd9QnlS-vRh7muDC1i1mQ-WDwF1SMcVWsUU1JerUgLgUBkGxJ5Miq7BcKNT4zUg/exec';
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
@@ -745,7 +745,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       let finalTTS = ttsCleanText;
       let isLongResponse = false;
       
-      // Prevent TTS API timeouts on massive text dumps
+      // Prevent TTS API timeouts on massive text dumps from database lookups
       if (finalTTS.length > 650) {
          // Find the last punctuation mark before the 600 character cutoff
          let breakPoint = Math.max(
@@ -783,16 +783,43 @@ async function speakText(text){
   try{
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
-    const res=await fetch(XI_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body:JSON.stringify({text}),
+    
+    const res = await fetch(TTS_EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ text })
     });
+
     if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
-    const decoded=await ctx.decodeAudioData(await res.arrayBuffer());
+    
+    const result = await res.json();
+    const audioData = result.audioBase64;
+    const mimeType = result.mimeType;
+
+    if (!audioData) throw new Error("No audio data returned from Edge Function");
+
+    const sampleRateMatch = mimeType?.match(/rate=(\d+)/);
+    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+
+    // Convert Gemini's base64 encoded signed PCM16 audio data into Float32 for the Web Audio API
+    const binaryString = atob(audioData);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const pcm16 = new Int16Array(bytes.buffer);
+    const audioBuffer = ctx.createBuffer(1, pcm16.length, sampleRate);
+    const channelData = audioBuffer.getChannelData(0);
+    
+    for (let i = 0; i < pcm16.length; i++) {
+      channelData[i] = pcm16[i] / 32768.0;
+    }
+
     await new Promise((resolve,reject)=>{
       const src=ctx.createBufferSource();
-      src.buffer=decoded; src.connect(ctx.destination);
+      src.buffer=audioBuffer; src.connect(ctx.destination);
       src.onended=resolve; src.start(0);
       currentAudio=src;
     });
