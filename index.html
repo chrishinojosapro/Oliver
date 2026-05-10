@@ -613,7 +613,7 @@ function getLastOliverMessage(){
 
 function getRecentConversation(){
   const all=document.querySelectorAll('.message.user, .message.oliver');
-  const recent=Array.from(all).slice(-8);
+  const recent=Array.from(all).slice(-8); // Limiting to the last 8 messages for speed
   return recent.map(el=>{
     const isOliver=el.classList.contains('oliver');
     const textEl=el.querySelector('.msg-text')||el;
@@ -745,13 +745,15 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     const oliverMsgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
     
     if(speakReply){ 
-      // If the message is incredibly long, un-hide the text bubble so the user isn't waiting in the dark
+      // Un-hide the text bubble instantly if the response is super long to save the user from waiting in silence
       if (ttsCleanText.length > 800 && oliverMsgEl) {
          oliverMsgEl.classList.remove('hidden-voice');
       }
       
+      // Sending full text to preserve Aries tone/flow
       const success = await speakText(ttsCleanText); 
-      // If speech fails entirely, un-hide the bubble so the user sees it
+      
+      // If speech fails, un-hide the text bubble
       if(!success && oliverMsgEl && processedReply) {
          oliverMsgEl.classList.remove('hidden-voice');
       }
@@ -775,6 +777,7 @@ async function speakText(text){
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
     
+    // We send the entire un-chopped text block to Deepgram so the Aries voice sounds perfectly natural and fluid.
     const res=await fetch(XI_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
@@ -786,7 +789,7 @@ async function speakText(text){
         throw new Error(`TTS ${res.status}: ${errText}`);
     }
     
-    // Deepgram returns RAW MP3 AUDIO, not JSON. We read it as an ArrayBuffer!
+    // Deepgram returns RAW MP3 AUDIO. Read as an ArrayBuffer, NOT JSON.
     const arrayBuffer = await res.arrayBuffer();
     const decoded = await ctx.decodeAudioData(arrayBuffer);
     
@@ -1031,6 +1034,17 @@ function renderMarkdown(md){
     .replace(/^---$/gm,'<hr>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
     .replace(/\n\n/g,'</p><p>').replace(/^(?!<[hupli]|<\/[hupli]|<pre)(.+)$/gm,'<p>$1</p>');
 }
+
+// ============================================================================
+// WARMUP SCRIPT
+// Silently pings the Supabase Edge Functions on load so there is zero 
+// "Cold Start" delay when you actually send your first message.
+// ============================================================================
+window.addEventListener('load', () => {
+  fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
+  fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
+  console.log("Oliver's engines warmed up.");
+});
 </script>
 </body>
 </html>
