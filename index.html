@@ -662,29 +662,36 @@ function showDriveBadge(filename){
 function extractCanvasAndMarkdown(text) {
   let processed = text;
 
-  // Extract XML <CANVAS> blocks
-  const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
-  processed = processed.replace(canvasRe, (match, type, title, content) => {
+  // 1. Strip out wrapper backticks if the AI accidentally puts the canvas INSIDE backticks
+  processed = processed.replace(/```(?:xml|html)?\s*(<CANVAS[\s\S]*?<\/CANVAS>)\s*```/gi, '$1');
+
+  // 2. Extract XML <CANVAS> blocks (Bulletproof regex captures it even if AI formats attributes wrong)
+  const canvasRe = /<CANVAS\b([^>]*)>([\s\S]*?)<\/CANVAS>/gi;
+  processed = processed.replace(canvasRe, (match, attrs, content) => {
+    let typeMatch = attrs.match(/type="([^"]+)"/i);
+    let titleMatch = attrs.match(/title="([^"]+)"/i);
+    let type = typeMatch ? typeMatch[1].toLowerCase() : 'code';
+    let title = titleMatch ? titleMatch[1] : type;
     
-    // BULLETPROOF CODE SCRUBBER: Automatically removes stray backticks if the AI forgets the rules
+    // BULLETPROOF CODE SCRUBBER: Automatically removes stray backticks inside the canvas
     let cleanContent = content.replace(/^\s*```[a-zA-Z]*\n?/i, '').replace(/\n?\s*```\s*$/i, '').trim();
 
     const id = 'c_' + (++canvasIdCounter);
-    canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
-    setTimeout(()=>openStoredCanvas(id), 300); // Auto-open the newest one
+    canvasStore[id] = { type: type, title: title, content: cleanContent };
+    setTimeout(()=>openStoredCanvas(id), 400); // Auto-open the newest one
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-              View ${title || type}
+              View ${title}
             </button>\n`;
   });
 
-  // Intercept standard Markdown code blocks
+  // 3. Intercept standard Markdown code blocks
   const mdRe = /```(\w+)?\n([\s\S]*?)```/g;
   processed = processed.replace(mdRe, (match, lang, content) => {
     const id = 'c_' + (++canvasIdCounter);
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
-    setTimeout(()=>openStoredCanvas(id), 300); // Auto-open
+    setTimeout(()=>openStoredCanvas(id), 400); // Auto-open
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
               View Code
@@ -797,13 +804,29 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
              try {
                 const data = JSON.parse(buffer);
                 if (data.type === 'final') {
-                    const ttsCleanText = cleanForTTS(data.text);
-                    const msgEl = addMessage(extractCanvasAndMarkdown(data.text), 'oliver', null, null, null, speakReply);
-                    if (speakReply) {
-                        const success = await speakText(ttsCleanText, false); 
-                        if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-                    } else { setOrb(null); stopWave(); }
+                const ttsCleanText = cleanForTTS(data.text);
+                const processedReply = extractCanvasAndMarkdown(data.text);
+                
+                const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
+                
+                if (speakReply && processedReply.includes('chat-canvas-btn')) {
+                    msgEl.classList.remove('hidden-voice');
                 }
+                
+                if (speakReply) {
+                  // 'false' flag tells the UI to finally unlock the microphone
+                  const success = await speakText(ttsCleanText, false); 
+                  if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+                } else {
+                  setOrb(null); stopWave();
+                }
+              }
+              else if (data.type === 'error') {
+                 addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
+                 isSpeaking = false; // FORCE UNLOCK ON ERROR
+                 micBtn.classList.remove('locked');
+                 setOrb(null); stopWave();
+              }
              } catch(e) {}
           }
           break;
@@ -819,7 +842,16 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 }
 
 async function speakText(text, isFiller = false){
-  if(!text) return false;
+  if(!text) {
+      // BUG FIX: If he only generated code and no text, we MUST manually release the UI locks here!
+      if (!isFiller) { 
+          isSpeaking=false;
+          setOrb(null); stopWave();
+          micBtn.classList.remove('locked');
+          if(isContinuous) setTimeout(()=>startListening(),650);
+      }
+      return false;
+  }
   isSpeaking=true; // HARD LOCK THE MICROPHONE
   setOrb('speaking'); startWave('speaking');
   micBtn.classList.add('locked');
