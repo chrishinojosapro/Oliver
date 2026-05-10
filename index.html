@@ -277,7 +277,6 @@
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
-  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
@@ -300,7 +299,6 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
-  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -319,7 +317,6 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
-  /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
     background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
@@ -458,7 +455,7 @@
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
 const EDGE_FUNCTION_URL = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain';
-const TTS_EDGE_URL      = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts';
+// REMOVED THE EDGE FUNCTION TTS URL - WE ARE USING BROWSER API NOW!
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtzJd9QnlS-vRh7muDC1i1mQ-WDwF1SMcVWsUU1JerUgLgUBkGxJ5Miq7BcKNT4zUg/exec';
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
@@ -473,12 +470,6 @@ let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
 let recognition   = null;
-let currentAudio  = null;
-let audioCtx      = null;
-let audioUnlocked = false;
-
-// NEW: This allows us to instantly kill the audio queue if you interrupt him
-let abortAudio    = false; 
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -494,6 +485,10 @@ const getSessionId = () => {
 let canvasStore = {};
 let canvasIdCounter = 0;
 
+// Keep audio context unlocker just in case it's needed for other browser elements, 
+// though Web Speech API doesn't strictly need it in the same way WebAudio does.
+let audioCtx = null;
+let audioUnlocked = false;
 function getAudioCtx(){
   if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
@@ -663,7 +658,6 @@ function showDriveBadge(filename){
 
 function extractCanvasAndMarkdown(text) {
   let processed = text;
-
   const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
   processed = processed.replace(canvasRe, (match, type, title, content) => {
     const id = 'c_' + (++canvasIdCounter);
@@ -686,7 +680,6 @@ function extractCanvasAndMarkdown(text) {
               View Code
             </button>\n`;
   });
-
   return processed.trim();
 }
 
@@ -697,7 +690,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   const recentConversation = getRecentConversation();
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
-  
   setOrb('thinking'); startWave('thinking');
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
@@ -741,11 +733,13 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     const oliverMsgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
     
     if(speakReply){ 
-      const success = await speakText(ttsCleanText); 
-      // Unhide text if speech failed, or if the text was unusually long and he had to summarize
-      if(!success && oliverMsgEl && processedReply) {
+      // If the message is incredibly long, we still want to show the text to be safe
+      if (ttsCleanText.length > 800 && oliverMsgEl) {
          oliverMsgEl.classList.remove('hidden-voice');
-      } else if (ttsCleanText.length > 800) { 
+      }
+      
+      const success = await speakText(ttsCleanText); 
+      if(!success && oliverMsgEl && processedReply) {
          oliverMsgEl.classList.remove('hidden-voice');
       }
     } else { 
@@ -761,65 +755,56 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 async function speakText(text){
   if(!text) return false;
   
+  const synth = window.speechSynthesis;
+  if (!synth) {
+      console.warn("Web Speech API not supported in this browser.");
+      return false; // Tells pipeline to un-hide the text message
+  }
+
   isSpeaking=true;
   setOrb('speaking'); startWave('speaking');
-  
-  // Unlock the mic button so Chris can interrupt him!
-  abortAudio = false;
+  micBtn.classList.add('locked');
 
-  try {
-    const res = await fetch(TTS_EDGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({ text: text })
-    });
+  return new Promise((resolve) => {
+    // 1. Cancel anything currently speaking just in case
+    synth.cancel();
+
+    // 2. Create the speech request
+    const utterance = new SpeechSynthesisUtterance(text);
     
-    if (!res.ok) {
-      console.warn(`TTS Error: ${await res.text()}`);
-      return false;
-    }
+    // 3. Try to pick a decent voice (Local OS voices)
+    let voices = synth.getVoices();
+    // Prioritize English, ideally a Male voice if available
+    let voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Male')) 
+             || voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB')
+             || voices[0];
+             
+    if(voice) utterance.voice = voice;
     
-    if (abortAudio) return true; // Stop if Chris interrupted while it was downloading
-
-    const result = await res.json();
-    if (!result.audioBase64) return false;
-
-    const binaryString = atob(result.audioBase64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-    const pcm16 = new Int16Array(bytes.buffer);
-
-    const ctx = getAudioCtx();
-    if(ctx.state==='suspended') await ctx.resume();
+    // You can adjust these to change how he sounds locally!
+    utterance.rate = 1.0;  // Speed
+    utterance.pitch = 1.0; // Pitch
     
-    const sampleRateMatch = result.mimeType?.match(/rate=(\d+)/);
-    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+    // 4. Handle end and errors
+    utterance.onend = () => {
+      isSpeaking=false;
+      setOrb(null); stopWave();
+      micBtn.classList.remove('locked');
+      if(isContinuous) setTimeout(()=>startListening(),650);
+      resolve(true);
+    };
+    
+    utterance.onerror = (e) => {
+      console.warn("Speech synthesis error:", e);
+      isSpeaking=false;
+      setOrb(null); stopWave();
+      micBtn.classList.remove('locked');
+      resolve(false);
+    };
 
-    const audioBuffer = ctx.createBuffer(1, pcm16.length, sampleRate);
-    const channelData = audioBuffer.getChannelData(0);
-    for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
-
-    if (abortAudio) return true; // Final check before playing
-
-    await new Promise((resolve) => {
-        const src = ctx.createBufferSource();
-        src.buffer = audioBuffer;
-        src.connect(ctx.destination);
-        src.onended = resolve;
-        src.start(0);
-        currentAudio = src;
-    });
-
-    return true;
-  } catch(err) {
-    console.warn('TTS error:', err);
-    return false;
-  } finally {
-    currentAudio = null; isSpeaking = false;
-    setOrb(null); stopWave();
-    if(isContinuous && !abortAudio) setTimeout(()=>startListening(),650);
-  }
+    // 5. Speak!
+    synth.speak(utterance);
+  });
 }
 
 function toggleContinuous(){
@@ -859,7 +844,7 @@ function buildRecognition(){
   
   r.onresult=(e)=>{
     clearTimeout(recTimeout);
-    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 5000);
+    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 5000); 
     
     let interim='',final='';
     for(let i=e.resultIndex;i<e.results.length;i++){
@@ -887,10 +872,9 @@ function buildRecognition(){
 function toggleMic(){
   unlockAudio();
   
-  // THE INTERRUPTION FIX: If he is talking, kill the audio and immediately let the user talk!
+  // THE INTERRUPTION FIX: Cancel the browser's speech synthesizer instantly!
   if(isSpeaking) {
-     abortAudio = true; // Signals the playback loop and the fetch loop to die
-     if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+     window.speechSynthesis.cancel();
      isSpeaking = false;
      setOrb(null); stopWave();
      micBtn.classList.remove('locked');
