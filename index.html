@@ -761,16 +761,26 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 async function speakText(text){
   if(!text) return false;
   
-  // 1. Break the text into safe, logical sentences/paragraphs to process audio much faster!
-  // This ultra-safe regex breaks the text by basic punctuation or newlines.
+  // 1. SMART CHUNKING: Group text to process audio faster while maintaining the UK accent!
   const rawChunks = text.split(/([.?!]\s+|\n{2,})/);
   const chunks = [];
+  let currentChunk = '';
+  
   for (let i = 0; i < rawChunks.length; i += 2) {
     const sentence = rawChunks[i];
     const separator = rawChunks[i + 1] || '';
     const full = (sentence + separator).trim();
-    if (full.length > 0) chunks.push(full);
+    
+    if (full) {
+      currentChunk += (currentChunk ? ' ' : '') + full;
+      // Group sentences together until they hit ~120 chars to keep the accent stable
+      if (currentChunk.length >= 120 || separator.includes('\n')) {
+        chunks.push(currentChunk);
+        currentChunk = '';
+      }
+    }
   }
+  if (currentChunk) chunks.push(currentChunk);
   
   if(chunks.length === 0) return false;
 
