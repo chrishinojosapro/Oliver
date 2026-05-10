@@ -230,8 +230,6 @@
   #mic-btn.recording { background:rgba(200,100,255,0.20); border-color:rgba(200,120,255,0.55); animation:mic-ring 1s ease-in-out infinite alternate; }
   #mic-btn.recording svg { fill:rgba(230,190,255,1); }
   @keyframes mic-ring { 0%{ box-shadow:0 0 10px rgba(180,100,255,0.25); } 100%{ box-shadow:0 0 26px rgba(200,120,255,0.60); } }
-  
-  /* NOTE: The .locked class was completely removed to allow tap-to-interrupt functionality */
 
   #img-btn.has-image { background:rgba(140,100,255,0.22); border-color:rgba(160,120,255,0.55); box-shadow:0 0 14px rgba(140,100,255,0.30); }
   #img-btn.has-image svg { fill:rgba(200,170,255,1); }
@@ -477,7 +475,7 @@ let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
 
-// Global Audio Queue to handle simultaneous interruptions/responses seamlessly
+// The Queue that handles background Audio
 let audioQueue = [];
 let isPlayingQueue = false;
 
@@ -492,7 +490,6 @@ const getSessionId = () => {
   return sid;
 };
 
-// Memory for code blocks parsed from chat
 let canvasStore = {};
 let canvasIdCounter = 0;
 
@@ -665,7 +662,6 @@ function showDriveBadge(filename){
 
 function extractCanvasAndMarkdown(text) {
   let processed = text;
-  processed = processed.replace(/```(?:xml|html)?\s*(<CANVAS[\s\S]*?<\/CANVAS>)\s*```/gi, '$1');
 
   const canvasRe = /<CANVAS\b([^>]*)>([\s\S]*?)<\/CANVAS>/gi;
   processed = processed.replace(canvasRe, (match, attrs, content) => {
@@ -674,12 +670,11 @@ function extractCanvasAndMarkdown(text) {
     let type = typeMatch ? typeMatch[1].toLowerCase() : 'code';
     let title = titleMatch ? titleMatch[1] : type;
     
+    // Bulletproof scrubber for AI adding backticks inside the canvas
     let cleanContent = content.replace(/^\s*```[a-zA-Z]*\n?/i, '').replace(/\n?\s*```\s*$/i, '').trim();
 
     const id = 'c_' + (++canvasIdCounter);
     canvasStore[id] = { type: type, title: title, content: cleanContent };
-    
-    // Automatically slide up the canvas pane when it gets injected
     setTimeout(()=>openStoredCanvas(id), 400); 
     
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
@@ -704,12 +699,14 @@ function extractCanvasAndMarkdown(text) {
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
+  // REMOVED THE isSpeaking LOCK! 
+  // You can now open as many parallel connections as you want.
+
   const lastAssistantMessage = getLastOliverMessage();
   const recentConversation = getRecentConversation();
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
   
-  // Set to thinking. Notice we NO LONGER lock the UI or the mic! You are free to multitask!
   setOrb('thinking'); startWave('thinking');
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
@@ -754,7 +751,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       if (value) {
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          buffer = lines.pop(); // Keep incomplete JSON in the buffer
+          buffer = lines.pop(); // Keep the last incomplete JSON in the buffer
 
           for (const line of lines) {
             if (!line.trim()) continue;
@@ -772,13 +769,12 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 
                 const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
                 
-                // Safety un-hide: If he generated a button, instantly reveal it!
+                // Automatically un-hide if code buttons were generated
                 if (speakReply && processedReply.includes('chat-canvas-btn')) {
                     msgEl.classList.remove('hidden-voice');
                 }
                 
                 if (speakReply) {
-                  // Add it to the audio queue. It will play behind the filler, or instantly if the filler is done.
                   speakText(ttsCleanText).then(success => {
                       if(!success && msgEl) msgEl.classList.remove('hidden-voice');
                   });
@@ -796,6 +792,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
           }
       }
 
+      // Check if the stream is officially done
       if (done) {
           if (buffer.trim()) {
              try {
@@ -825,7 +822,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   }
 }
 
-// AUDIO QUEUE ENGINE: Allows Oliver to stack responses if you ask rapid-fire questions
 function speakText(text) {
   if(!text) return Promise.resolve(false);
   
@@ -842,7 +838,6 @@ async function processAudioQueue() {
   const { text, resolve } = audioQueue.shift();
   
   setOrb('speaking'); startWave('speaking');
-  // Notice there is NO `micBtn.classList.add('locked')` here. You can click it anytime!
   
   try {
     const ctx = getAudioCtx();
@@ -856,7 +851,6 @@ async function processAudioQueue() {
     
     if(!res.ok) throw new Error(`TTS ${res.status}`);
     
-    // We process the raw MP3 buffer directly 
     const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
     
     await new Promise((resEnded) => {
@@ -875,11 +869,11 @@ async function processAudioQueue() {
     currentAudio = null;
     isPlayingQueue = false;
     
-    // If there is more to say, instantly keep talking!
     if(audioQueue.length > 0) {
       processAudioQueue();
     } else {
-      // If he is completely done, switch off the orb
+      // If nothing is left in the queue, shut down the orb.
+      // (If a background pipeline finishes later, it will wake the orb back up automatically!)
       setOrb(null); stopWave();
       if(isContinuous) setTimeout(() => startListening(), 650);
     }
@@ -891,14 +885,15 @@ function toggleContinuous(){
   isContinuous=!isContinuous;
   convoBtn.classList.toggle('active',isContinuous);
   if(isContinuous){
-    setTimeout(()=>{ if(isContinuous&&!isRecording&&!isPlayingQueue) startListening(); },300);
+    if(!isRecording) startListening();
   } else {
     stopWave(); stopRecording();
   }
 }
 
 function startListening(){
-  if(isRecording||isPlayingQueue) return;
+  // REMOVED isSpeaking/isPlayingQueue LOCK! You can listen anytime.
+  if(isRecording) return;
   recognition=buildRecognition();
   if(!recognition) return;
   try{ recognition.start(); }catch(_){}
@@ -948,13 +943,12 @@ function buildRecognition(){
   return r;
 }
 
-// THE "CUT HIM OFF" ENGINE
 function toggleMic(){
   unlockAudio();
   
-  // INTERRUPT OVERRIDE: If Oliver is talking (or about to talk), instantly cut him off!
+  // THE INTERRUPTION ENGINE: If you tap the mic while he's talking, it shuts him up instantly!
   if(currentAudio || audioQueue.length > 0) {
-    audioQueue = []; // Dump all his queued thoughts
+    audioQueue = []; // Dump all his pending spoken words in the trash
     if(currentAudio){ 
         try { currentAudio.stop(); } catch(_) {} 
         currentAudio = null; 
@@ -962,7 +956,7 @@ function toggleMic(){
     isPlayingQueue = false;
     setOrb(null); stopWave();
     
-    // Instantly start listening to the user's interruption
+    // Instantly switch to recording your new thought!
     startListening();
     return;
   }
@@ -1103,7 +1097,6 @@ function renderMarkdown(md){
     .replace(/\n\n/g,'</p><p>').replace(/^(?!<[hupli]|<\/[hupli]|<pre)(.+)$/gm,'<p>$1</p>');
 }
 
-// COLD START WARMUP: Silently wakes the Edge Functions up when you load the page so Oliver is instantly ready
 window.addEventListener('load', () => {
     fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
     fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
