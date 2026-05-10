@@ -665,8 +665,12 @@ function extractCanvasAndMarkdown(text) {
   // Extract XML <CANVAS> blocks
   const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
   processed = processed.replace(canvasRe, (match, type, title, content) => {
+    
+    // BULLETPROOF CODE SCRUBBER: Automatically removes stray backticks if the AI forgets the rules
+    let cleanContent = content.replace(/^\s*```[a-zA-Z]*\n?/i, '').replace(/\n?\s*```\s*$/i, '').trim();
+
     const id = 'c_' + (++canvasIdCounter);
-    canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: content.trim() };
+    canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
     setTimeout(()=>openStoredCanvas(id), 300); // Auto-open the newest one
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
