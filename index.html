@@ -136,8 +136,12 @@
     box-shadow:0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
   }
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.90); font-weight:300; line-height:1.65; }
+  .msg-p { margin-bottom:10px; }
+  .msg-p:last-child { margin-bottom:0; }
 
   .msg-image { display:block; max-width:100%; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.10); }
+
+  .hidden-voice { display:none !important; }
 
   .drive-badge {
     display:inline-flex; align-items:center; gap:5px;
@@ -182,6 +186,26 @@
   #waveform.visible { opacity:1; }
   .wave-bar { width:3px; border-radius:2px; background:rgba(200,160,255,0.55); height:4px; }
   #waveform.thinking .wave-bar { background:rgba(255,255,255,0.35); }
+
+  /* ── INLINE CANVAS BUTTON ── */
+  .inline-canvas-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 4px 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(140, 100, 255, 0.15);
+    border: 1px solid rgba(160, 120, 255, 0.3);
+    color: rgba(220, 200, 255, 1);
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .inline-canvas-btn:active {
+    transform: scale(0.96);
+    background: rgba(140, 100, 255, 0.25);
+  }
+  .inline-canvas-btn svg { width: 16px; height: 16px; fill: currentColor; }
 
   /* ── CONTROLS ── */
   .controls {
@@ -254,21 +278,33 @@
   #canvas-header { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 12px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.06); }
   #canvas-title { font-size:0.82em; font-weight:500; letter-spacing:0.06em; color:rgba(200,160,255,0.75); text-transform:uppercase; display:flex; align-items:center; gap:8px; }
   #canvas-type-badge { font-size:0.70em; padding:2px 8px; border-radius:10px; background:rgba(140,100,255,0.18); border:1px solid rgba(160,120,255,0.25); color:rgba(180,150,255,0.80); letter-spacing:0.08em; }
-  #canvas-close { width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; cursor:pointer; touch-action:manipulation; transition:background 0.2s; }
-  #canvas-close:active { background:rgba(255,255,255,0.12); }
-  #canvas-close svg { width:14px; height:14px; fill:rgba(255,255,255,0.55); }
+  .canvas-btn { width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; cursor:pointer; touch-action:manipulation; transition:background 0.2s; }
+  .canvas-btn:active { background:rgba(255,255,255,0.12); }
+  .canvas-btn svg { width:14px; height:14px; fill:rgba(255,255,255,0.55); }
+  #oliver-canvas.fullscreen #canvas-backdrop { flex: 0 0 0px; padding: 0; }
+  #oliver-canvas.fullscreen #canvas-handle { display: none; }
+  #oliver-canvas.fullscreen #canvas-panel { border-radius: 0; border-top: none; }
   #canvas-body-wrap { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
-  #canvas-body.type-code { background:rgba(0,0,0,0.25); padding:14px; }
-  #canvas-code { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:13px; line-height:1.7; color:rgba(220,210,255,0.90); white-space:pre-wrap; word-break:break-all; margin:0; }
-  .tok-kw  { color:rgba(180,130,255,1); }
-  .tok-str { color:rgba(130,210,150,1); }
-  .tok-num { color:rgba(100,190,255,1); }
-  .tok-cmt { color:rgba(140,140,160,0.70); font-style:italic; }
-  .tok-fn  { color:rgba(255,200,100,0.90); }
+  
+  /* UPDATED CODE EDITOR VIEW */
+  #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
+  #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
+  #canvas-code { font-family:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:13.5px; line-height:1.6; color:#c9d1d9; white-space:pre; word-wrap:normal; margin:0; tab-size:4; min-width:min-content; counter-reset:line; }
+  .line-row { display:flex; padding:0 16px; min-height:21.6px; }
+  .line-row:hover { background:rgba(255,255,255,0.04); }
+  .line-row::before { counter-increment:line; content:counter(line); display:inline-block; flex-shrink:0; width:35px; color:#484f58; text-align:right; margin-right:16px; border-right:1px solid #30363d; padding-right:10px; font-size:12px; user-select:none; }
+  .line-content { white-space:pre; }
+  .tok-kw  { color:#ff7b72; }
+  .tok-str { color:#a5d6ff; }
+  .tok-num { color:#79c0ff; }
+  .tok-cmt { color:#8b949e; font-style:italic; }
+  .tok-fn  { color:#d2a8ff; }
+  
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); }
+  #canvas-body.type-pdf { padding: 0; background: #323639; overflow: hidden; }
   #canvas-iframe { width:100%; height:100%; border:none; border-radius:8px; background:white; }
   #canvas-body.type-markdown { font-size:0.97em; line-height:1.75; color:rgba(255,255,255,0.85); }
   #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:rgba(200,170,255,0.95); font-weight:500; margin:1em 0 0.4em; }
@@ -278,8 +314,10 @@
   #canvas-body.type-markdown strong { color:rgba(255,255,255,0.95); }
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
-  #canvas-copy { position:absolute; top:12px; right:12px; padding:5px 12px; border-radius:10px; background:rgba(140,100,255,0.18); border:1px solid rgba(160,120,255,0.28); color:rgba(200,170,255,0.80); font-size:0.75em; cursor:pointer; touch-action:manipulation; transition:background 0.2s; }
-  #canvas-copy:active { background:rgba(140,100,255,0.35); }
+  
+  /* FLOATING COPY BUTTON */
+  #canvas-copy { position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; font-weight:600; cursor:pointer; touch-action:manipulation; transition:background 0.2s, border-color 0.2s; z-index:10; }
+  #canvas-copy:active { background:#30363d; border-color:#8b949e; }
 </style>
 </head>
 <body>
@@ -301,9 +339,14 @@
         <span id="canvas-title-text">Canvas</span>
         <span id="canvas-type-badge">code</span>
       </div>
-      <button id="canvas-close" onclick="closeCanvas()" aria-label="Close">
-        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-      </button>
+      <div style="display:flex; gap:8px;">
+        <button class="canvas-btn" onclick="toggleFullscreen()" aria-label="Fullscreen">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+        <button class="canvas-btn" onclick="closeCanvas()" aria-label="Close">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
     </div>
     <div id="canvas-body-wrap">
       <div id="canvas-body"></div>
@@ -504,7 +547,6 @@ function stopWave(){
   if(waveRAF){ cancelAnimationFrame(waveRAF); waveRAF=null; }
   bars.forEach(b=>b.style.height='4px');
 }
-function setStatus(){}
 
 /* ════════════════════════════════════════
    IMAGE HANDLING
@@ -575,9 +617,6 @@ async function sendMessage(){
 
 /* ════════════════════════════════════════
    CONVERSATION CONTEXT
-   Captures recent chat from the DOM so
-   Oliver can understand short follow-ups
-   like "all", "yes", "delete it" correctly
 ════════════════════════════════════════ */
 function getLastOliverMessage(){
   const msgs=document.querySelectorAll('.message.oliver .msg-text');
@@ -603,11 +642,10 @@ function getRecentConversation(){
 async function pipeline(userText,speakReply=true,imageBase64=null,imageMime=null,imageName=null){
   if(isSpeaking) return;
 
-  // Capture context BEFORE adding new user message to DOM
   const lastAssistantMessage=getLastOliverMessage();
   const recentConversation=getRecentConversation();
 
-  addMessage(userText,'user',imageBase64,imageMime,imageName);
+  addMessage(userText,'user',imageBase64,imageMime,imageName,speakReply);
   setOrb('thinking'); startWave('thinking');
 
   const elapsed=Math.floor((Date.now()-sessionStart)/1000);
@@ -644,7 +682,7 @@ async function pipeline(userText,speakReply=true,imageBase64=null,imageMime=null
     const data=await res.json();
     let reply=data.status==='success' ? data.reply : 'System error: '+(data.error||'Unknown error');
     reply=parseCanvasTags(reply);
-    addMessage(reply,'oliver');
+    addMessage(reply,'oliver',null,null,null,speakReply);
     if(speakReply){ await speakText(cleanForTTS(reply)); }
     else          { setOrb(null); stopWave(); }
   }catch(err){
@@ -656,17 +694,27 @@ async function pipeline(userText,speakReply=true,imageBase64=null,imageMime=null
 /* ════════════════════════════════════════
    ADD MESSAGE
 ════════════════════════════════════════ */
-function addMessage(text,sender,imageBase64,imageMime,imageName){
+function addMessage(text,sender,imageBase64,imageMime,imageName,isVoice=false){
   const c=document.getElementById('chat-container');
   const div=document.createElement('div');
-  div.className='message '+sender;
+  div.className='message '+sender+(isVoice?' hidden-voice':'');
+  
+  // Clean up excessive newlines and isolate View Code buttons
+  let cleanText = text ? text.trim().replace(/\n{3,}/g, '\n\n') : '';
+  cleanText = cleanText.replace(/\n*(<button class="inline-canvas-btn".*?<\/button>)\n*/g, '\n\n$1\n\n').trim();
+
+  // Convert double newlines into tightly controlled paragraphs instead of massive <br><br> gaps
+  const formattedText = cleanText.split(/\n\n/).map(block => {
+    return `<div class="msg-p">${block.replace(/\n/g, '<br>')}</div>`;
+  }).join('');
+
   if(sender==='oliver'){
     div.innerHTML=`<div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
-      <div class="oliver-card"><div class="msg-text">${text.replace(/\n/g,'<br>')}</div></div>`;
+      <div class="oliver-card"><div class="msg-text">${formattedText}</div></div>`;
   } else {
     let inner='';
     if(imageBase64) inner+=`<img class="msg-image" src="data:${imageMime||'image/jpeg'};base64,${imageBase64}" alt="${imageName||'image'}">`;
-    if(text) inner+=`<div>${text}</div>`;
+    if(cleanText) inner+=`<div class="msg-text">${formattedText}</div>`;
     div.innerHTML=inner;
   }
   c.appendChild(div);
@@ -685,97 +733,6 @@ function showDriveBadge(filename){
 }
 
 /* ════════════════════════════════════════
-   ELEVENLABS TTS
-════════════════════════════════════════ */
-async function speakText(text){
-  isSpeaking=true;
-  setOrb('speaking'); startWave('speaking');
-  micBtn.classList.add('locked');
-  try{
-    const ctx=getAudioCtx();
-    if(ctx.state==='suspended') await ctx.resume();
-    const res=await fetch(XI_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body:JSON.stringify({text}),
-    });
-    if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
-    const decoded=await ctx.decodeAudioData(await res.arrayBuffer());
-    await new Promise((resolve,reject)=>{
-      const src=ctx.createBufferSource();
-      src.buffer=decoded; src.connect(ctx.destination);
-      src.onended=resolve; src.start(0);
-      currentAudio=src;
-    });
-  }catch(err){
-    console.warn('TTS error:',err);
-    addMessage('⚠ Voice error: '+err.message,'oliver');
-  }finally{
-    currentAudio=null; isSpeaking=false;
-    setOrb(null); stopWave();
-    micBtn.classList.remove('locked');
-    if(isContinuous) setTimeout(()=>startListening(),650);
-  }
-}
-
-/* ════════════════════════════════════════
-   CONTINUOUS CONVERSATION
-════════════════════════════════════════ */
-function toggleContinuous(){
-  unlockAudio();
-  isContinuous=!isContinuous;
-  convoBtn.classList.toggle('active',isContinuous);
-  if(isContinuous){
-    setTimeout(()=>{ if(isContinuous&&!isRecording&&!isSpeaking) startListening(); },300);
-  } else {
-    stopWave(); stopRecording();
-  }
-}
-function startListening(){
-  if(isRecording||isSpeaking) return;
-  recognition=buildRecognition();
-  if(!recognition) return;
-  try{ recognition.start(); }catch(_){}
-}
-
-/* ════════════════════════════════════════
-   SPEECH RECOGNITION
-════════════════════════════════════════ */
-function buildRecognition(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) return null;
-  const r=new SR();
-  r.continuous=false; r.interimResults=true; r.lang='en-US';
-  r.onstart=()=>{ isRecording=true; micBtn.classList.add('recording'); setOrb('listening'); startWave('listening'); };
-  r.onresult=(e)=>{
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      e.results[i].isFinal?(final+=t):(interim+=t);
-    }
-    interimEl.textContent=interim||final;
-    if(final){ interimEl.textContent=''; stopRecording(); pipeline(final.trim(),true); }
-  };
-  r.onerror=(e)=>{ console.warn('Speech error:',e.error); stopRecording(); };
-  r.onend=()=>{ if(isRecording) stopRecording(); };
-  return r;
-}
-function toggleMic(){
-  unlockAudio();
-  if(isSpeaking) return;
-  if(isRecording){ stopRecording(); return; }
-  if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; isSpeaking=false; micBtn.classList.remove('locked'); }
-  startListening();
-}
-function stopRecording(){
-  isRecording=false;
-  micBtn.classList.remove('recording');
-  interimEl.textContent='';
-  try{ if(recognition) recognition.stop(); }catch(_){}
-  if(!isSpeaking&&!isContinuous){ setOrb(null); stopWave(); }
-}
-
-/* ════════════════════════════════════════
    OLIVER CANVAS
 ════════════════════════════════════════ */
 const canvasEl     =document.getElementById('oliver-canvas');
@@ -784,57 +741,91 @@ const canvasCopy   =document.getElementById('canvas-copy');
 const canvasBadge  =document.getElementById('canvas-type-badge');
 const canvasTTitle =document.getElementById('canvas-title-text');
 let canvasRawContent='';
+const canvasStore={};
+
+function openStoredCanvas(cid) {
+  const data = canvasStore[cid];
+  if(data) openCanvas(data.type, data.title, data.content);
+}
+
+function toggleFullscreen(){
+  canvasEl.classList.toggle('fullscreen');
+}
 
 function openCanvas(type,title,content){
   canvasTTitle.textContent=title||'Canvas';
   canvasBadge.textContent=type||'code';
   canvasRawContent=content;
-  canvasBody.className='type-'+type;
+  
+  const safeType = type.toLowerCase();
+  const isCode = ['code', 'js', 'javascript', 'json', 'python', 'css', 'ts', 'typescript', 'html', 'cpp', 'java'].includes(safeType);
+  const renderType = isCode ? 'code' : (['video', 'mp4'].includes(safeType) ? 'image' : safeType);
+  
+  canvasBody.className='type-'+renderType;
   canvasBody.innerHTML='';
   canvasCopy.style.display='none';
-  if(type==='code'){
-    const pre=document.createElement('pre'); pre.id='canvas-code';
-    pre.innerHTML=syntaxHighlight(content); canvasBody.appendChild(pre);
+
+  if(isCode){
+    const wrap = document.createElement('div'); 
+    wrap.id = 'canvas-code-wrap';
+    const pre=document.createElement('pre'); 
+    pre.id='canvas-code';
+    pre.innerHTML=syntaxHighlight(content); 
+    wrap.appendChild(pre);
+    canvasBody.appendChild(wrap);
     canvasCopy.style.display='block';
-  } else if(type==='image'){
+  } else if(renderType==='image' && !['video','mp4'].includes(safeType)){
     const img=document.createElement('img'); img.id='canvas-img';
     img.src=content.trim(); img.alt=title||'Image'; canvasBody.appendChild(img);
-  } else if(type==='html'){
+  } else if(['video','mp4'].includes(safeType)){
+    const vid=document.createElement('video'); vid.id='canvas-img';
+    vid.src=content.trim(); vid.controls=true; vid.autoplay=true; canvasBody.appendChild(vid);
+  } else if(safeType==='pdf'){
+    const obj=document.createElement('object');
+    obj.data=content.trim(); obj.type='application/pdf'; 
+    obj.style.width='100%'; obj.style.height='100%';
+    obj.innerHTML = `<div style="color:#c9d1d9; padding:20px; text-align:center;">Unable to display PDF inline. <br><br><a href="${content.trim()}" target="_blank" style="color:#58a6ff; text-decoration:none; padding:8px 16px; background:#21262d; border-radius:6px; display:inline-block; margin-top:10px;">Download / View PDF</a></div>`;
+    canvasBody.appendChild(obj);
+  } else if(safeType==='html'){
     const iframe=document.createElement('iframe'); iframe.id='canvas-iframe'; iframe.sandbox='allow-scripts';
     canvasBody.appendChild(iframe);
     iframe.contentDocument.open(); iframe.contentDocument.write(content); iframe.contentDocument.close();
-  } else if(type==='markdown'){
+  } else if(safeType==='markdown'){
     canvasBody.innerHTML=renderMarkdown(content);
+    canvasCopy.style.display='block';
   } else {
     const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
-    canvasBody.appendChild(pre); canvasCopy.style.display='block';
+    canvasBody.appendChild(pre);
+    canvasCopy.style.display='block';
   }
   canvasEl.classList.add('open');
 }
 function closeCanvas(){ canvasEl.classList.remove('open'); }
-function copyCanvas(){
-  navigator.clipboard.writeText(canvasRawContent).catch(()=>{});
-  canvasCopy.textContent='Copied!';
-  setTimeout(()=>{ canvasCopy.textContent='Copy'; },1800);
-}
 
 (function(){
   let startY=0;
   const panel=document.getElementById('canvas-panel');
-  panel.addEventListener('touchstart',e=>{ startY=e.touches[0].clientY; },{passive:true});
-  panel.addEventListener('touchend',e=>{ if(e.changedTouches[0].clientY-startY>80) closeCanvas(); },{passive:true});
+  if(panel) {
+    panel.addEventListener('touchstart',e=>{ startY=e.touches[0].clientY; },{passive:true});
+    panel.addEventListener('touchend',e=>{ if(e.changedTouches[0].clientY-startY>80) closeCanvas(); },{passive:true});
+  }
 })();
 
 function syntaxHighlight(code){
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return code.split('\n').map(line=>{
-    if(/^\s*(\/\/|#|--|\/\*)/.test(line)) return `<span class="tok-cmt">${esc(line)}</span>`;
-    return esc(line)
-      .replace(/(&#39;.*?&#39;|&quot;.*?&quot;|`.*?`)/g,'<span class="tok-str">$1</span>')
-      .replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-num">$1</span>')
-      .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|new|this|null|undefined|true|false|def|self|print|in|is|not|and|or|type|interface|extends|implements|public|private|static|void|int|string|bool)\b/g,'<span class="tok-kw">$1</span>')
-      .replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'<span class="tok-fn">$1</span>');
-  }).join('\n');
+  return code.split('\n').map((line)=>{
+    let parsed = line;
+    if(/^\s*(\/\/|#|--|\/\*)/.test(line)) {
+      parsed = `<span class="tok-cmt">${esc(line)}</span>`;
+    } else {
+      parsed = esc(line)
+        .replace(/(".*?"|'.*?'|`.*?`)/g,'<span class="tok-str">$1</span>')
+        .replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-num">$1</span>')
+        .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|new|this|null|undefined|true|false|def|self|print|in|is|not|and|or|type|interface|extends|implements|public|private|static|void|int|string|bool)\b/g,'<span class="tok-kw">$1</span>')
+        .replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'<span class="tok-fn">$1</span>');
+    }
+    return `<div class="line-row"><span class="line-content">${parsed || ' '}</span></div>`;
+  }).join('');
 }
 
 function renderMarkdown(md){
@@ -850,12 +841,50 @@ function renderMarkdown(md){
 function parseCanvasTags(reply){
   const re=/<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
   let match; let stripped=reply;
+  
+  // 1. Handle explicit <CANVAS> tags
   while((match=re.exec(reply))!==null){
     const [full,type,title,content]=match;
-    stripped=stripped.replace(full,'').trim();
-    setTimeout(()=>openCanvas(type.toLowerCase(),title||type,content.trim()),300);
+    
+    /* Bulletproof Markdown Stripper */
+    let cleanContent = content;
+    const codeRegex = /```[a-zA-Z0-9-]*\n([\s\S]*?)```/;
+    if (codeRegex.test(cleanContent)) {
+      cleanContent = cleanContent.match(codeRegex)[1];
+    }
+    cleanContent = cleanContent.trim();
+    
+    const cid = 'cvs_' + Date.now() + Math.floor(Math.random()*1000);
+    canvasStore[cid] = { type: type.toLowerCase(), title: title||type, content: cleanContent };
+    
+    const btnLabel = type.toLowerCase() === 'code' ? 'Code' : 'Canvas';
+    const btnHtml = `<button class="inline-canvas-btn" onclick="openStoredCanvas('${cid}')"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>View ${btnLabel}</button>`;
+    
+    stripped=stripped.replace(full, btnHtml);
+    setTimeout(()=>openStoredCanvas(cid), 300);
   }
-  return stripped;
+
+  // 2. Intercept raw Markdown blocks that Oliver forgot to wrap in <CANVAS>
+  const mdRe = /```([a-zA-Z0-9-]*)[ \t]*\r?\n([\s\S]*?)```/g;
+  let mdMatch;
+  let tempStripped = stripped;
+  
+  while((mdMatch = mdRe.exec(tempStripped)) !== null) {
+    const full = mdMatch[0];
+    const lang = mdMatch[1] || 'code';
+    const content = mdMatch[2].trim();
+    
+    const cid = 'cvs_' + Date.now() + Math.floor(Math.random()*1000);
+    const title = lang ? (lang.toUpperCase() + ' Code') : 'Code Snippet';
+    canvasStore[cid] = { type: lang.toLowerCase() || 'code', title: title, content: content };
+    
+    const btnHtml = `<button class="inline-canvas-btn" onclick="openStoredCanvas('${cid}')"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>View Code</button>`;
+    
+    stripped = stripped.replace(full, btnHtml);
+    setTimeout(()=>openStoredCanvas(cid), 300);
+  }
+
+  return stripped.trim();
 }
 </script>
 </body>
