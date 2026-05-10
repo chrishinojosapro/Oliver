@@ -277,7 +277,6 @@
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
-  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
@@ -300,7 +299,6 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
-  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -319,7 +317,6 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
-  /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
     background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
@@ -613,7 +610,7 @@ function getLastOliverMessage(){
 
 function getRecentConversation(){
   const all=document.querySelectorAll('.message.user, .message.oliver');
-  const recent=Array.from(all).slice(-8); // Limiting to the last 8 messages for speed
+  const recent=Array.from(all).slice(-8);
   return recent.map(el=>{
     const isOliver=el.classList.contains('oliver');
     const textEl=el.querySelector('.msg-text')||el;
@@ -713,7 +710,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     try{
       const driveResult=await uploadImageToDrive(imageBase64,imageMime||'image/jpeg',imageName||'image.jpg');
       if(driveResult.success){
-        imageContext=`\n\n[IMAGE UPLOADED TO DRIVE: filename="${driveResult.filename}", fileId="${driveResult.fileId}", viewUrl="${driveResult.viewUrl}"]`;
+        imageContext=`\n\n[IMAGE UPLOADED TO DRIVE: filename="${driveResult.filename}"]`;
         showDriveBadge(driveResult.filename);
       }
     }catch(err){ console.warn('Drive upload failed:',err); }
@@ -721,10 +718,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   }
 
   try{
-    const res = await fetch(EDGE_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({
+    const res=await fetch(EDGE_FUNCTION_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      body:JSON.stringify({
         message: userText+imageContext,
         sessionDuration: timeActive,
         sessionId: getSessionId(),
@@ -735,55 +732,58 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         recentConversation,
       }),
     });
-    
-    if (!res.body) throw new Error("No readable stream received.");
 
     const reader = res.body.getReader();
-    const decoder = new TextDecoder('utf-8');
+    const decoder = new TextDecoder();
     let buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
-      if (value) {
-        buffer += decoder.decode(value, { stream: true });
-        let lines = buffer.split('\n');
-        buffer = lines.pop(); // Keep last incomplete line
+      const { value, done } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // Keep incomplete JSON in the buffer
 
-        for (const line of lines) {
-          if (line.trim()) {
-            const data = JSON.parse(line);
-
-            if (data.type === 'filler') {
-              const msgEl = addMessage(data.text, 'oliver', null, null, null, speakReply);
-              if (speakReply) {
-                // Plays filler and keeps UI in thinking state
-                const success = await speakText(data.text, true); 
-                if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-              }
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line);
+          
+          if (data.type === 'filler') {
+            if (speakReply) {
+              // Await the filler audio so UI locks properly before moving to final
+              await speakText(data.text, true); 
             }
-            else if (data.type === 'final') {
-              const ttsCleanText = cleanForTTS(data.text);
-              const processedReply = extractCanvasAndMarkdown(data.text);
-
-              const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-
-              if (speakReply) {
-                // Plays final text and releases UI lock
-                const success = await speakText(ttsCleanText, false); 
-                if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-              } else {
-                setOrb(null); stopWave();
-              }
+          } 
+          else if (data.type === 'final') {
+            const ttsCleanText = cleanForTTS(data.text);
+            const processedReply = extractCanvasAndMarkdown(data.text);
+            
+            const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
+            
+            // If Oliver generated code or visual canvases, unhide the chat bubble immediately
+            if (speakReply && processedReply.includes('chat-canvas-btn')) {
+                msgEl.classList.remove('hidden-voice');
             }
-            else if (data.type === 'error') {
+            
+            if (speakReply) {
+              const success = await speakText(ttsCleanText, false); 
+              if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+            } else {
               setOrb(null); stopWave();
-              addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
             }
           }
+          else if (data.type === 'error') {
+             addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
+             setOrb(null); stopWave();
+          }
+        } catch (e) {
+          console.error("NDJSON Parse error:", e);
         }
       }
-      if (done) break;
     }
+    
   }catch(err){
     setOrb(null); stopWave();
     addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
@@ -798,31 +798,34 @@ async function speakText(text, isFiller = false){
   try{
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
+    
+    // Call the updated Deepgram Edge Function
     const res=await fetch(XI_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
       body:JSON.stringify({text}),
     });
+    
     if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
-    const decoded=await ctx.decodeAudioData(await res.arrayBuffer());
-    await new Promise((resolve,reject)=>{
+    
+    // Deepgram sends back raw MP3 bytes natively!
+    const audioBuffer = await res.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(audioBuffer);
+    
+    await new Promise((resolve)=>{
       const src=ctx.createBufferSource();
       src.buffer=decoded; src.connect(ctx.destination);
       src.onended=resolve; src.start(0);
       currentAudio=src;
     });
+    
     return true;
   }catch(err){
     console.warn('TTS error:',err);
     return false; // Tells pipeline to un-hide the text message
   }finally{
-    currentAudio=null;
-    
-    // If it was just a filler phrase, transition the orb back to 'thinking' while we wait for backend!
-    if (isFiller) {
-        setOrb('thinking'); startWave('thinking');
-    } else {
-        isSpeaking=false;
+    if (!isFiller) { // Don't release UI locks if this is just the filler
+        currentAudio=null; isSpeaking=false;
         setOrb(null); stopWave();
         micBtn.classList.remove('locked');
         if(isContinuous) setTimeout(()=>startListening(),650);
@@ -895,21 +898,9 @@ function buildRecognition(){
 
 function toggleMic(){
   unlockAudio();
-  
-  // Interruption mechanics: stop audio immediately
-  if(isSpeaking && currentAudio) {
-     try { currentAudio.stop(); } catch(e) {}
-     currentAudio = null;
-     isSpeaking = false;
-     setOrb(null); stopWave();
-     micBtn.classList.remove('locked');
-     
-     // Start listening immediately
-     startListening();
-     return;
-  }
-
+  if(isSpeaking) return;
   if(isRecording){ stopRecording(true); return; }
+  if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; isSpeaking=false; micBtn.classList.remove('locked'); }
   startListening();
 }
 
@@ -1052,15 +1043,10 @@ function renderMarkdown(md){
     .replace(/\n\n/g,'</p><p>').replace(/^(?!<[hupli]|<\/[hupli]|<pre)(.+)$/gm,'<p>$1</p>');
 }
 
-// ============================================================================
-// WARMUP SCRIPT
-// Silently pings the Supabase Edge Functions on load so there is zero 
-// "Cold Start" delay when you actually send your first message.
-// ============================================================================
 window.addEventListener('load', () => {
-  fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
-  fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
-  console.log("Oliver's engines warmed up.");
+    // Silently ping the edge functions to warm up the server containers
+    fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
+    fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
 });
 </script>
 </body>
