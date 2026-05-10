@@ -761,108 +761,59 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 async function speakText(text){
   if(!text) return false;
   
-  // 1. SMART CHUNKING: Group text to process audio faster while maintaining the UK accent!
-  const rawChunks = text.split(/([.?!]\s+|\n{2,})/);
-  const chunks = [];
-  let currentChunk = '';
-  
-  for (let i = 0; i < rawChunks.length; i += 2) {
-    const sentence = rawChunks[i];
-    const separator = rawChunks[i + 1] || '';
-    const full = (sentence + separator).trim();
-    
-    if (full) {
-      currentChunk += (currentChunk ? ' ' : '') + full;
-      // Group sentences together until they hit ~120 chars to keep the accent stable
-      if (currentChunk.length >= 120 || separator.includes('\n')) {
-        chunks.push(currentChunk);
-        currentChunk = '';
-      }
-    }
-  }
-  if (currentChunk) chunks.push(currentChunk);
-  
-  if(chunks.length === 0) return false;
-
   isSpeaking=true;
   setOrb('speaking'); startWave('speaking');
   
   // Unlock the mic button so Chris can interrupt him!
   abortAudio = false;
 
-  const audioQueue = [];
-
-  // 2. Helper to fetch and decode the raw PCM stream from Gemini
-  const fetchChunk = async (chunkText) => {
-    try {
-      const res = await fetch(TTS_EDGE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-        body: JSON.stringify({ text: chunkText })
-      });
-      if (!res.ok) {
-        console.warn(`TTS Error: ${await res.text()}`);
-        return null;
-      }
-      
-      const result = await res.json();
-      if (!result.audioBase64) return null;
-
-      const binaryString = atob(result.audioBase64);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-      const pcm16 = new Int16Array(bytes.buffer);
-
-      const ctx = getAudioCtx();
-      if(ctx.state==='suspended') await ctx.resume();
-      
-      const sampleRateMatch = result.mimeType?.match(/rate=(\d+)/);
-      const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
-
-      const audioBuffer = ctx.createBuffer(1, pcm16.length, sampleRate);
-      const channelData = audioBuffer.getChannelData(0);
-      for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
-
-      return audioBuffer;
-    } catch (e) {
-      console.warn("TTS Chunk Error:", e);
-      return null;
-    }
-  };
-
   try {
-    // 3. Kick off the first chunk immediately for fast Time-to-First-Audio
-    audioQueue.push(fetchChunk(chunks[0]));
-
-    // 4. Quietly fetch the rest of the chunks in the background while he is talking
-    (async () => {
-        for (let i = 1; i < chunks.length; i++) {
-            if (abortAudio) break; // Stop downloading if Chris interrupts him
-            audioQueue.push(fetchChunk(chunks[i]));
-        }
-    })();
-
-    // 5. Play the chunks back-to-back in perfect order
-    const ctx = getAudioCtx();
-    for (let i = 0; i < chunks.length; i++) {
-        if (abortAudio) break; // Instantly kill the playback loop if interrupted
-        const buffer = await audioQueue[i];
-        if (!buffer) continue;
-
-        await new Promise((resolve) => {
-            if (abortAudio) return resolve(); // Double check before starting the node
-            const src = ctx.createBufferSource();
-            src.buffer = buffer;
-            src.connect(ctx.destination);
-            src.onended = resolve;
-            src.start(0);
-            currentAudio = src;
-        });
+    const res = await fetch(TTS_EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ text: text })
+    });
+    
+    if (!res.ok) {
+      console.warn(`TTS Error: ${await res.text()}`);
+      return false;
     }
+    
+    if (abortAudio) return true; // Stop if Chris interrupted while it was downloading
+
+    const result = await res.json();
+    if (!result.audioBase64) return false;
+
+    const binaryString = atob(result.audioBase64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+    const pcm16 = new Int16Array(bytes.buffer);
+
+    const ctx = getAudioCtx();
+    if(ctx.state==='suspended') await ctx.resume();
+    
+    const sampleRateMatch = result.mimeType?.match(/rate=(\d+)/);
+    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+
+    const audioBuffer = ctx.createBuffer(1, pcm16.length, sampleRate);
+    const channelData = audioBuffer.getChannelData(0);
+    for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
+
+    if (abortAudio) return true; // Final check before playing
+
+    await new Promise((resolve) => {
+        const src = ctx.createBufferSource();
+        src.buffer = audioBuffer;
+        src.connect(ctx.destination);
+        src.onended = resolve;
+        src.start(0);
+        currentAudio = src;
+    });
+
     return true;
   } catch(err) {
-    console.warn('TTS queue error:', err);
+    console.warn('TTS error:', err);
     return false;
   } finally {
     currentAudio = null; isSpeaking = false;
