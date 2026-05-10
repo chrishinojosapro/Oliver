@@ -721,10 +721,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   }
 
   try{
-    const res=await fetch(EDGE_FUNCTION_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body:JSON.stringify({
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
         message: userText+imageContext,
         sessionDuration: timeActive,
         sessionId: getSessionId(),
@@ -736,69 +736,79 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       }),
     });
     
-    const data=await res.json();
-    let reply=data.status==='success' ? data.reply : 'System error: '+(data.error||'Unknown error');
-    
-    const ttsCleanText = cleanForTTS(reply); // Clean BEFORE UI parsing modifies it
-    let processedReply = extractCanvasAndMarkdown(reply);
-    
-    const oliverMsgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-    
-    if(speakReply){ 
-      // Un-hide the text bubble instantly if the response is super long to save the user from waiting in silence
-      if (ttsCleanText.length > 800 && oliverMsgEl) {
-         oliverMsgEl.classList.remove('hidden-voice');
+    if (!res.body) throw new Error("No readable stream received.");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+        let lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep last incomplete line
+
+        for (const line of lines) {
+          if (line.trim()) {
+            const data = JSON.parse(line);
+
+            if (data.type === 'filler') {
+              const msgEl = addMessage(data.text, 'oliver', null, null, null, speakReply);
+              if (speakReply) {
+                // Plays filler and keeps UI in thinking state
+                const success = await speakText(data.text, true); 
+                if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+              }
+            }
+            else if (data.type === 'final') {
+              const ttsCleanText = cleanForTTS(data.text);
+              const processedReply = extractCanvasAndMarkdown(data.text);
+
+              const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
+
+              if (speakReply) {
+                // Plays final text and releases UI lock
+                const success = await speakText(ttsCleanText, false); 
+                if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+              } else {
+                setOrb(null); stopWave();
+              }
+            }
+            else if (data.type === 'error') {
+              setOrb(null); stopWave();
+              addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
+            }
+          }
+        }
       }
-      
-      // Sending full text to preserve Aries tone/flow
-      const success = await speakText(ttsCleanText); 
-      
-      // If speech fails, un-hide the text bubble
-      if(!success && oliverMsgEl && processedReply) {
-         oliverMsgEl.classList.remove('hidden-voice');
-      }
-    } else { 
-      setOrb(null); stopWave(); 
+      if (done) break;
     }
-    
   }catch(err){
     setOrb(null); stopWave();
     addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
   }
 }
 
-async function speakText(text){
+async function speakText(text, isFiller = false){
   if(!text) return false;
   isSpeaking=true;
   setOrb('speaking'); startWave('speaking');
   micBtn.classList.add('locked');
-  
   try{
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
-    
-    // We send the entire un-chopped text block to Deepgram so the Aries voice sounds perfectly natural and fluid.
     const res=await fetch(XI_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
       body:JSON.stringify({text}),
     });
-    
-    if(!res.ok) {
-        const errText = await res.text();
-        throw new Error(`TTS ${res.status}: ${errText}`);
-    }
-    
-    // Deepgram returns RAW MP3 AUDIO. Read as an ArrayBuffer, NOT JSON.
-    const arrayBuffer = await res.arrayBuffer();
-    const decoded = await ctx.decodeAudioData(arrayBuffer);
-    
-    await new Promise((resolve)=>{
+    if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
+    const decoded=await ctx.decodeAudioData(await res.arrayBuffer());
+    await new Promise((resolve,reject)=>{
       const src=ctx.createBufferSource();
-      src.buffer=decoded; 
-      src.connect(ctx.destination);
-      src.onended=resolve; 
-      src.start(0);
+      src.buffer=decoded; src.connect(ctx.destination);
+      src.onended=resolve; src.start(0);
       currentAudio=src;
     });
     return true;
@@ -806,10 +816,17 @@ async function speakText(text){
     console.warn('TTS error:',err);
     return false; // Tells pipeline to un-hide the text message
   }finally{
-    currentAudio=null; isSpeaking=false;
-    setOrb(null); stopWave();
-    micBtn.classList.remove('locked');
-    if(isContinuous) setTimeout(()=>startListening(),650);
+    currentAudio=null;
+    
+    // If it was just a filler phrase, transition the orb back to 'thinking' while we wait for backend!
+    if (isFiller) {
+        setOrb('thinking'); startWave('thinking');
+    } else {
+        isSpeaking=false;
+        setOrb(null); stopWave();
+        micBtn.classList.remove('locked');
+        if(isContinuous) setTimeout(()=>startListening(),650);
+    }
   }
 }
 
