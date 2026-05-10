@@ -43,6 +43,7 @@
     0%,100%{ opacity:.6; transform:scale(1); }
     50%    { opacity:1;  transform:scale(1.08); }
   }
+  
   .orb-ring-outer {
     position:absolute; inset:0; border-radius:50%;
     border:1px solid rgba(255,255,255,0.28);
@@ -276,7 +277,6 @@
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
-  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
@@ -299,7 +299,6 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
-  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -318,7 +317,6 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
-  /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
     background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
@@ -744,9 +742,27 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     const oliverMsgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
     
     if(speakReply){ 
-      const success = await speakText(ttsCleanText); 
-      // If speech fails or there was no text to speak, un-hide the bubble so the user sees it
-      if(!success && oliverMsgEl && processedReply) {
+      let finalTTS = ttsCleanText;
+      let isLongResponse = false;
+      
+      // Prevent TTS API timeouts on massive text dumps
+      if (finalTTS.length > 650) {
+         // Find the last punctuation mark before the 600 character cutoff
+         let breakPoint = Math.max(
+             finalTTS.lastIndexOf('.', 600),
+             finalTTS.lastIndexOf('?', 600),
+             finalTTS.lastIndexOf('!', 600)
+         );
+         if (breakPoint === -1 || breakPoint < 100) breakPoint = 600; 
+         
+         finalTTS = finalTTS.substring(0, breakPoint + 1) + " I've put the rest of this on your screen.";
+         isLongResponse = true;
+      }
+
+      const success = await speakText(finalTTS); 
+      
+      // Un-hide the bubble if speech fails, if we intentionally truncated it, or if there was no text to speak (e.g. only code)
+      if((!success || isLongResponse || !finalTTS) && oliverMsgEl) {
          oliverMsgEl.classList.remove('hidden-voice');
       }
     } else { 
