@@ -739,52 +739,76 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
       
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop(); // Keep incomplete JSON in the buffer
+      if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Keep incomplete JSON in the buffer
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const data = JSON.parse(line);
-          
-          if (data.type === 'filler') {
-            if (speakReply) {
-              // Await the filler audio so UI locks properly before moving to final
-              await speakText(data.text, true); 
-            }
-          } 
-          else if (data.type === 'final') {
-            const ttsCleanText = cleanForTTS(data.text);
-            const processedReply = extractCanvasAndMarkdown(data.text);
-            
-            const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-            
-            // If Oliver generated code or visual canvases, unhide the chat bubble immediately
-            if (speakReply && processedReply.includes('chat-canvas-btn')) {
-                msgEl.classList.remove('hidden-voice');
-            }
-            
-            if (speakReply) {
-              const success = await speakText(ttsCleanText, false); 
-              if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-            } else {
-              setOrb(null); stopWave();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(line);
+              
+              if (data.type === 'filler') {
+                if (speakReply) {
+                  // Await the filler audio. The 'true' flag ensures the UI STAYS LOCKED when done!
+                  await speakText(data.text, true); 
+                } else {
+                  setOrb('thinking'); startWave('thinking');
+                }
+              } 
+              else if (data.type === 'final') {
+                const ttsCleanText = cleanForTTS(data.text);
+                const processedReply = extractCanvasAndMarkdown(data.text);
+                
+                const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
+                
+                if (speakReply && processedReply.includes('chat-canvas-btn')) {
+                    msgEl.classList.remove('hidden-voice');
+                }
+                
+                if (speakReply) {
+                  // 'false' flag tells the UI to finally unlock the microphone
+                  const success = await speakText(ttsCleanText, false); 
+                  if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+                } else {
+                  setOrb(null); stopWave();
+                }
+              }
+              else if (data.type === 'error') {
+                 addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
+                 isSpeaking = false; // FORCE UNLOCK ON ERROR
+                 micBtn.classList.remove('locked');
+                 setOrb(null); stopWave();
+              }
+            } catch (e) {
+              console.error("NDJSON Parse error:", e);
             }
           }
-          else if (data.type === 'error') {
-             addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
-             setOrb(null); stopWave();
+      }
+
+      if (done) {
+          if (buffer.trim()) {
+             try {
+                const data = JSON.parse(buffer);
+                if (data.type === 'final') {
+                    const ttsCleanText = cleanForTTS(data.text);
+                    const msgEl = addMessage(extractCanvasAndMarkdown(data.text), 'oliver', null, null, null, speakReply);
+                    if (speakReply) {
+                        const success = await speakText(ttsCleanText, false); 
+                        if(!success && msgEl) msgEl.classList.remove('hidden-voice');
+                    } else { setOrb(null); stopWave(); }
+                }
+             } catch(e) {}
           }
-        } catch (e) {
-          console.error("NDJSON Parse error:", e);
-        }
+          break;
       }
     }
     
   }catch(err){
+    isSpeaking = false; 
+    micBtn.classList.remove('locked');
     setOrb(null); stopWave();
     addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
   }
@@ -792,14 +816,13 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
 async function speakText(text, isFiller = false){
   if(!text) return false;
-  isSpeaking=true;
+  isSpeaking=true; // HARD LOCK THE MICROPHONE
   setOrb('speaking'); startWave('speaking');
   micBtn.classList.add('locked');
   try{
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
     
-    // Call the updated Deepgram Edge Function
     const res=await fetch(XI_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
@@ -808,7 +831,6 @@ async function speakText(text, isFiller = false){
     
     if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
     
-    // Deepgram sends back raw MP3 bytes natively!
     const audioBuffer = await res.arrayBuffer();
     const decoded = await ctx.decodeAudioData(audioBuffer);
     
@@ -824,11 +846,18 @@ async function speakText(text, isFiller = false){
     console.warn('TTS error:',err);
     return false; // Tells pipeline to un-hide the text message
   }finally{
-    if (!isFiller) { // Don't release UI locks if this is just the filler
-        currentAudio=null; isSpeaking=false;
+    currentAudio=null;
+    
+    if (!isFiller) { 
+        // THIS IS THE FINAL ANSWER: Release UI locks and allow continuous listening
+        isSpeaking=false;
         setOrb(null); stopWave();
         micBtn.classList.remove('locked');
         if(isContinuous) setTimeout(()=>startListening(),650);
+    } else {
+        // THIS IS JUST A FILLER: He finished speaking, but is still working.
+        // Switch to 'thinking' animation, and KEEP THE MIC LOCKED!
+        setOrb('thinking'); startWave('thinking');
     }
   }
 }
