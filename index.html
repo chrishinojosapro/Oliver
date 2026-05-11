@@ -473,7 +473,9 @@ let audioUnlocked = false;
 let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
-let lastSpokenText = ""; 
+
+// NEW: Rolling Speech Buffer for bulletproof echo cancellation
+let recentSpokenChunks = []; 
 window.hasInterrupted = false; 
 
 let pendingImageBase64 = null;
@@ -870,7 +872,9 @@ async function processAudioQueue() {
   const { text, resolve, runId } = audioQueue.shift();
   currentPlayingRunId = runId;
   
-  lastSpokenText = text.toLowerCase().replace(/[^\w\s]/gi, ''); 
+  // NEW: Add to rolling buffer
+  recentSpokenChunks.push(text.toLowerCase().replace(/[^\w\s]/gi, '')); 
+  if (recentSpokenChunks.length > 3) recentSpokenChunks.shift(); // Only keep last 3 chunks
   
   try {
     const ctx = getAudioCtx();
@@ -974,12 +978,18 @@ function buildRecognition(){
     }
     interimEl.textContent = interim || final;
 
-    const spokenText = (interim || final).trim().toLowerCase().replace(/[^\w\s]/gi, '');
+    const rawText = (interim || final).trim().toLowerCase();
+    const spokenText = rawText.replace(/[^\w\s]/gi, '');
     
-    const overlapPercent = calculateWordOverlap(spokenText, lastSpokenText);
-    const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText) || overlapPercent > 0.4);
+    // WAKE WORD DETECTION
+    const hasWakeWord = rawText.includes('oliver'); 
     
-    if (spokenText.length > 3 && currentPlayingRunId && !isEcho) {
+    const combinedRecentSpeech = recentSpokenChunks.join(" ");
+    const overlapPercent = calculateWordOverlap(spokenText, combinedRecentSpeech);
+    const isEcho = combinedRecentSpeech && (combinedRecentSpeech.includes(spokenText) || spokenText.includes(combinedRecentSpeech) || overlapPercent > 0.4);
+    
+    // WAKE WORD INTERRUPTION: Only cut his audio if you say his name
+    if (hasWakeWord && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
             try { currentAudio.stop(); } catch(_) {}
@@ -991,13 +1001,19 @@ function buildRecognition(){
     }
 
     if(final && !isEcho){ 
-      interimEl.textContent = ''; 
       const userText = final.trim();
 
-      pipeline(userText, true); 
+      // WAKE WORD GATE: If mic is always on, ONLY answer if "Oliver" is said.
+      if (hasWakeWord || !isContinuous) {
+          interimEl.textContent = ''; 
+          pipeline(userText, true); 
 
-      if (!isContinuous) {
-          stopRecording(); 
+          if (!isContinuous) {
+              stopRecording(); 
+          }
+      } else {
+          // Ignore background chatter, clear the text off the screen after 1 second
+          setTimeout(() => { if (interimEl.textContent === final) interimEl.textContent = ''; }, 1000);
       }
     }
   };
