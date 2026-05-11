@@ -240,6 +240,7 @@
 
   #file-input { display:none; }
 
+  /* Canvas styling */
   #oliver-canvas {
     position:fixed; inset:0; z-index:100;
     display:flex; flex-direction:column;
@@ -400,6 +401,9 @@
   <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
     <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
   </button>
+  <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
+    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
   <button class="ctrl-btn" id="convo-btn" onclick="toggleContinuous()" aria-label="Conversation mode">
     <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"/></svg>
   </button>
@@ -467,7 +471,7 @@ const interimEl = { textContent:'' };
 
 let isRecording   = false;
 let isContinuous  = false;
-let isThinking    = 0; // Integer Counter for True Multitasking!
+let isThinking    = 0; 
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
@@ -477,6 +481,7 @@ let audioUnlocked = false;
 let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
+let lastSpokenText = ""; // ANTI-ECHO TRACKER
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -678,7 +683,6 @@ function extractCanvasAndMarkdown(text) {
   processed = processed.replace(canvasRe, (match, type, title, content) => {
     const id = 'c_' + (++canvasIdCounter);
     
-    // Bulletproof Backtick Scrubber
     let cleanContent = content
       .replace(/^\s*```[a-zA-Z]*\n?/i, '') 
       .replace(/\n?\s*```\s*$/i, '')       
@@ -686,13 +690,13 @@ function extractCanvasAndMarkdown(text) {
       
     canvasStore[id] = { type: (type || 'code').toLowerCase(), title: title || type || 'code', content: cleanContent };
     
-    // Auto-Pop the Canvas & Unlock the UI
+    // Auto-Pop the Canvas & Force UI Unlock
     setTimeout(() => {
         openStoredCanvas(id);
         const canvasEl = document.getElementById('oliver-canvas');
         if(canvasEl && canvasEl.classList.contains('open')) {
-             if (isContinuous && recognition) {
-                 try { recognition.stop(); } catch(e){} 
+             if (isContinuous && recognition && !isRecording) {
+                 startListening(); // Ensure mic is awake when viewing code
              }
         }
     }, 400); 
@@ -709,7 +713,6 @@ function extractCanvasAndMarkdown(text) {
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
     
-    // Auto-Pop the Canvas & Unlock the UI
     setTimeout(() => {
         openStoredCanvas(id);
     }, 400); 
@@ -729,7 +732,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
   
-  // PARALLEL TRACKING: Generate a unique ID for this specific thought
+  // Create Unique ID for this specific train of thought
   const runId = Date.now();
   isThinking++; 
   updateOrbState();
@@ -752,10 +755,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
   let thinkCounted = true; 
   try {
-    const res=await fetch(EDGE_FUNCTION_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body:JSON.stringify({
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      body: JSON.stringify({
         message: userText+imageContext,
         sessionDuration: timeActive,
         sessionId: getSessionId(),
@@ -777,7 +780,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       if (value) {
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          buffer = lines.pop(); // Keep the last incomplete JSON in the buffer
+          buffer = lines.pop(); // Keep incomplete JSON in buffer
 
           for (const line of lines) {
             if (!line.trim()) continue;
@@ -785,7 +788,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
               const data = JSON.parse(line);
               
               if (data.type === 'filler') {
-                // Instantly speak the multitasking filler using this specific runId
                 if (speakReply) speakText(data.text, runId); 
               } 
               else if (data.type === 'final') {
@@ -794,13 +796,12 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 
                 const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
                 
-                // UNHIDE BUG FIX: If he generated buttons, instantly show the chat bubble!
+                // UNHIDE BUBBLE if there are interactive elements or purely visual data
                 if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) {
                     msgEl.classList.remove('hidden-voice');
                 }
                 
                 if (speakReply && ttsCleanText) {
-                  // Pass the unique runId so the Audio Queue knows this belongs to the same thought!
                   speakText(ttsCleanText, runId).then(success => {
                       if(!success && msgEl) msgEl.classList.remove('hidden-voice');
                   });
@@ -832,14 +833,13 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 }
              } catch(e) {}
           }
-          break;
+          break; // Exit stream read loop safely
       }
     }
   } catch(err) {
     addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
   } finally {
     if (thinkCounted) {
-        // Decrease the concurrent process counter
         isThinking = Math.max(0, isThinking - 1);
         updateOrbState();
     }
@@ -849,7 +849,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 function speakText(text, runId) {
   if(!text) return Promise.resolve(false);
   return new Promise((resolve) => {
-    // We explicitly tag every piece of audio with the runId it belongs to
+    // Tag every request with its task ID for smart interruption
     audioQueue.push({ text, resolve, runId });
     processAudioQueue();
   });
@@ -862,14 +862,13 @@ async function processAudioQueue() {
   updateOrbState(); 
   
   const { text, resolve, runId } = audioQueue.shift();
-  // Mark this specific thought as the one currently talking
   currentPlayingRunId = runId;
+  lastSpokenText = text.toLowerCase().replace(/[^\w\s]/gi, ''); // Anti-Echo string
   
   try {
     const ctx = getAudioCtx();
     if(ctx.state === 'suspended') await ctx.resume();
     
-    // Fetch raw MP3 buffer from Deepgram TTS
     const res = await fetch(XI_URL, {
       method: 'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
@@ -878,6 +877,7 @@ async function processAudioQueue() {
     
     if(!res.ok) throw new Error(`TTS ${res.status}`);
     
+    // Direct raw arrayBuffer parsing for Deepgram
     const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
     
     await new Promise((resEnded) => {
@@ -894,7 +894,7 @@ async function processAudioQueue() {
     resolve(false);
   } finally {
     currentAudio = null;
-    currentPlayingRunId = null; // Clear it so the mic doesn't think we are still talking
+    currentPlayingRunId = null; 
     isPlayingQueue = false;
     
     if(audioQueue.length > 0) {
@@ -904,7 +904,6 @@ async function processAudioQueue() {
     }
   }
 }
-
 
 function toggleContinuous(){
   unlockAudio();
@@ -918,7 +917,7 @@ function toggleContinuous(){
 }
 
 function startListening(){
-  if(isRecording) return;
+  if(isRecording) return; // Removed the isSpeaking block to allow full multitasking
   recognition = buildRecognition();
   if(!recognition) return;
   try{ recognition.start(); }catch(_){}
@@ -932,7 +931,6 @@ function buildRecognition(){
   }
   const r = new SR();
   
-  // Magic Setting: If in Conversation Mode, leave mic hot forever!
   r.continuous = isContinuous; 
   r.interimResults = true; 
   r.lang = 'en-US';
@@ -960,10 +958,13 @@ function buildRecognition(){
     }
     interimEl.textContent = interim || final;
 
-    // SMART INTERRUPTION: Only cut off the specific train of thought you are interrupting
-    const spokenText = (interim || final).trim();
-    if (spokenText.length > 2 && currentPlayingRunId) {
-        // Delete any remaining audio for THIS specific task, but save background tasks!
+    const spokenText = (interim || final).trim().toLowerCase().replace(/[^\w\s]/gi, '');
+    
+    // ANTI-ECHO FILTER: Ensure your mic isn't just hearing Oliver's speakers
+    const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText));
+    
+    if (spokenText.length > 3 && currentPlayingRunId && !isEcho) {
+        // SMART INTERRUPTION: Delete the rambling task, but keep background searches alive
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
             try { currentAudio.stop(); } catch(_) {}
@@ -973,14 +974,13 @@ function buildRecognition(){
         updateOrbState();
     }
 
-    if(final){ 
+    if(final && !isEcho){ 
       interimEl.textContent = ''; 
       const userText = final.trim();
 
-      // Fire thought into pipeline immediately (Does NOT cancel background tasks)
+      // Fire into pipeline (does not kill background tasks)
       pipeline(userText, true); 
 
-      // If just using Walkie-Talkie button, hang up. Otherwise keep rolling!
       if (!isContinuous) {
           stopRecording(); 
       }
@@ -1000,7 +1000,7 @@ function buildRecognition(){
     isRecording = false;
     micBtn.classList.remove('recording');
     
-    // Auto-Reboot: If browser times out the mic during phone call mode, turn it back on instantly!
+    // Auto-Reboot the mic during phone call mode
     if (isContinuous) {
         setTimeout(() => startListening(), 100);
     } else {
@@ -1013,15 +1013,13 @@ function buildRecognition(){
 function toggleMic(){
   unlockAudio();
   
-  // If in Phone Call mode, tapping Mic turns it off completely
   if (isContinuous) {
       toggleContinuous();
       return;
   }
 
-  // Voice Interruption manually via button tap
+  // Smart interruption on button tap
   if (currentPlayingRunId) {
-      // Clear ONLY the currently rambling thought, protect the background!
       audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
       if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
       currentPlayingRunId = null;
@@ -1169,7 +1167,6 @@ function renderMarkdown(md){
 }
 
 window.addEventListener('load', () => {
-    // Silent Ping to wake up Supabase instantly
     fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
     fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
 });
