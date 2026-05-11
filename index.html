@@ -1087,6 +1087,22 @@ function toggleMic(){
   startListening();
 }
 
+function stopRecording(processCurrent = false){
+  isRecording=false;
+  micBtn.classList.remove('recording');
+  clearTimeout(sentenceTimeout);
+  
+  const capturedText = interimEl.textContent.trim();
+  interimEl.textContent='';
+  
+  try{ if(recognition) recognition.stop(); }catch(_){}
+  updateOrbState();
+  
+  if(processCurrent && capturedText && capturedText.length > 2) {
+      pipeline(capturedText, true);
+  }
+}
+
 setInterval(() => {
     if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
         startListening();
