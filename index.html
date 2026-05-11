@@ -502,6 +502,7 @@ let canvasIdCounter = 0;
 window.hasInterrupted = false; 
 let isMicStarting = false;
 let sentenceTimeout;
+let lastMicRestart = 0; // ADDED: Global debounce timer
 
 // ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
@@ -928,16 +929,26 @@ function toggleContinuous(){
 }
 
 function startListening(){
+  // STABILITY FIX: Prevent rapid-fire flashing by enforcing a 600ms gap between restarts
+  if(Date.now() - lastMicRestart < 600) return;
   if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue) return;
   
   isMicStarting = true; 
+  lastMicRestart = Date.now();
   recognition = buildRecognition();
   if(!recognition) {
       isMicStarting = false;
       return;
   }
   try{ 
-      setTimeout(() => recognition.start(), 50); 
+      setTimeout(() => {
+          // Double-check nothing changed in the 50ms gap before physically starting
+          if(!isThinking && !isSpeaking && !isPlayingQueue && isContinuous) {
+              recognition.start();
+          } else {
+              isMicStarting = false;
+          }
+      }, 50); 
   } catch(err){ 
       console.warn("Mic start failed:", err);
       isMicStarting = false; 
@@ -1033,6 +1044,7 @@ function buildRecognition(){
   r.onend=()=>{ 
      if(isRecording) stopRecording(false); 
      isMicStarting = false;
+     // Add a slight delay before allowing a restart to let the browser hardware fully close the channel
      if(isContinuous && !isRecording && !isThinking) {
          setTimeout(startListening, 300);
      }
@@ -1064,7 +1076,8 @@ function stopRecording(processCurrent = false){
   const capturedText = interimEl.textContent.trim();
   interimEl.textContent='';
   
-  try{ if(recognition) recognition.stop(); }catch(_){}
+  // STABILITY FIX: Use .abort() instead of .stop() to instantly kill the engine without ghost-events
+  try{ if(recognition) recognition.abort(); }catch(_){}
   updateOrbState();
   
   if(processCurrent && capturedText && capturedText.length > 2) {
@@ -1074,6 +1087,11 @@ function stopRecording(processCurrent = false){
 
 // SELF-HEALING WATCHDOG
 setInterval(() => {
+    // STABILITY FIX: If the mic gets permanently stuck in a "starting" state, safely unlock it after 3 seconds
+    if (isMicStarting && (Date.now() - lastMicRestart > 3000)) {
+        isMicStarting = false;
+    }
+    
     if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
         startListening();
     }
