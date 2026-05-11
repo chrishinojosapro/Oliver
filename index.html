@@ -621,8 +621,20 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
+let spotifyIsPlaying = true;
+function toggleSpotifyPlay() {
+    spotifyIsPlaying = !spotifyIsPlaying;
+    const cmd = spotifyIsPlaying ? "Resume the music on Spotify." : "Pause the music on Spotify.";
+    const btn = document.querySelector('.sp-play-btn');
+    if (btn) {
+        btn.innerHTML = spotifyIsPlaying 
+            ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+            : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    }
+    silentSpotifyCommand(cmd);
+}
+
 async function silentSpotifyCommand(commandText) {
-  if (isThinking) return;
   // Sends the command cleanly to the Edge Function without creating chat bubbles or triggering TTS
   await pipeline(commandText, false, null, null, null, true);
 }
@@ -756,18 +768,19 @@ function extractCanvasAndMarkdown(text) {
 
 // Upgraded Pipeline Function to support Silent Commands
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
-  if (isThinking) return; 
-  isThinking = true; 
+  if (isThinking && !isSilentCommand) return; 
+  
   const runId = Date.now().toString(); 
   
   if (!isSilentCommand) {
+      isThinking = true; 
       addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
       updateOrbState(); 
       
       // Auto-trigger Spotify Remote Canvas based on user prompt!
       const lowerMsg = userText.toLowerCase();
       if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music")) {
-          setTimeout(() => { openCanvas('spotify', 'Spotify Remote', 'Active Session'); }, 2000);
+          setTimeout(() => { openCanvas('spotify', 'Spotify Remote', 'Active Device'); }, 2000);
       }
   } else {
       const pip = document.getElementById('main-pip');
@@ -858,9 +871,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   } catch(err) {
     console.warn("Fetch error:", err);
   } finally {
-    isThinking = false;
-    if (!isSilentCommand) updateOrbState();
-    else {
+    if (!isSilentCommand) {
+        isThinking = false;
+        updateOrbState();
+    } else {
         const pip = document.getElementById('main-pip');
         if (pip) pip.style.background = 'white';
     }
@@ -1162,6 +1176,7 @@ function openCanvas(type, title, content){
   } else if(type==='spotify'){
     // NEW SPOTIFY REMOTE CANVAS GENERATOR
     canvasBadge.textContent = 'remote';
+    spotifyIsPlaying = true; // Reset play state when popped up
     
     let spTitle = "Spotify Remote";
     let spSub = "Active Device";
@@ -1174,20 +1189,12 @@ function openCanvas(type, title, content){
               <div class="sp-sub">${spSub}</div>
           </div>
           <div class="sp-ctrl-row">
-              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('skip to previous track')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-              <button class="sp-play-btn" onclick="silentSpotifyCommand('pause or resume playback')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('skip to next track')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('Skip to the previous track on Spotify.')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+              <button class="sp-play-btn" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('Skip to the next track on Spotify.')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
           </div>
       </div>
     `;
-
-    // Critical Fix: Force disable the microphone when the music canvas pops up
-    if (isContinuous) {
-        toggleContinuous(); 
-    }
-    if (isRecording) {
-        stopRecording(false);
-    }
   } else {
     const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
     const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
