@@ -94,7 +94,7 @@
   .status-pip {
     width:7px; height:7px; border-radius:50%;
     background:white; box-shadow:0 0 8px rgba(255,255,255,0.9);
-    animation:pip 2.5s ease-in-out infinite;
+    animation:pip 2.5s ease-in-out infinite; transition: background 0.3s;
   }
   @keyframes pip { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.4; transform:scale(.7); } }
   .header-title { font-size:0.85em; color:rgba(255,255,255,0.42); font-weight:500; letter-spacing:0.05em; }
@@ -194,6 +194,39 @@
   .wave-bar { width:3px; border-radius:2px; background:rgba(200,160,255,0.55); height:4px; }
   #waveform.thinking .wave-bar { background:rgba(255,255,255,0.35); }
 
+  /* --- SPOTIFY UI PANEL --- */
+  #spotify-widget {
+    position: absolute; bottom: 85px; left: 50%;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+    display: flex; align-items: center; gap: 20px;
+    padding: 10px 24px; border-radius: 40px;
+    background: rgba(10, 20, 15, 0.85);
+    border: 1px solid rgba(30, 215, 96, 0.3);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(30, 215, 96, 0.15);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    opacity: 0; pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 5;
+  }
+  #spotify-widget.visible {
+    opacity: 1; pointer-events: all;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  .sp-logo svg { width: 26px; height: 26px; fill: #1DB954; display: block; }
+  .sp-controls { display: flex; align-items: center; gap: 12px; }
+  .sp-btn {
+    background: transparent; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); transition: all 0.2s;
+    touch-action: manipulation;
+  }
+  .sp-btn:active { transform: scale(0.88); background: rgba(30, 215, 96, 0.2); }
+  .sp-btn svg { width: 18px; height: 18px; fill: rgba(255,255,255,0.9); }
+  .sp-btn.play-pause { background: rgba(30, 215, 96, 0.15); border: 1px solid rgba(30, 215, 96, 0.4); }
+  .sp-btn.play-pause svg { fill: #1DB954; width: 20px; height: 20px; }
+  .sp-btn.play-pause:active { background: rgba(30, 215, 96, 0.3); }
+
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
@@ -235,6 +268,10 @@
   #img-btn.has-image { background:rgba(140,100,255,0.22); border-color:rgba(160,120,255,0.55); box-shadow:0 0 14px rgba(140,100,255,0.30); }
   #img-btn.has-image svg { fill:rgba(200,170,255,1); }
   #img-btn.uploading { opacity:0.45; pointer-events:none; }
+
+  /* New Spotify Toggle Button Active State */
+  #music-toggle-btn.active { background: rgba(30, 215, 96, 0.15); border-color: rgba(30, 215, 96, 0.4); box-shadow: 0 0 14px rgba(30, 215, 96, 0.2); }
+  #music-toggle-btn.active svg { fill: #1DB954; }
 
   #convo-btn.active { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
   #convo-btn.active svg { fill:rgba(160,210,255,1); }
@@ -365,7 +402,7 @@
 
 <header>
   <div class="header-center">
-    <div class="status-pip"></div>
+    <div class="status-pip" id="main-pip"></div>
     <span class="header-title">Oliver AI</span>
   </div>
 </header>
@@ -392,6 +429,24 @@
 
 <div id="waveform"></div>
 
+<!-- NEW SPOTIFY GLASS WIDGET -->
+<div id="spotify-widget">
+  <div class="sp-logo">
+     <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.899 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.84.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781s.18-1.2.78-1.381c4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.619.36z"/></svg>
+  </div>
+  <div class="sp-controls">
+    <button class="sp-btn" onclick="silentSpotifyCommand('skip to previous track')" aria-label="Previous">
+      <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+    </button>
+    <button class="sp-btn play-pause" onclick="silentSpotifyCommand('pause or resume playback')" aria-label="Play/Pause">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="sp-btn" onclick="silentSpotifyCommand('skip to next track')" aria-label="Next">
+      <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+    </button>
+  </div>
+</div>
+
 <div class="controls">
   <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()" aria-label="Microphone">
     <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 16.93A8.001 8.001 0 0 0 19.94 12H18a6 6 0 0 1-12 0H4.06A8.001 8.001 0 0 0 10 17.93V21H8v2h8v-2h-2v-3.07z"/></svg>
@@ -401,6 +456,12 @@
   <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
     <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
   </button>
+  
+  <!-- NEW MUSIC TOGGLE BUTTON -->
+  <button class="ctrl-btn" id="music-toggle-btn" onclick="toggleSpotifyUI()" aria-label="Music Controls">
+    <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM10 16.01C9.06 16.01 8.3 16.77 8.3 17.71s.76 1.7 1.7 1.7c.94 0 1.71-.76 1.71-1.7V9.66l4-1.34v5.69c-.94 0-1.71.76-1.71 1.7s.76 1.7 1.7 1.7c.94 0 1.71-.76 1.71-1.7V5.55L10 8.01v8z"/></svg>
+  </button>
+
   <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
     <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
   </button>
@@ -479,7 +540,7 @@ const interimEl = { textContent:'' };
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
-let isThinking    = false; // CRITICAL: Prevents mic from turning on during silence gap
+let isThinking    = false; 
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
@@ -522,7 +583,6 @@ const getSessionId = () => {
   return sid;
 };
 
-// UI SCREEN SYNC
 function getUIHistory() {
     const messages = document.querySelectorAll('.message');
     const history = [];
@@ -559,7 +619,6 @@ function setOrb(state){
 }
 
 function updateOrbState() {
-    // Smoothed transition logic based on strict state priorities
     if (isSpeaking || isPlayingQueue) {
         setOrb('speaking');
         startWave('speaking');
@@ -607,6 +666,25 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
+// UI TOGGLES FOR SPOTIFY
+function toggleSpotifyUI() {
+  const w = document.getElementById('spotify-widget');
+  const b = document.getElementById('music-toggle-btn');
+  w.classList.toggle('visible');
+  b.classList.toggle('active');
+}
+
+async function silentSpotifyCommand(commandText) {
+  if (isThinking) return;
+  const tBtn = document.getElementById('music-toggle-btn');
+  tBtn.style.animation = 'pip 0.8s ease-in-out infinite';
+  
+  // Sends the command cleanly to the Edge Function without creating chat bubbles or triggering TTS
+  await pipeline(commandText, false, null, null, null, true);
+  
+  tBtn.style.animation = 'none';
+}
+
 function onImageSelected(e){
   const file=e.target.files[0];
   if(!file) return;
@@ -649,7 +727,7 @@ async function sendMessage(){
   const text=inp.value.trim();
   if(!text && !pendingImageBase64) return;
   inp.value='';
-  await pipeline(text||"I've shared an image with you.",false,pendingImageBase64,pendingImageMime,pendingImageName);
+  await pipeline(text||"I've shared an image with you.", false, pendingImageBase64, pendingImageMime, pendingImageName);
 }
 
 function formatMessageText(text) {
@@ -710,7 +788,6 @@ function extractCanvasAndMarkdown(text) {
 
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
     
-    // Automatically open canvas
     setTimeout(() => { openStoredCanvas(id); }, 500); 
     
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
@@ -735,14 +812,19 @@ function extractCanvasAndMarkdown(text) {
   return { processed: processed.trim(), hasCanvas };
 }
 
-async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  if (isThinking) return; // Prevent double-trigger overlaps
-  
+// Upgraded Pipeline Function to support Silent Commands
+async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
+  if (isThinking) return; 
   isThinking = true; 
   const runId = Date.now().toString(); 
   
-  addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
-  updateOrbState(); 
+  if (!isSilentCommand) {
+      addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
+      updateOrbState(); 
+  } else {
+      const pip = document.getElementById('main-pip');
+      if (pip) pip.style.background = '#1DB954'; // Turn status pip Spotify Green
+  }
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
@@ -790,29 +872,34 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep the incomplete line in the buffer
+      buffer = lines.pop();
 
       for (const line of lines) {
         if (!line.trim()) continue;
         const data = JSON.parse(line);
 
         if (data.type === 'filler') {
-            if (speakReply) {
+            if (speakReply && !isSilentCommand) {
                 audioQueue.push({ text: data.text, runId: runId, isFiller: true });
                 if (!isPlayingQueue) processAudioQueue();
             }
         } 
         else if (data.type === 'final') {
             const { processed, hasCanvas } = extractCanvasAndMarkdown(data.text);
-            const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
             
-            if (hasCanvas && oliverMsgEl && speakReply) {
-                oliverMsgEl.classList.remove('hidden-voice');
-            }
-
-            if (speakReply) {
-                audioQueue.push({ text: data.text, runId: runId, isFiller: false, msgEl: oliverMsgEl });
-                if (!isPlayingQueue) processAudioQueue();
+            if (!isSilentCommand) {
+                const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+                if (hasCanvas && oliverMsgEl && speakReply) {
+                    oliverMsgEl.classList.remove('hidden-voice');
+                }
+                if (speakReply) {
+                    audioQueue.push({ text: data.text, runId: runId, isFiller: false, msgEl: oliverMsgEl });
+                    if (!isPlayingQueue) processAudioQueue();
+                }
+            } else {
+                // Restore pip color
+                const pip = document.getElementById('main-pip');
+                if (pip) pip.style.background = 'white';
             }
         }
         else if (data.type === 'error') {
@@ -823,8 +910,12 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   } catch(err) {
     console.warn("Fetch error:", err);
   } finally {
-    isThinking = false; // Safely release the lock when stream completely finishes
-    updateOrbState();
+    isThinking = false;
+    if (!isSilentCommand) updateOrbState();
+    else {
+        const pip = document.getElementById('main-pip');
+        if (pip) pip.style.background = 'white';
+    }
   }
 }
 
@@ -833,7 +924,6 @@ async function processAudioQueue() {
       isPlayingQueue = false;
       updateOrbState();
       
-      // Force microphone check on exact finish, only if NOT still thinking
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -870,7 +960,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
   }
 
   isSpeaking = true;
-  addOliverMemory(ttsText); // Feed to Anti-Echo engine
+  addOliverMemory(ttsText); 
   updateOrbState();
 
   try {
@@ -910,7 +1000,6 @@ async function speakText(text, isFiller = false, msgEl = null) {
     } else {
       isPlayingQueue = false;
       updateOrbState(); 
-      // Instant snap-back for mic
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -974,23 +1063,19 @@ function buildRecognition(){
     
     const liveText = (interim || final).toLowerCase().trim();
 
-    // 1. The Ironclad Echo Shield (Deaf State during playback)
     if (isSpeaking || isPlayingQueue) {
         const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
         if (!isWakeWord) return; 
     }
 
-    // 2. The Anti-Echo Filter (Protects against delayed hardware loops)
     if(isEcho(liveText)) return; 
 
-    // 3. Explicit Interruptions
     if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
          stopRecording(false);
          toggleContinuous(); 
          return;
     }
     
-    // Aggressive Interim Detection for Wake Word
     if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
          if (isPlayingQueue || isSpeaking) {
              window.hasInterrupted = true;
@@ -1004,12 +1089,10 @@ function buildRecognition(){
          }
     }
 
-    // Noise Filter (Ignore tiny static pops)
     if(liveText.length < 3) return;
 
     interimEl.textContent = interim || final;
     
-    // 4. Extended Breath Buffer (4 seconds)
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
@@ -1020,7 +1103,7 @@ function buildRecognition(){
                     interimEl.textContent = ''; 
                 }
             }
-        }, 1000); // 1-Second buffer prevents him from cutting you off mid-thought!
+        }, 1200); // Set to optimized 1.2 second buffer
     }
   };
   
@@ -1044,7 +1127,6 @@ function toggleMic(){
   unlockAudio();
   if(isRecording){ stopRecording(true); return; }
   
-  // Allow manual cancellation of thoughts/speech via tap
   if(isPlayingQueue || isSpeaking || isThinking) {
       window.hasInterrupted = true;
       if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
@@ -1057,27 +1139,7 @@ function toggleMic(){
   startListening();
 }
 
-function stopRecording(processCurrent = false){
-  isRecording=false;
-  micBtn.classList.remove('recording');
-  clearTimeout(sentenceTimeout);
-  
-  const capturedText = interimEl.textContent.trim();
-  interimEl.textContent='';
-  
-  try{ if(recognition) recognition.stop(); }catch(_){}
-  updateOrbState();
-  
-  if(processCurrent && capturedText && capturedText.length > 2) {
-     pipeline(capturedText, true);
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// SELF-HEALING WATCHDOG (Aggressive Keep-Alive)
-// ════════════════════════════════════════════════════════════════════════
 setInterval(() => {
-    // Starts the mic if it crashed, BUT strictly respects the isThinking lock.
     if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
         startListening();
     }
