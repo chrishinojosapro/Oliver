@@ -624,19 +624,19 @@ function stopWave(){
 let spotifyIsPlaying = true;
 function toggleSpotifyPlay() {
     spotifyIsPlaying = !spotifyIsPlaying;
-    const cmd = spotifyIsPlaying ? "Resume the music on Spotify." : "Pause the music on Spotify.";
+    const action = spotifyIsPlaying ? "resume" : "pause";
     const btn = document.querySelector('.sp-play-btn');
     if (btn) {
         btn.innerHTML = spotifyIsPlaying 
-            ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
-            : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            ? '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+            : '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     }
-    silentSpotifyCommand(cmd);
+    silentSpotifyCommand(action);
 }
 
-async function silentSpotifyCommand(commandText) {
-  // Sends the command cleanly to the Edge Function without creating chat bubbles or triggering TTS
-  await pipeline(commandText, false, null, null, null, true);
+async function silentSpotifyCommand(action) {
+  // Sends a targeted bypass command to the Edge Function instantly
+  await pipeline(`[SPOTIFY_REMOTE]:${action}`, false, null, null, null, true);
 }
 
 function onImageSelected(e){
@@ -1189,14 +1189,14 @@ function openCanvas(type, title, content){
               <div class="sp-sub">${spSub}</div>
           </div>
           <div class="sp-ctrl-row">
-              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('Skip to the previous track on Spotify.')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-              <button class="sp-play-btn" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
-              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('Skip to the next track on Spotify.')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('previous')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+              <button class="sp-play-btn" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+              <button class="sp-ctrl-btn" onclick="silentSpotifyCommand('next')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
           </div>
       </div>
     `;
-  } else {
-    const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
+
+    // Critical Fix: Force disable the microphone when the music canvas pops up
     const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
     wrap.appendChild(pre); canvasBody.appendChild(wrap); canvasCopy.style.display='block';
   }
