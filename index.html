@@ -127,7 +127,7 @@
     border:1px solid rgba(255,255,255,0.12);
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     animation:msg-in 0.28s ease forwards;
-    transform-origin: bottom right; /* For smooth ignore animation */
+    transform-origin: bottom right;
   }
   .message.oliver { align-self:flex-start; max-width:92%; animation:msg-in 0.28s ease forwards; }
   .sender-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
@@ -496,7 +496,7 @@
 // FRONTEND STATE
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
-let oliverSleepMode = false; // NEW: Local Ambient Awareness Flag
+let oliverSleepMode = false; // Tap-to-Wake Mode Flag
 
 window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
@@ -664,7 +664,7 @@ function setOrb(state){
 }
 
 function updateOrbState() {
-    if (oliverSleepMode && !isSpeaking && !isPlayingQueue) {
+    if (oliverSleepMode) {
         setOrb(null);
         stopWave();
         const pip = document.getElementById('main-pip');
@@ -906,7 +906,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       // Don't flash green if it's just the silent status poll
       if (!userText.includes("status")) {
           const pip = document.getElementById('main-pip');
-          if (pip) pip.style.background = '#1DB954'; 
+          if (pip && !oliverSleepMode) pip.style.background = '#1DB954'; 
       }
   }
 
@@ -1045,7 +1045,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 }
             } else {
                 const pip = document.getElementById('main-pip');
-                if (pip) pip.style.background = 'white';
+                if (pip && !oliverSleepMode) pip.style.background = 'white';
             }
         }
         else if (data.type === 'error') {
@@ -1061,7 +1061,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         updateOrbState();
     } else {
         const pip = document.getElementById('main-pip');
-        if (pip) pip.style.background = 'white';
+        if (pip && !oliverSleepMode) pip.style.background = 'white';
     }
   }
 }
@@ -1071,7 +1071,7 @@ async function processAudioQueue() {
       isPlayingQueue = false;
       updateOrbState();
       
-      if (isContinuous && !isRecording && !isThinking) {
+      if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
           startListening();
       }
       return;
@@ -1147,7 +1147,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
     } else {
       isPlayingQueue = false;
       updateOrbState(); 
-      if (isContinuous && !isRecording && !isThinking) {
+      if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
           startListening();
       }
     }
@@ -1159,14 +1159,14 @@ function toggleContinuous(){
   isContinuous=!isContinuous;
   convoBtn.classList.toggle('active',isContinuous);
   if(isContinuous){
-    setTimeout(()=>{ if(isContinuous && !isRecording && !isSpeaking && !isThinking) startListening(); },300);
+    setTimeout(()=>{ if(isContinuous && !isRecording && !isSpeaking && !isThinking && !oliverSleepMode) startListening(); },300);
   } else {
     stopWave(); stopRecording(false);
   }
 }
 
 function startListening(){
-  if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue) return;
+  if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue || oliverSleepMode) return;
   
   isMicStarting = true; 
   recognition = buildRecognition();
@@ -1217,34 +1217,20 @@ function buildRecognition(){
 
     if(isEcho(liveText)) return; 
 
-    // FRONTEND SLEEP WAKE LOGIC
-    if (oliverSleepMode) {
-        if (liveText.includes("hey oliver") || liveText.includes("wake up oliver") || liveText.includes("oliver wake up")) {
-            oliverSleepMode = false;
-            updateOrbState();
-            // Let the logic naturally drop through to hit the standard 1.2s timeout to send the rest of your sentence.
-        } else {
-            // He is still asleep. Update visual silently, then clear it after a delay WITHOUT stopping the mic.
-            interimEl.textContent = '💤 ' + (interim || final);
-            clearTimeout(sentenceTimeout);
-            sentenceTimeout = setTimeout(() => {
-                if (isRecording) interimEl.textContent = '';
-            }, 1200);
-            return; // Stops here! The mic stays completely open and no data is sent to the backend.
-        }
-    }
-
-    // Put him to sleep natively inside the frontend
+    // FRONTEND TAP-TO-WAKE SLEEP LOGIC
     if (!oliverSleepMode && (liveText.includes("oliver ignore me") || liveText.includes("ignore me oliver") || liveText.includes("go to sleep oliver"))) {
         oliverSleepMode = true;
         interimEl.textContent = '';
         clearTimeout(sentenceTimeout);
         updateOrbState();
         
-        // Push an instant fake Oliver response into the UI/Voice queue without hitting the backend at all!
-        const msgEl = addMessage("I'm going to sleep. Just say 'Hey Oliver' to wake me up.", "oliver", null, null, null, true);
+        // Completely kill the mic (zero beeps)
+        stopRecording(false);
+        
+        // Push an instant fake Oliver response into the UI
+        const msgEl = addMessage("I'm going to sleep. Tap my microphone button when you need me.", "oliver", null, null, null, true);
         msgEl.classList.remove('hidden-voice');
-        audioQueue.push({ text: "I'll ignore you until you say Hey Oliver.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+        audioQueue.push({ text: "I'll go to sleep now. Tap my microphone button when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
         if (!isPlayingQueue) processAudioQueue();
         return;
     }
@@ -1296,7 +1282,7 @@ function buildRecognition(){
   r.onend=()=>{ 
      if(isRecording) stopRecording(false); 
      isMicStarting = false;
-     if(isContinuous && !isRecording && !isThinking) {
+     if(isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
          setTimeout(startListening, 300);
      }
   };
@@ -1305,6 +1291,13 @@ function buildRecognition(){
 
 function toggleMic(){
   unlockAudio();
+  
+  // WAKE UP LOGIC: If he was asleep, tap to wake him up!
+  if (oliverSleepMode) {
+      oliverSleepMode = false;
+      updateOrbState();
+  }
+  
   if(isRecording){ stopRecording(true); return; }
   
   if(isPlayingQueue || isSpeaking || isThinking) {
@@ -1336,7 +1329,7 @@ function stopRecording(processCurrent = false){
 }
 
 setInterval(() => {
-    if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
+    if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking && !oliverSleepMode) {
         startListening();
     }
 }, 1500);
