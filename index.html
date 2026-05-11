@@ -105,6 +105,7 @@
     padding:12px 16px;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
     display:flex; flex-direction:column; gap:14px;
+    scroll-behavior: smooth;
   }
   #chat-container::-webkit-scrollbar { display:none; }
 
@@ -491,8 +492,10 @@ let pendingImageName   = null;
 
 let canvasStore = {};
 let canvasIdCounter = 0;
-let recentOliverSpeech = [];
 window.hasInterrupted = false; 
+
+// STATE LOCK to prevent SpeechRecognition from crashing when rapidly called
+let isMicStarting = false;
 
 const sessionStart = Date.now();
 const getSessionId = () => {
@@ -632,6 +635,7 @@ async function sendMessage(){
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
+  // Fix spacing around paragraphs
   const paragraphs = text.split(/\n{2,}/);
   return paragraphs.map(p => {
     return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
@@ -654,7 +658,12 @@ function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = f
     div.innerHTML=inner;
   }
   c.appendChild(div);
-  c.scrollTop=c.scrollHeight;
+  
+  // Smooth scroll logic
+  setTimeout(() => {
+    c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+  }, 10);
+  
   return div;
 }
 
@@ -682,7 +691,8 @@ function extractCanvasAndMarkdown(text) {
     cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
 
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
-    setTimeout(()=>openStoredCanvas(id), 300); 
+    // Prevent overlapping timeouts
+    setTimeout(() => { if (!isSpeaking) openStoredCanvas(id); }, 500); 
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
               View ${title || type}
@@ -695,7 +705,6 @@ function extractCanvasAndMarkdown(text) {
     const id = 'c_' + (++canvasIdCounter);
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
-    setTimeout(()=>openStoredCanvas(id), 300); 
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
               View Code
@@ -727,7 +736,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     finally{ imgBtn.classList.remove('uploading'); clearImage(); }
   }
 
-  // Snap UI History directly from the screen
   const uiHistory = getUIHistory();
   const currentInterruptedState = window.hasInterrupted;
   window.hasInterrupted = false; 
@@ -758,7 +766,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); 
+      buffer = lines.pop(); // keep the incomplete line in the buffer
 
       for (const line of lines) {
         if (!line.trim()) continue;
@@ -832,9 +840,6 @@ async function speakText(text, isFiller = false, msgEl = null) {
       processAudioQueue();
       return;
   }
-  
-  recentOliverSpeech.push(ttsText.toLowerCase());
-  if(recentOliverSpeech.length > 3) recentOliverSpeech.shift();
 
   isSpeaking = true;
   updateOrbState();
@@ -876,7 +881,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
     } else {
       isPlayingQueue = false;
       updateOrbState(); 
-      // BUG FIX: Instantly snap the mic back on the exact millisecond he finishes talking
+      // Force microphone check on exact finish
       if (isContinuous && !isRecording) {
           startListening();
       }
@@ -891,31 +896,27 @@ function toggleContinuous(){
   if(isContinuous){
     setTimeout(()=>{ if(isContinuous&&!isRecording) startListening(); },300);
   } else {
-    stopWave(); stopRecording();
+    stopWave(); stopRecording(false);
   }
 }
 
 let sentenceTimeout;
 
 function startListening(){
-  if(isRecording) return;
-  recognition=buildRecognition();
-  if(!recognition) return;
-  try{ recognition.start(); }catch(_){}
-}
-
-function checkEchoOverlap(transcript) {
-    const tWords = transcript.toLowerCase().split(/\s+/);
-    if(tWords.length < 3) return false; 
-    
-    let overlapCount = 0;
-    const allRecentSpeech = recentOliverSpeech.join(" ");
-    
-    tWords.forEach(word => {
-        if(allRecentSpeech.includes(word)) overlapCount++;
-    });
-    
-    return (overlapCount / tWords.length) > 0.4; 
+  if(isRecording || isMicStarting) return;
+  isMicStarting = true; // State lock prevents crash loops
+  recognition = buildRecognition();
+  if(!recognition) {
+      isMicStarting = false;
+      return;
+  }
+  try{ 
+      // Browsers enforce a strict context execution, delay slightly to clear the stack
+      setTimeout(() => recognition.start(), 50); 
+  } catch(err){ 
+      console.warn("Mic start failed:", err);
+      isMicStarting = false; 
+  }
 }
 
 function buildRecognition(){
@@ -931,6 +932,7 @@ function buildRecognition(){
   
   r.onstart=()=>{ 
     isRecording=true; 
+    isMicStarting=false;
     micBtn.classList.add('recording'); 
     updateOrbState();
     interimEl.textContent=''; 
@@ -943,15 +945,21 @@ function buildRecognition(){
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
     
-    const liveText = (interim || final).toLowerCase();
-    
-    // 1. Check for Anti-Echo Loop
-    if(checkEchoOverlap(liveText)) {
-        console.log("Echo detected and ignored:", liveText);
-        return; 
+    const liveText = (interim || final).toLowerCase().trim();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // 1. THE IRONCLAD ECHO SHIELD (Smart Speaker Architecture)
+    // ════════════════════════════════════════════════════════════════════════
+    // If Oliver is speaking, we DEAFEN the microphone entirely UNLESS you say his name.
+    // This physically guarantees he will never respond to his own speaker feedback.
+    if (isSpeaking || isPlayingQueue) {
+        const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
+        if (!isWakeWord) {
+            return; // Ignore the text entirely
+        }
     }
 
-    // 2. Check for Aggressive Interruption / Wake Words
+    // 2. EXPLICIT INTERRUPTIONS
     if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
          stopRecording(false);
          toggleContinuous(); 
@@ -960,7 +968,7 @@ function buildRecognition(){
     
     if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
          if (isPlayingQueue || isSpeaking) {
-             console.log("Wake word interruption detected!");
+             console.log("Wake word interruption triggered.");
              window.hasInterrupted = true;
              stopRecording(false);
              if (currentAudio) { currentAudio.stop(); currentAudio = null; }
@@ -974,12 +982,17 @@ function buildRecognition(){
 
     interimEl.textContent = interim || final;
     
-    // 3. Sentence Buffer (Wait 2.5s to allow for deep breaths)
+    // 3. BACKGROUND NOISE FILTER & SENTENCE BUFFER
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
             if(isRecording && interimEl.textContent.trim()) {
-                stopRecording(true); 
+                // If it's just a cough or a tiny glitch (under 3 characters), drop it.
+                if (interimEl.textContent.trim().length > 2) {
+                    stopRecording(true); 
+                } else {
+                    interimEl.textContent = ''; 
+                }
             }
         }, 2500);
     }
@@ -987,12 +1000,14 @@ function buildRecognition(){
   
   r.onerror=(e)=>{ 
     if(e.error === 'not-allowed') addMessage("Microphone access denied.", 'oliver');
-    stopRecording(); 
+    isMicStarting = false;
+    stopRecording(false); 
   };
   
   r.onend=()=>{ 
      if(isRecording) stopRecording(false); 
-     // Auto-restart if in continuous mode
+     isMicStarting = false;
+     // Auto-restart if in continuous mode and he isn't currently speaking
      if(isContinuous && !isRecording) {
          setTimeout(startListening, 300);
      }
@@ -1011,7 +1026,6 @@ function toggleMic(){
       isPlayingQueue = false; 
       isSpeaking = false;
       updateOrbState();
-      micBtn.classList.remove('locked'); 
   }
   
   startListening();
@@ -1028,17 +1042,17 @@ function stopRecording(processCurrent = false){
   try{ if(recognition) recognition.stop(); }catch(_){}
   updateOrbState();
   
-  if(processCurrent && capturedText) {
+  if(processCurrent && capturedText && capturedText.length > 2) {
      pipeline(capturedText, true);
   }
 }
 
 // --- SELF-HEALING MICROPHONE WATCHDOG ---
-// Browsers sometimes forcefully kill the microphone after a minute or during a glitch.
+// Browsers sometimes forcefully kill the microphone after a minute.
 // This ensures the mic instantly re-opens if Conversation Mode is active.
 setInterval(() => {
-    // BUG FIX: Removed the audio playback lock so the mic stays hot 100% of the time!
-    if (isContinuous && !isRecording) {
+    // Only restart if we are explicitly in continuous mode, not already recording, and not in the middle of a boot-up sequence.
+    if (isContinuous && !isRecording && !isMicStarting) {
         startListening();
     }
 }, 1500);
