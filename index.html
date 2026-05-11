@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Oliver AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
@@ -327,7 +328,6 @@
   }
   #canvas-copy:active { background:#30363d; border-color:#8b949e; }
   
-  /* MINI SPOTIFY WIDGET */
   #mini-sp-widget {
     position: absolute;
     top: 65px;
@@ -335,8 +335,8 @@
     z-index: 50;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 12px;
+    padding: 6px 12px 6px 6px;
     border-radius: 24px;
     background: rgba(10, 20, 15, 0.75);
     border: 1px solid rgba(30, 215, 96, 0.25);
@@ -347,12 +347,47 @@
     transform: translateX(30px);
     pointer-events: none;
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    max-width: 280px;
   }
   #mini-sp-widget.visible {
     opacity: 1;
     transform: translateX(0);
     pointer-events: all;
   }
+  .sp-track-info {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .sp-album-art {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px; 
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .sp-text-group {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .sp-track-name {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .sp-artist-name {
+    font-size: 0.65em;
+    color: rgba(255,255,255,0.6);
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .mini-sp-icon { padding-left: 6px; }
   .mini-sp-icon svg { width: 18px; height: 18px; fill: #1DB954; display: block; animation: pulse-sp-mini 3s infinite alternate;}
   @keyframes pulse-sp-mini { 0%{opacity:0.8;} 100%{opacity:1; filter: drop-shadow(0 0 4px rgba(30,215,96,0.5));} }
   .mini-sp-btn {
@@ -410,10 +445,19 @@
 </header>
 
 <div id="mini-sp-widget">
-  <div class="mini-sp-icon"><svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.899 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.84.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781s.18-1.2.78-1.381c4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.619.36z"/></svg></div>
-  <button class="mini-sp-btn" onclick="silentSpotifyCommand('previous')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-  <button class="mini-sp-btn play" id="mini-sp-play" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
-  <button class="mini-sp-btn" onclick="silentSpotifyCommand('next')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+  <div class="sp-track-info" id="sp-track-info">
+     <img class="sp-album-art" id="sp-album-art" src="" alt="Cover">
+     <div class="sp-text-group">
+         <span class="sp-track-name" id="sp-track-name"></span>
+         <span class="sp-artist-name" id="sp-artist-name"></span>
+     </div>
+  </div>
+  <div class="mini-sp-icon" id="sp-default-icon"><svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.899 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.84.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781s.18-1.2.78-1.381c4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.619.36z"/></svg></div>
+  <div style="display:flex; gap:4px; align-items:center;">
+    <button class="mini-sp-btn" onclick="silentSpotifyCommand('previous')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+    <button class="mini-sp-btn play" id="mini-sp-play" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+    <button class="mini-sp-btn" onclick="silentSpotifyCommand('next')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+  </div>
 </div>
 
 <div id="chat-container">
@@ -461,6 +505,8 @@ window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
     console.log("Oliver's engines are warming up...");
+    
+    // Auto-initialize the Spotify polling widget on page load
     initSpotifyWidget();
 });
 
@@ -523,6 +569,7 @@ const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
+// CORE STATE LOCKS
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
@@ -546,6 +593,7 @@ window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
 
+// ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
     const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
@@ -651,21 +699,47 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
-let spotifyIsPlaying = false;
 let spotifyWidgetVisible = false;
+let spotifyIsPlaying = true;
 
 function initSpotifyWidget() {
-    const savedState = localStorage.getItem('oliver_spotify_playing');
     const savedVis = localStorage.getItem('oliver_spotify_visible');
-
     if (savedVis === 'true') {
-        const w = document.getElementById('mini-sp-widget');
-        if (w) w.classList.add('visible');
         spotifyWidgetVisible = true;
+        // Do an immediate status check to populate it silently
+        silentSpotifyCommand('status'); 
     }
+    
+    // Background poller: quietly checks what's playing every 8 seconds
+    setInterval(() => {
+        if (spotifyWidgetVisible) silentSpotifyCommand('status');
+    }, 8000);
+}
 
-    spotifyIsPlaying = (savedState === 'true');
-    updateSpotifyPlayBtnUI();
+function updateSpotifyUI(data) {
+    const widget = document.getElementById('mini-sp-widget');
+    if (!widget) return;
+    
+    // If we have track data, show it.
+    if (data && data.trackName) {
+        widget.classList.add('visible');
+        spotifyWidgetVisible = true;
+        localStorage.setItem('oliver_spotify_visible', 'true');
+        
+        document.getElementById('sp-track-info').style.display = 'flex';
+        document.getElementById('sp-default-icon').style.display = 'none';
+        
+        document.getElementById('sp-album-art').src = data.albumArt || '';
+        document.getElementById('sp-track-name').textContent = data.trackName;
+        document.getElementById('sp-artist-name').textContent = data.artistName;
+        
+        spotifyIsPlaying = data.isPlaying;
+        updateSpotifyPlayBtnUI();
+    } else if (!data) {
+        // If no data is playing or API failed, revert to default simple icon layout but keep widget visible
+        document.getElementById('sp-track-info').style.display = 'none';
+        document.getElementById('sp-default-icon').style.display = 'block';
+    }
 }
 
 function updateSpotifyPlayBtnUI() {
@@ -675,16 +749,6 @@ function updateSpotifyPlayBtnUI() {
             ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
             : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
     }
-    localStorage.setItem('oliver_spotify_playing', spotifyIsPlaying);
-    localStorage.setItem('oliver_spotify_visible', spotifyWidgetVisible);
-}
-
-function showSpotifyWidget() {
-    const w = document.getElementById('mini-sp-widget');
-    if(w) w.classList.add('visible');
-    spotifyWidgetVisible = true;
-    spotifyIsPlaying = true;
-    updateSpotifyPlayBtnUI();
 }
 
 function toggleSpotifyPlay() {
@@ -695,13 +759,8 @@ function toggleSpotifyPlay() {
 }
 
 async function silentSpotifyCommand(action) {
-  if (action === 'next' || action === 'previous' || action === 'resume') {
-      spotifyIsPlaying = true;
-      updateSpotifyPlayBtnUI();
-  } else if (action === 'pause') {
-      spotifyIsPlaying = false;
-      updateSpotifyPlayBtnUI();
-  }
+  // Sends a targeted bypass command to the Edge Function instantly
+  // True flag prevents the UI from trying to speak the result
   await pipeline(`[SPOTIFY_REMOTE]:${action}`, false, null, null, null, true);
 }
 
@@ -842,15 +901,19 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
       updateOrbState(); 
       
+      // Auto-trigger Spotify Mini-Widget based on user prompt!
       const lowerMsg = userText.toLowerCase();
       if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music")) {
           setTimeout(() => { 
-              showSpotifyWidget();
+              const w = document.getElementById('mini-sp-widget');
+              if(w) w.classList.add('visible');
+              spotifyWidgetVisible = true;
+              localStorage.setItem('oliver_spotify_visible', 'true');
           }, 2000);
       }
   } else {
       const pip = document.getElementById('main-pip');
-      if (pip) pip.style.background = '#1DB954';
+      if (pip) pip.style.background = '#1DB954'; // Turn status pip Spotify Green during silent control
   }
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
@@ -905,25 +968,39 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         if (!line.trim()) continue;
         const data = JSON.parse(line);
 
-        if (data.type === 'filler') {
+        // SPOTIFY DATA EVENT HANDLER
+        if (data.type === 'spotify_update') {
+            updateSpotifyUI(data.data);
+        }
+        else if (data.type === 'filler') {
             if (speakReply && !isSilentCommand) {
                 audioQueue.push({ text: data.text, runId: runId, isFiller: true });
                 if (!isPlayingQueue) processAudioQueue();
             }
         } 
         else if (data.type === 'final') {
-            const { processed, hasCanvas } = extractCanvasAndMarkdown(data.text);
-            
-            if (!isSilentCommand) {
+            // ERROR HANDLING FOR SILENT SPOTIFY COMMANDS
+            if (isSilentCommand && data.text.includes("Spotify API Error")) {
+                // If it's a silent command but resulted in an error, force it into the chat so the user can see it
+                addMessage(data.text, 'oliver', null, null, null, false);
+                const pip = document.getElementById('main-pip');
+                if (pip) pip.style.background = 'red';
+                setTimeout(() => { if (pip) pip.style.background = 'white'; }, 3000);
+            } 
+            else if (!isSilentCommand) {
+                const { processed, hasCanvas } = extractCanvasAndMarkdown(data.text);
                 const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+                
                 if (hasCanvas && oliverMsgEl && speakReply) {
                     oliverMsgEl.classList.remove('hidden-voice');
                 }
+                
                 if (speakReply) {
                     audioQueue.push({ text: data.text, runId: runId, isFiller: false, msgEl: oliverMsgEl });
                     if (!isPlayingQueue) processAudioQueue();
                 }
             } else {
+                // Successful silent command
                 const pip = document.getElementById('main-pip');
                 if (pip) pip.style.background = 'white';
             }
@@ -1130,7 +1207,7 @@ function buildRecognition(){
                     interimEl.textContent = ''; 
                 }
             }
-        }, 1200);
+        }, 1200); // Set to optimized 1.2 second buffer
     }
   };
   
