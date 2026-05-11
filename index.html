@@ -484,6 +484,9 @@ let pendingImageName   = null;
 let canvasStore = {};
 let canvasIdCounter = 0;
 
+let speechBufferTimeout = null;
+let speechBuffer = '';
+
 const sessionStart = Date.now();
 const getSessionId = () => {
   let sid=sessionStorage.getItem('oliver_sid');
@@ -958,6 +961,7 @@ function buildRecognition(){
     isRecording = true; 
     micBtn.classList.add('recording'); 
     interimEl.textContent = ''; 
+    speechBuffer = '';
     updateOrbState();
   };
   
@@ -973,7 +977,9 @@ function buildRecognition(){
       const t = e.results[i][0].transcript;
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
-    interimEl.textContent = interim || final;
+    
+    // Display the accumulating buffer plus the current thought
+    interimEl.textContent = (speechBuffer + ' ' + (interim || final)).trim();
 
     const rawText = (interim || final).trim().toLowerCase();
     const spokenText = rawText.replace(/[^\w\s]/gi, '');
@@ -1009,15 +1015,24 @@ function buildRecognition(){
     }
 
     if(final && !isEcho){ 
-      const userText = final.trim();
+        // Append to our buffer instead of firing immediately
+        speechBuffer += ' ' + final.trim();
+        interimEl.textContent = speechBuffer.trim();
+        
+        clearTimeout(speechBufferTimeout);
+        speechBufferTimeout = setTimeout(() => {
+            const userText = speechBuffer.trim();
+            speechBuffer = ''; // Clear the buffer
+            interimEl.textContent = ''; 
+            
+            if (userText) {
+                pipeline(userText, true); 
+            }
 
-      // OPEN CHANNEL GATE: Respond to everything naturally
-      interimEl.textContent = ''; 
-      pipeline(userText, true); 
-
-      if (!isContinuous) {
-          stopRecording(); 
-      }
+            if (!isContinuous) {
+                stopRecording(false); 
+            }
+        }, 1500); // Wait 1.5 seconds for absolute silence before committing the sentence
     }
   };
   
@@ -1070,7 +1085,15 @@ function stopRecording(processCurrent = false){
   isRecording = false;
   micBtn.classList.remove('recording');
   
-  const capturedText = interimEl.textContent.trim();
+  let capturedText = interimEl.textContent.trim();
+  
+  // Flush any pending words stuck in the pause buffer
+  if (speechBuffer) {
+      capturedText = speechBuffer.trim();
+  }
+  speechBuffer = '';
+  clearTimeout(speechBufferTimeout);
+
   interimEl.textContent = '';
   
   try{ if(recognition) recognition.stop(); }catch(_){}
