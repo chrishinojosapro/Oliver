@@ -474,7 +474,7 @@ let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
 let lastSpokenText = ""; 
-window.hasInterrupted = false; // NEW: Interruption tracking flag
+window.hasInterrupted = false; 
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -489,6 +489,39 @@ const getSessionId = () => {
   if(!sid){ sid=crypto.randomUUID(); sessionStorage.setItem('oliver_sid',sid); }
   return sid;
 };
+
+// --- SCREEN SYNC ENGINE ---
+function getUIHistory() {
+  const elements = document.querySelectorAll('#chat-container .message');
+  const recent = Array.from(elements).slice(-14); // Grab last 14 visual blocks
+  let historyArr = [];
+  
+  recent.forEach(el => {
+    const isOliver = el.classList.contains('oliver');
+    let text = '';
+    
+    if (isOliver) {
+      const msgEl = el.querySelector('.msg-text');
+      text = msgEl ? msgEl.textContent : '';
+    } else {
+      const clone = el.cloneNode(true);
+      const badge = clone.querySelector('.drive-badge');
+      if(badge) badge.remove();
+      text = clone.textContent.trim();
+    }
+    
+    if(text) {
+      historyArr.push({ role: isOliver ? 'assistant' : 'user', content: text.substring(0, 1000) });
+    }
+  });
+
+  // Remove the very last user message from this array, because `pipeline()` manually appends it
+  if (historyArr.length > 0 && historyArr[historyArr.length - 1].role === 'user') {
+      historyArr.pop();
+  }
+
+  return historyArr;
+}
 
 function updateOrbState() {
     if (isPlayingQueue) {
@@ -611,13 +644,6 @@ async function sendMessage(){
   await pipeline(text||"I've shared an image with you.",false,pendingImageBase64,pendingImageMime,pendingImageName);
 }
 
-function getLastOliverMessage(){
-  const msgs=document.querySelectorAll('.message.oliver:not(.hidden-voice) .msg-text');
-  if(!msgs.length) return '';
-  const recent=Array.from(msgs).slice(-3);
-  return recent.map(m=>m.textContent.trim()).join(' | ').substring(0,1000);
-}
-
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
@@ -708,9 +734,6 @@ function extractCanvasAndMarkdown(text) {
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  const lastAssistantMessage = getLastOliverMessage();
-
-  // Grab interruption state and instantly reset it
   const interruptedFlag = window.hasInterrupted || false;
   window.hasInterrupted = false; 
 
@@ -722,6 +745,8 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
+  
+  const uiHistory = getUIHistory(); // <--- GRAB EXACT UI CONTEXT
 
   let imageContext='';
   if(imageBase64){
@@ -748,8 +773,8 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         inputMode: speakReply?'voice':'text',
         voiceEnabled: speakReply,
         hasImage: !!imageBase64,
-        lastAssistantMessage,
-        wasInterrupted: interruptedFlag // Send the exact interruption status to the backend
+        uiHistory: uiHistory, // <--- SEND SCREEN SYNC
+        wasInterrupted: interruptedFlag 
       }),
     });
 
@@ -954,7 +979,6 @@ function buildRecognition(){
     const overlapPercent = calculateWordOverlap(spokenText, lastSpokenText);
     const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText) || overlapPercent > 0.4);
     
-    // INTERRUPTION ENGINE: If the user talks over him, kill his audio and set the flag!
     if (spokenText.length > 3 && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
@@ -962,7 +986,7 @@ function buildRecognition(){
             currentAudio = null;
         }
         currentPlayingRunId = null;
-        window.hasInterrupted = true; // Flips the flag for the Edge Function!
+        window.hasInterrupted = true; 
         updateOrbState();
     }
 
@@ -1008,12 +1032,11 @@ function toggleMic(){
       return;
   }
 
-  // MANUAL INTERRUPTION ENGINE
   if (currentPlayingRunId) {
       audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
       if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
       currentPlayingRunId = null;
-      window.hasInterrupted = true; // Set flag if you manually click to cut him off
+      window.hasInterrupted = true; 
       updateOrbState();
       
       startListening();
