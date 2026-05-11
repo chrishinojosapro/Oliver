@@ -1195,8 +1195,8 @@ function openCanvas(type, title, content){
           </div>
       </div>
     `;
-
-    // Critical Fix: Force disable the microphone when the music canvas pops up
+  } else {
+    const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
     const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
     wrap.appendChild(pre); canvasBody.appendChild(wrap); canvasCopy.style.display='block';
   }
