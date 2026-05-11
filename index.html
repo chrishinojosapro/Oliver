@@ -319,21 +319,6 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
-  /* SPOTIFY CANVAS UI STYLES */
-  .spotify-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 40px 20px; gap: 35px; height: 100%; text-align: center; }
-  .sp-hero { width:110px; height:110px; border-radius:50%; background:rgba(30,215,96,0.15); display:flex; align-items:center; justify-content:center; box-shadow:0 0 40px rgba(30,215,96,0.25); margin:0 auto 15px; animation: pulse-sp 3s infinite alternate; }
-  @keyframes pulse-sp { 0% { transform: scale(1); box-shadow:0 0 30px rgba(30,215,96,0.2); } 100% { transform: scale(1.05); box-shadow:0 0 60px rgba(30,215,96,0.4); } }
-  .sp-hero svg { width:50px; height:50px; fill:#1DB954; }
-  .sp-title { font-size:1.6em; color:rgba(255,255,255,0.95); font-weight:600; margin-bottom:8px; letter-spacing: 0.02em; }
-  .sp-sub { font-size:1em; color:rgba(255,255,255,0.5); }
-  .sp-ctrl-row { display:flex; gap:25px; align-items:center; justify-content:center; margin-top: 10px; }
-  .sp-ctrl-btn { width:56px; height:56px; border-radius:50%; border:none; background:rgba(255,255,255,0.08); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; touch-action: manipulation; }
-  .sp-ctrl-btn:active { transform:scale(0.88); background:rgba(255,255,255,0.18); }
-  .sp-ctrl-btn svg { width:24px; height:24px; fill:currentColor; }
-  .sp-play-btn { width:72px; height:72px; border-radius:50%; border:1px solid rgba(30,215,96,0.5); background:rgba(30,215,96,0.2); color:#1DB954; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(30,215,96,0.2); transition:all 0.2s; touch-action: manipulation; }
-  .sp-play-btn:active { transform:scale(0.88); background:rgba(30,215,96,0.35); }
-  .sp-play-btn svg { width:32px; height:32px; fill:currentColor; }
-
   /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
@@ -476,6 +461,7 @@ window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
     console.log("Oliver's engines are warming up...");
+    initSpotifyWidget();
 });
 
 (function(){
@@ -537,7 +523,6 @@ const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
-// CORE STATE LOCKS
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
@@ -561,7 +546,6 @@ window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
 
-// ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
     const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
@@ -667,21 +651,57 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
-let spotifyIsPlaying = true;
-function toggleSpotifyPlay() {
-    spotifyIsPlaying = !spotifyIsPlaying;
-    const action = spotifyIsPlaying ? "resume" : "pause";
+let spotifyIsPlaying = false;
+let spotifyWidgetVisible = false;
+
+function initSpotifyWidget() {
+    const savedState = localStorage.getItem('oliver_spotify_playing');
+    const savedVis = localStorage.getItem('oliver_spotify_visible');
+
+    if (savedVis === 'true') {
+        const w = document.getElementById('mini-sp-widget');
+        if (w) w.classList.add('visible');
+        spotifyWidgetVisible = true;
+    }
+
+    spotifyIsPlaying = (savedState === 'true');
+    updateSpotifyPlayBtnUI();
+}
+
+function updateSpotifyPlayBtnUI() {
     const btn = document.getElementById('mini-sp-play');
     if (btn) {
         btn.innerHTML = spotifyIsPlaying 
             ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
             : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
     }
+    localStorage.setItem('oliver_spotify_playing', spotifyIsPlaying);
+    localStorage.setItem('oliver_spotify_visible', spotifyWidgetVisible);
+}
+
+function showSpotifyWidget() {
+    const w = document.getElementById('mini-sp-widget');
+    if(w) w.classList.add('visible');
+    spotifyWidgetVisible = true;
+    spotifyIsPlaying = true;
+    updateSpotifyPlayBtnUI();
+}
+
+function toggleSpotifyPlay() {
+    spotifyIsPlaying = !spotifyIsPlaying;
+    updateSpotifyPlayBtnUI();
+    const action = spotifyIsPlaying ? "resume" : "pause";
     silentSpotifyCommand(action);
 }
 
 async function silentSpotifyCommand(action) {
-  // Sends a targeted bypass command to the Edge Function instantly
+  if (action === 'next' || action === 'previous' || action === 'resume') {
+      spotifyIsPlaying = true;
+      updateSpotifyPlayBtnUI();
+  } else if (action === 'pause') {
+      spotifyIsPlaying = false;
+      updateSpotifyPlayBtnUI();
+  }
   await pipeline(`[SPOTIFY_REMOTE]:${action}`, false, null, null, null, true);
 }
 
@@ -812,7 +832,6 @@ function extractCanvasAndMarkdown(text) {
   return { processed: processed.trim(), hasCanvas };
 }
 
-// Upgraded Pipeline Function to support Silent Commands
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
   if (isThinking && !isSilentCommand) return; 
   
@@ -823,20 +842,15 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
       updateOrbState(); 
       
-      // Auto-trigger Spotify Mini-Widget based on user prompt!
       const lowerMsg = userText.toLowerCase();
       if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music")) {
           setTimeout(() => { 
-              const w = document.getElementById('mini-sp-widget');
-              if(w) w.classList.add('visible');
-              spotifyIsPlaying = true;
-              const btn = document.getElementById('mini-sp-play');
-              if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; // Set to pause icon (music is playing)
+              showSpotifyWidget();
           }, 2000);
       }
   } else {
       const pip = document.getElementById('main-pip');
-      if (pip) pip.style.background = '#1DB954'; // Turn status pip Spotify Green during silent control
+      if (pip) pip.style.background = '#1DB954';
   }
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
@@ -910,7 +924,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                     if (!isPlayingQueue) processAudioQueue();
                 }
             } else {
-                // Restore pip color
                 const pip = document.getElementById('main-pip');
                 if (pip) pip.style.background = 'white';
             }
@@ -1117,7 +1130,7 @@ function buildRecognition(){
                     interimEl.textContent = ''; 
                 }
             }
-        }, 1200); // Set to optimized 1.2 second buffer
+        }, 1200);
     }
   };
   
