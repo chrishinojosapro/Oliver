@@ -474,6 +474,7 @@ let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
 let lastSpokenText = ""; 
+window.hasInterrupted = false; // NEW: Interruption tracking flag
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -617,17 +618,6 @@ function getLastOliverMessage(){
   return recent.map(m=>m.textContent.trim()).join(' | ').substring(0,1000);
 }
 
-function getRecentConversation(){
-  const all=document.querySelectorAll('.message.user, .message.oliver');
-  const recent=Array.from(all).slice(-8);
-  return recent.map(el=>{
-    const isOliver=el.classList.contains('oliver');
-    const textEl=el.querySelector('.msg-text')||el;
-    const text=textEl.textContent.trim().substring(0,500);
-    return (isOliver?'Oliver: ':'Chris: ')+text;
-  }).join('\n');
-}
-
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
@@ -719,7 +709,10 @@ function extractCanvasAndMarkdown(text) {
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
   const lastAssistantMessage = getLastOliverMessage();
-  const recentConversation = getRecentConversation();
+
+  // Grab interruption state and instantly reset it
+  const interruptedFlag = window.hasInterrupted || false;
+  window.hasInterrupted = false; 
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
   
@@ -756,7 +749,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         voiceEnabled: speakReply,
         hasImage: !!imageBase64,
         lastAssistantMessage,
-        recentConversation,
+        wasInterrupted: interruptedFlag // Send the exact interruption status to the backend
       }),
     });
 
@@ -851,6 +844,7 @@ async function processAudioQueue() {
   
   const { text, resolve, runId } = audioQueue.shift();
   currentPlayingRunId = runId;
+  
   lastSpokenText = text.toLowerCase().replace(/[^\w\s]/gi, ''); 
   
   try {
@@ -910,7 +904,6 @@ function startListening(){
   try{ recognition.start(); }catch(_){}
 }
 
-// Word Overlap Anti-Echo Engine
 function calculateWordOverlap(spoken, lastSpoken) {
     if (!spoken || !lastSpoken) return 0;
     const w1 = spoken.split(' ').filter(w => w.length > 2);
@@ -958,10 +951,10 @@ function buildRecognition(){
 
     const spokenText = (interim || final).trim().toLowerCase().replace(/[^\w\s]/gi, '');
     
-    // ANTI-ECHO FILTER: Advanced Word-Overlap Protection
     const overlapPercent = calculateWordOverlap(spokenText, lastSpokenText);
     const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText) || overlapPercent > 0.4);
     
+    // INTERRUPTION ENGINE: If the user talks over him, kill his audio and set the flag!
     if (spokenText.length > 3 && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
@@ -969,6 +962,7 @@ function buildRecognition(){
             currentAudio = null;
         }
         currentPlayingRunId = null;
+        window.hasInterrupted = true; // Flips the flag for the Edge Function!
         updateOrbState();
     }
 
@@ -1014,10 +1008,12 @@ function toggleMic(){
       return;
   }
 
+  // MANUAL INTERRUPTION ENGINE
   if (currentPlayingRunId) {
       audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
       if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
       currentPlayingRunId = null;
+      window.hasInterrupted = true; // Set flag if you manually click to cut him off
       updateOrbState();
       
       startListening();
