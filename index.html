@@ -109,7 +109,6 @@
   #chat-container::-webkit-scrollbar { display:none; }
 
   @keyframes msg-in { from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
-
   .hidden-voice { display: none !important; }
 
   .message.user {
@@ -138,7 +137,6 @@
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.90); font-weight:300; line-height:1.65; }
   .msg-para { margin-bottom:12px; }
   .msg-para:last-child { margin-bottom:0; }
-
   .msg-image { display:block; max-width:100%; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.10); }
 
   .drive-badge {
@@ -237,10 +235,8 @@
 
   #convo-btn.active { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
   #convo-btn.active svg { fill:rgba(160,210,255,1); }
-
   #file-input { display:none; }
 
-  /* Canvas styling */
   #oliver-canvas {
     position:fixed; inset:0; z-index:100;
     display:flex; flex-direction:column;
@@ -277,7 +273,6 @@
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
-  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
@@ -300,7 +295,6 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
-  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -319,7 +313,6 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
-  /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
     background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
@@ -477,11 +470,10 @@ let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
 
-// The Smart Audio Queue & Task Tracker
 let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
-let lastSpokenText = ""; // ANTI-ECHO TRACKER
+let lastSpokenText = ""; 
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -690,13 +682,12 @@ function extractCanvasAndMarkdown(text) {
       
     canvasStore[id] = { type: (type || 'code').toLowerCase(), title: title || type || 'code', content: cleanContent };
     
-    // Auto-Pop the Canvas & Force UI Unlock
     setTimeout(() => {
         openStoredCanvas(id);
         const canvasEl = document.getElementById('oliver-canvas');
         if(canvasEl && canvasEl.classList.contains('open')) {
              if (isContinuous && recognition && !isRecording) {
-                 startListening(); // Ensure mic is awake when viewing code
+                 startListening(); 
              }
         }
     }, 400); 
@@ -732,7 +723,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
   
-  // Create Unique ID for this specific train of thought
   const runId = Date.now();
   isThinking++; 
   updateOrbState();
@@ -780,7 +770,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       if (value) {
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          buffer = lines.pop(); // Keep incomplete JSON in buffer
+          buffer = lines.pop(); 
 
           for (const line of lines) {
             if (!line.trim()) continue;
@@ -796,7 +786,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 
                 const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
                 
-                // UNHIDE BUBBLE if there are interactive elements or purely visual data
                 if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) {
                     msgEl.classList.remove('hidden-voice');
                 }
@@ -833,7 +822,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 }
              } catch(e) {}
           }
-          break; // Exit stream read loop safely
+          break; 
       }
     }
   } catch(err) {
@@ -849,7 +838,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 function speakText(text, runId) {
   if(!text) return Promise.resolve(false);
   return new Promise((resolve) => {
-    // Tag every request with its task ID for smart interruption
     audioQueue.push({ text, resolve, runId });
     processAudioQueue();
   });
@@ -863,7 +851,7 @@ async function processAudioQueue() {
   
   const { text, resolve, runId } = audioQueue.shift();
   currentPlayingRunId = runId;
-  lastSpokenText = text.toLowerCase().replace(/[^\w\s]/gi, ''); // Anti-Echo string
+  lastSpokenText = text.toLowerCase().replace(/[^\w\s]/gi, ''); 
   
   try {
     const ctx = getAudioCtx();
@@ -877,7 +865,6 @@ async function processAudioQueue() {
     
     if(!res.ok) throw new Error(`TTS ${res.status}`);
     
-    // Direct raw arrayBuffer parsing for Deepgram
     const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
     
     await new Promise((resEnded) => {
@@ -917,10 +904,21 @@ function toggleContinuous(){
 }
 
 function startListening(){
-  if(isRecording) return; // Removed the isSpeaking block to allow full multitasking
+  if(isRecording) return; 
   recognition = buildRecognition();
   if(!recognition) return;
   try{ recognition.start(); }catch(_){}
+}
+
+// Word Overlap Anti-Echo Engine
+function calculateWordOverlap(spoken, lastSpoken) {
+    if (!spoken || !lastSpoken) return 0;
+    const w1 = spoken.split(' ').filter(w => w.length > 2);
+    const w2 = lastSpoken.split(' ').filter(w => w.length > 2);
+    if (w1.length === 0) return 0;
+    let matches = 0;
+    w1.forEach(w => { if(w2.includes(w)) matches++; });
+    return matches / w1.length;
 }
 
 function buildRecognition(){
@@ -960,11 +958,11 @@ function buildRecognition(){
 
     const spokenText = (interim || final).trim().toLowerCase().replace(/[^\w\s]/gi, '');
     
-    // ANTI-ECHO FILTER: Ensure your mic isn't just hearing Oliver's speakers
-    const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText));
+    // ANTI-ECHO FILTER: Advanced Word-Overlap Protection
+    const overlapPercent = calculateWordOverlap(spokenText, lastSpokenText);
+    const isEcho = lastSpokenText && (spokenText.includes(lastSpokenText) || lastSpokenText.includes(spokenText) || overlapPercent > 0.4);
     
     if (spokenText.length > 3 && currentPlayingRunId && !isEcho) {
-        // SMART INTERRUPTION: Delete the rambling task, but keep background searches alive
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
             try { currentAudio.stop(); } catch(_) {}
@@ -978,7 +976,6 @@ function buildRecognition(){
       interimEl.textContent = ''; 
       const userText = final.trim();
 
-      // Fire into pipeline (does not kill background tasks)
       pipeline(userText, true); 
 
       if (!isContinuous) {
@@ -1000,7 +997,6 @@ function buildRecognition(){
     isRecording = false;
     micBtn.classList.remove('recording');
     
-    // Auto-Reboot the mic during phone call mode
     if (isContinuous) {
         setTimeout(() => startListening(), 100);
     } else {
@@ -1018,7 +1014,6 @@ function toggleMic(){
       return;
   }
 
-  // Smart interruption on button tap
   if (currentPlayingRunId) {
       audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
       if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
