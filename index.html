@@ -474,7 +474,6 @@ let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
 
-// NEW: Rolling Speech Buffer for bulletproof echo cancellation
 let recentSpokenChunks = []; 
 window.hasInterrupted = false; 
 
@@ -495,7 +494,7 @@ const getSessionId = () => {
 // --- SCREEN SYNC ENGINE ---
 function getUIHistory() {
   const elements = document.querySelectorAll('#chat-container .message');
-  const recent = Array.from(elements).slice(-14); // Grab last 14 visual blocks
+  const recent = Array.from(elements).slice(-14);
   let historyArr = [];
   
   recent.forEach(el => {
@@ -517,7 +516,6 @@ function getUIHistory() {
     }
   });
 
-  // Remove the very last user message from this array, because `pipeline()` manually appends it
   if (historyArr.length > 0 && historyArr[historyArr.length - 1].role === 'user') {
       historyArr.pop();
   }
@@ -748,7 +746,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
   
-  const uiHistory = getUIHistory(); // <--- GRAB EXACT UI CONTEXT
+  const uiHistory = getUIHistory(); 
 
   let imageContext='';
   if(imageBase64){
@@ -775,7 +773,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         inputMode: speakReply?'voice':'text',
         voiceEnabled: speakReply,
         hasImage: !!imageBase64,
-        uiHistory: uiHistory, // <--- SEND SCREEN SYNC
+        uiHistory: uiHistory, 
         wasInterrupted: interruptedFlag 
       }),
     });
@@ -872,9 +870,8 @@ async function processAudioQueue() {
   const { text, resolve, runId } = audioQueue.shift();
   currentPlayingRunId = runId;
   
-  // NEW: Add to rolling buffer
   recentSpokenChunks.push(text.toLowerCase().replace(/[^\w\s]/gi, '')); 
-  if (recentSpokenChunks.length > 3) recentSpokenChunks.shift(); // Only keep last 3 chunks
+  if (recentSpokenChunks.length > 3) recentSpokenChunks.shift(); 
   
   try {
     const ctx = getAudioCtx();
@@ -981,15 +978,16 @@ function buildRecognition(){
     const rawText = (interim || final).trim().toLowerCase();
     const spokenText = rawText.replace(/[^\w\s]/gi, '');
     
-    // WAKE WORD DETECTION
+    // COMMAND DETECTION
     const hasWakeWord = rawText.includes('oliver'); 
+    const isStopCommand = rawText === 'stop oliver' || rawText === 'stop listening' || rawText === 'stop';
     
     const combinedRecentSpeech = recentSpokenChunks.join(" ");
     const overlapPercent = calculateWordOverlap(spokenText, combinedRecentSpeech);
     const isEcho = combinedRecentSpeech && (combinedRecentSpeech.includes(spokenText) || spokenText.includes(combinedRecentSpeech) || overlapPercent > 0.4);
     
-    // WAKE WORD INTERRUPTION: Only cut his audio if you say his name
-    if (hasWakeWord && currentPlayingRunId && !isEcho) {
+    // INTERRUPTION: Cut his audio if you say his name or a stop command
+    if ((hasWakeWord || isStopCommand) && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
             try { currentAudio.stop(); } catch(_) {}
@@ -1003,17 +1001,21 @@ function buildRecognition(){
     if(final && !isEcho){ 
       const userText = final.trim();
 
-      // WAKE WORD GATE: If mic is always on, ONLY answer if "Oliver" is said.
-      if (hasWakeWord || !isContinuous) {
-          interimEl.textContent = ''; 
-          pipeline(userText, true); 
+      // STOP COMMAND GATE: Instantly turn off conversation mode
+      if (isStopCommand) {
+          interimEl.textContent = 'Conversation ended.';
+          setTimeout(() => { interimEl.textContent = ''; }, 1500);
+          if (isContinuous) toggleContinuous();
+          else stopRecording();
+          return;
+      }
 
-          if (!isContinuous) {
-              stopRecording(); 
-          }
-      } else {
-          // Ignore background chatter, clear the text off the screen after 1 second
-          setTimeout(() => { if (interimEl.textContent === final) interimEl.textContent = ''; }, 1000);
+      // OPEN CHANNEL GATE: Respond to everything naturally
+      interimEl.textContent = ''; 
+      pipeline(userText, true); 
+
+      if (!isContinuous) {
+          stopRecording(); 
       }
     }
   };
