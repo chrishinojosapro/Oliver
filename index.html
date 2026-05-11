@@ -978,15 +978,16 @@ function buildRecognition(){
     const rawText = (interim || final).trim().toLowerCase();
     const spokenText = rawText.replace(/[^\w\s]/gi, '');
     
-    // COMMAND DETECTION
-    const hasWakeWord = rawText.includes('oliver'); 
-    const isStopCommand = rawText === 'stop oliver' || rawText === 'stop listening' || rawText === 'stop';
+    // AGGRESSIVE INTERIM DETECTION: Catches commands instantly before the final pause trigger
+    const wakeRegex = /\b(oliver|olive|all over|all of her|hey oliver)\b/i;
+    const hasWakeWord = wakeRegex.test(rawText); 
+    const isStopCommand = /\b(stop oliver|stop listening|stop now)\b/i.test(rawText) || rawText === 'stop';
     
     const combinedRecentSpeech = recentSpokenChunks.join(" ");
     const overlapPercent = calculateWordOverlap(spokenText, combinedRecentSpeech);
     const isEcho = combinedRecentSpeech && (combinedRecentSpeech.includes(spokenText) || spokenText.includes(combinedRecentSpeech) || overlapPercent > 0.4);
     
-    // INTERRUPTION: Cut his audio if you say his name or a stop command
+    // INTERRUPTION: Cut his audio the millisecond he is named in the interim text
     if ((hasWakeWord || isStopCommand) && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
@@ -998,17 +999,17 @@ function buildRecognition(){
         updateOrbState();
     }
 
+    // INSTANT STOP COMMAND GATE: Shuts down instantly, bypassing the final pause trigger
+    if (isStopCommand && !isEcho) {
+        interimEl.textContent = 'Conversation ended.';
+        setTimeout(() => { interimEl.textContent = ''; }, 1500);
+        if (isContinuous) toggleContinuous();
+        else stopRecording();
+        return;
+    }
+
     if(final && !isEcho){ 
       const userText = final.trim();
-
-      // STOP COMMAND GATE: Instantly turn off conversation mode
-      if (isStopCommand) {
-          interimEl.textContent = 'Conversation ended.';
-          setTimeout(() => { interimEl.textContent = ''; }, 1500);
-          if (isContinuous) toggleContinuous();
-          else stopRecording();
-          return;
-      }
 
       // OPEN CHANNEL GATE: Respond to everything naturally
       interimEl.textContent = ''; 
