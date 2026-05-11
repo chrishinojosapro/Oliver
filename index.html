@@ -493,9 +493,10 @@
 </div>
 
 <script>
-// SPOTIFY PERSISTENCE & POLLING STATE
+// FRONTEND STATE
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
+let oliverSleepMode = false; // NEW: Local Ambient Awareness Flag
 
 window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
@@ -663,12 +664,19 @@ function setOrb(state){
 }
 
 function updateOrbState() {
-    if (isSpeaking || isPlayingQueue) {
+    if (oliverSleepMode && !isSpeaking && !isPlayingQueue) {
+        setOrb(null);
+        stopWave();
+        const pip = document.getElementById('main-pip');
+        if(pip) pip.style.background = '#555'; // Dim indicator when asleep
+    } else if (isSpeaking || isPlayingQueue) {
         setOrb('speaking');
         startWave('speaking');
     } else if (isRecording) {
         setOrb('listening');
         startWave('listening');
+        const pip = document.getElementById('main-pip');
+        if(pip && !spotifyIsPlaying) pip.style.background = 'white';
     } else if (isThinking || audioQueue.length > 0) {
         setOrb('thinking');
         startWave('thinking');
@@ -955,7 +963,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         const data = JSON.parse(line);
 
         if (data.type === 'ignore') {
-            // Ambient Awareness Activated: Smoothly fade out the user's accidental message
+            // Ambient Awareness Activated by backend: Smoothly fade out the user's accidental message
             if (userMsgEl) {
                 userMsgEl.style.transition = 'all 0.4s ease';
                 userMsgEl.style.opacity = '0';
@@ -1209,7 +1217,39 @@ function buildRecognition(){
 
     if(isEcho(liveText)) return; 
 
-    if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
+    // FRONTEND SLEEP WAKE LOGIC
+    if (oliverSleepMode) {
+        if (liveText.includes("hey oliver") || liveText.includes("wake up oliver") || liveText.includes("oliver wake up")) {
+            oliverSleepMode = false;
+            updateOrbState();
+            // Let the logic naturally drop through to hit the standard 1.2s timeout to send the rest of your sentence.
+        } else {
+            // He is still asleep. Update visual silently, then clear it after a delay WITHOUT stopping the mic.
+            interimEl.textContent = '💤 ' + (interim || final);
+            clearTimeout(sentenceTimeout);
+            sentenceTimeout = setTimeout(() => {
+                if (isRecording) interimEl.textContent = '';
+            }, 1200);
+            return; // Stops here! The mic stays completely open and no data is sent to the backend.
+        }
+    }
+
+    // Put him to sleep natively inside the frontend
+    if (!oliverSleepMode && (liveText.includes("oliver ignore me") || liveText.includes("ignore me oliver") || liveText.includes("go to sleep oliver"))) {
+        oliverSleepMode = true;
+        interimEl.textContent = '';
+        clearTimeout(sentenceTimeout);
+        updateOrbState();
+        
+        // Push an instant fake Oliver response into the UI/Voice queue without hitting the backend at all!
+        const msgEl = addMessage("I'm going to sleep. Just say 'Hey Oliver' to wake me up.", "oliver", null, null, null, true);
+        msgEl.classList.remove('hidden-voice');
+        audioQueue.push({ text: "I'll ignore you until you say Hey Oliver.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+        if (!isPlayingQueue) processAudioQueue();
+        return;
+    }
+
+    if (liveText.includes("oliver stop") || liveText.includes("stop listening completely")) {
          stopRecording(false);
          toggleContinuous(); 
          return;
@@ -1235,7 +1275,8 @@ function buildRecognition(){
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
-            if(isRecording && interimEl.textContent.trim()) {
+            // Only stop recording and send to backend if he is NOT in sleep mode
+            if(isRecording && interimEl.textContent.trim() && !oliverSleepMode) {
                 if (interimEl.textContent.trim().length > 2) {
                     stopRecording(true); 
                 } else {
