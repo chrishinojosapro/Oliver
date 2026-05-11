@@ -403,6 +403,7 @@
 </div>
 
 <script>
+// --- BACKGROUND STAR ANIMATION ---
 (function(){
   const cv=document.getElementById('star-canvas'),cx=cv.getContext('2d');
   let W,H;
@@ -470,10 +471,12 @@ let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
 
+// --- AUDIO QUEUE ENGINE ---
 let audioQueue = [];
 let isPlayingQueue = false;
 let currentPlayingRunId = null; 
 
+// --- ROLLING MEMORY FOR ECHO FILTER ---
 let recentSpokenChunks = []; 
 window.hasInterrupted = false; 
 
@@ -930,7 +933,7 @@ function startListening(){
   if(isRecording) return; 
   recognition = buildRecognition();
   if(!recognition) return;
-  try{ recognition.start(); }catch(_){}
+  try{ recognition.start(); }catch(e){ console.warn("Start error:", e); }
 }
 
 function calculateWordOverlap(spoken, lastSpoken) {
@@ -978,13 +981,11 @@ function buildRecognition(){
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
     
-    // Display the accumulating buffer plus the current thought
     interimEl.textContent = (speechBuffer + ' ' + (interim || final)).trim();
 
     const rawText = (interim || final).trim().toLowerCase();
     const spokenText = rawText.replace(/[^\w\s]/gi, '');
     
-    // AGGRESSIVE INTERIM DETECTION: Catches commands instantly before the final pause trigger
     const wakeRegex = /\b(oliver|olive|all over|all of her|hey oliver)\b/i;
     const hasWakeWord = wakeRegex.test(rawText); 
     const isStopCommand = /\b(stop oliver|stop listening|stop now)\b/i.test(rawText) || rawText === 'stop';
@@ -993,7 +994,6 @@ function buildRecognition(){
     const overlapPercent = calculateWordOverlap(spokenText, combinedRecentSpeech);
     const isEcho = combinedRecentSpeech && (combinedRecentSpeech.includes(spokenText) || spokenText.includes(combinedRecentSpeech) || overlapPercent > 0.4);
     
-    // INTERRUPTION: Cut his audio the millisecond he is named in the interim text
     if ((hasWakeWord || isStopCommand) && currentPlayingRunId && !isEcho) {
         audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
         if (currentAudio) {
@@ -1005,7 +1005,6 @@ function buildRecognition(){
         updateOrbState();
     }
 
-    // INSTANT STOP COMMAND GATE: Shuts down instantly, bypassing the final pause trigger
     if (isStopCommand && !isEcho) {
         interimEl.textContent = 'Conversation ended.';
         setTimeout(() => { interimEl.textContent = ''; }, 1500);
@@ -1015,14 +1014,14 @@ function buildRecognition(){
     }
 
     if(final && !isEcho){ 
-        // Append to our buffer instead of firing immediately
         speechBuffer += ' ' + final.trim();
         interimEl.textContent = speechBuffer.trim();
         
         clearTimeout(speechBufferTimeout);
+        // INCRESAED BUFFER TO 2500ms (2.5 Seconds) TO PREVENT CUT-OFFS
         speechBufferTimeout = setTimeout(() => {
             const userText = speechBuffer.trim();
-            speechBuffer = ''; // Clear the buffer
+            speechBuffer = ''; 
             interimEl.textContent = ''; 
             
             if (userText) {
@@ -1032,7 +1031,7 @@ function buildRecognition(){
             if (!isContinuous) {
                 stopRecording(false); 
             }
-        }, 1500); // Wait 1.5 seconds for absolute silence before committing the sentence
+        }, 2500); 
     }
   };
   
@@ -1050,6 +1049,7 @@ function buildRecognition(){
     micBtn.classList.remove('recording');
     
     if (isContinuous) {
+        // Automatically restarts continuous listening if the browser stops it
         setTimeout(() => startListening(), 100);
     } else {
         updateOrbState();
@@ -1087,7 +1087,6 @@ function stopRecording(processCurrent = false){
   
   let capturedText = interimEl.textContent.trim();
   
-  // Flush any pending words stuck in the pause buffer
   if (speechBuffer) {
       capturedText = speechBuffer.trim();
   }
@@ -1104,6 +1103,15 @@ function stopRecording(processCurrent = false){
      pipeline(capturedText, true);
   }
 }
+
+// --- SELF-HEALING MICROPHONE WATCHDOG ---
+// Browsers sometimes forcefully kill the microphone after a minute or during a glitch.
+// This ensures the mic instantly re-opens if Conversation Mode is active.
+setInterval(() => {
+    if (isContinuous && !isRecording && !isPlayingQueue) {
+        startListening();
+    }
+}, 2500);
 
 const canvasEl     =document.getElementById('oliver-canvas');
 const canvasBody   =document.getElementById('canvas-body');
