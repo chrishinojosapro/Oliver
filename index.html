@@ -400,9 +400,6 @@
   <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
     <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
   </button>
-  <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
-    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-  </button>
   <button class="ctrl-btn" id="convo-btn" onclick="toggleContinuous()" aria-label="Conversation mode">
     <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"/></svg>
   </button>
@@ -470,18 +467,23 @@ const interimEl = { textContent:'' };
 
 let isRecording   = false;
 let isContinuous  = false;
+let isThinking    = 0; // Integer Counter for True Multitasking!
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
 
-// The Queue that handles background Audio
+// The Smart Audio Queue & Task Tracker
 let audioQueue = [];
 let isPlayingQueue = false;
+let currentPlayingRunId = null; 
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
 let pendingImageName   = null;
+
+let canvasStore = {};
+let canvasIdCounter = 0;
 
 const sessionStart = Date.now();
 const getSessionId = () => {
@@ -490,8 +492,17 @@ const getSessionId = () => {
   return sid;
 };
 
-let canvasStore = {};
-let canvasIdCounter = 0;
+function updateOrbState() {
+    if (isPlayingQueue) {
+        setOrb('speaking'); startWave('speaking');
+    } else if (isThinking > 0) {
+        setOrb('thinking'); startWave('thinking');
+    } else if (isRecording) {
+        setOrb('listening'); startWave('listening');
+    } else {
+        setOrb(null); stopWave();
+    }
+}
 
 function getAudioCtx(){
   if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -662,24 +673,33 @@ function showDriveBadge(filename){
 
 function extractCanvasAndMarkdown(text) {
   let processed = text;
-
-  const canvasRe = /<CANVAS\b([^>]*)>([\s\S]*?)<\/CANVAS>/gi;
-  processed = processed.replace(canvasRe, (match, attrs, content) => {
-    let typeMatch = attrs.match(/type="([^"]+)"/i);
-    let titleMatch = attrs.match(/title="([^"]+)"/i);
-    let type = typeMatch ? typeMatch[1].toLowerCase() : 'code';
-    let title = titleMatch ? titleMatch[1] : type;
-    
-    // Bulletproof scrubber for AI adding backticks inside the canvas
-    let cleanContent = content.replace(/^\s*```[a-zA-Z]*\n?/i, '').replace(/\n?\s*```\s*$/i, '').trim();
-
+  
+  const canvasRe = /<CANVAS\s*(?:[^>]*?type="([^"]+)")?(?:[^>]*?title="([^"]*)")?[^>]*>([\s\S]*?)<\/CANVAS>/gi;
+  processed = processed.replace(canvasRe, (match, type, title, content) => {
     const id = 'c_' + (++canvasIdCounter);
-    canvasStore[id] = { type: type, title: title, content: cleanContent };
-    setTimeout(()=>openStoredCanvas(id), 400); 
+    
+    // Bulletproof Backtick Scrubber
+    let cleanContent = content
+      .replace(/^\s*```[a-zA-Z]*\n?/i, '') 
+      .replace(/\n?\s*```\s*$/i, '')       
+      .trim();
+      
+    canvasStore[id] = { type: (type || 'code').toLowerCase(), title: title || type || 'code', content: cleanContent };
+    
+    // Auto-Pop the Canvas & Unlock the UI
+    setTimeout(() => {
+        openStoredCanvas(id);
+        const canvasEl = document.getElementById('oliver-canvas');
+        if(canvasEl && canvasEl.classList.contains('open')) {
+             if (isContinuous && recognition) {
+                 try { recognition.stop(); } catch(e){} 
+             }
+        }
+    }, 400); 
     
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-              View ${title}
+              View ${title || type || 'Code'}
             </button>\n`;
   });
 
@@ -688,7 +708,12 @@ function extractCanvasAndMarkdown(text) {
     const id = 'c_' + (++canvasIdCounter);
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
-    setTimeout(()=>openStoredCanvas(id), 400); 
+    
+    // Auto-Pop the Canvas & Unlock the UI
+    setTimeout(() => {
+        openStoredCanvas(id);
+    }, 400); 
+
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
               View Code
@@ -699,15 +724,15 @@ function extractCanvasAndMarkdown(text) {
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  // REMOVED THE isSpeaking LOCK! 
-  // You can now open as many parallel connections as you want.
-
   const lastAssistantMessage = getLastOliverMessage();
   const recentConversation = getRecentConversation();
 
   addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
   
-  setOrb('thinking'); startWave('thinking');
+  // PARALLEL TRACKING: Generate a unique ID for this specific thought
+  const runId = Date.now();
+  isThinking++; 
+  updateOrbState();
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
@@ -725,7 +750,8 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     finally{ imgBtn.classList.remove('uploading'); clearImage(); }
   }
 
-  try{
+  let thinkCounted = true; 
+  try {
     const res=await fetch(EDGE_FUNCTION_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
@@ -759,9 +785,8 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
               const data = JSON.parse(line);
               
               if (data.type === 'filler') {
-                if (speakReply) {
-                  speakText(data.text); 
-                }
+                // Instantly speak the multitasking filler using this specific runId
+                if (speakReply) speakText(data.text, runId); 
               } 
               else if (data.type === 'final') {
                 const ttsCleanText = cleanForTTS(data.text);
@@ -769,22 +794,20 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 
                 const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
                 
-                // Automatically un-hide if code buttons were generated
-                if (speakReply && processedReply.includes('chat-canvas-btn')) {
+                // UNHIDE BUG FIX: If he generated buttons, instantly show the chat bubble!
+                if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) {
                     msgEl.classList.remove('hidden-voice');
                 }
                 
-                if (speakReply) {
-                  speakText(ttsCleanText).then(success => {
+                if (speakReply && ttsCleanText) {
+                  // Pass the unique runId so the Audio Queue knows this belongs to the same thought!
+                  speakText(ttsCleanText, runId).then(success => {
                       if(!success && msgEl) msgEl.classList.remove('hidden-voice');
                   });
-                } else {
-                  if(audioQueue.length === 0 && !isPlayingQueue) { setOrb(null); stopWave(); }
                 }
               }
               else if (data.type === 'error') {
                  addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
-                 if(audioQueue.length === 0 && !isPlayingQueue) { setOrb(null); stopWave(); }
               }
             } catch (e) {
               console.error("NDJSON Parse error:", e);
@@ -792,7 +815,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
           }
       }
 
-      // Check if the stream is officially done
       if (done) {
           if (buffer.trim()) {
              try {
@@ -801,13 +823,11 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                   const ttsCleanText = cleanForTTS(data.text);
                   const processedReply = extractCanvasAndMarkdown(data.text);
                   const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-                  if (speakReply && processedReply.includes('chat-canvas-btn')) msgEl.classList.remove('hidden-voice');
-                  if (speakReply) {
-                    speakText(ttsCleanText).then(success => {
+                  if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) msgEl.classList.remove('hidden-voice');
+                  if (speakReply && ttsCleanText) {
+                    speakText(ttsCleanText, runId).then(success => {
                         if(!success && msgEl) msgEl.classList.remove('hidden-voice');
                     });
-                  } else {
-                    if(audioQueue.length === 0 && !isPlayingQueue) { setOrb(null); stopWave(); }
                   }
                 }
              } catch(e) {}
@@ -815,34 +835,41 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
           break;
       }
     }
-    
-  }catch(err){
-    if(audioQueue.length === 0 && !isPlayingQueue) { setOrb(null); stopWave(); }
+  } catch(err) {
     addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
+  } finally {
+    if (thinkCounted) {
+        // Decrease the concurrent process counter
+        isThinking = Math.max(0, isThinking - 1);
+        updateOrbState();
+    }
   }
 }
 
-function speakText(text) {
+function speakText(text, runId) {
   if(!text) return Promise.resolve(false);
-  
   return new Promise((resolve) => {
-    audioQueue.push({ text, resolve });
+    // We explicitly tag every piece of audio with the runId it belongs to
+    audioQueue.push({ text, resolve, runId });
     processAudioQueue();
   });
 }
 
 async function processAudioQueue() {
   if(isPlayingQueue || audioQueue.length === 0) return;
+  
   isPlayingQueue = true;
+  updateOrbState(); 
   
-  const { text, resolve } = audioQueue.shift();
-  
-  setOrb('speaking'); startWave('speaking');
+  const { text, resolve, runId } = audioQueue.shift();
+  // Mark this specific thought as the one currently talking
+  currentPlayingRunId = runId;
   
   try {
     const ctx = getAudioCtx();
     if(ctx.state === 'suspended') await ctx.resume();
     
+    // Fetch raw MP3 buffer from Deepgram TTS
     const res = await fetch(XI_URL, {
       method: 'POST',
       headers: {'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
@@ -867,113 +894,157 @@ async function processAudioQueue() {
     resolve(false);
   } finally {
     currentAudio = null;
+    currentPlayingRunId = null; // Clear it so the mic doesn't think we are still talking
     isPlayingQueue = false;
     
     if(audioQueue.length > 0) {
       processAudioQueue();
     } else {
-      // If nothing is left in the queue, shut down the orb.
-      // (If a background pipeline finishes later, it will wake the orb back up automatically!)
-      setOrb(null); stopWave();
-      if(isContinuous) setTimeout(() => startListening(), 650);
+      updateOrbState(); 
     }
   }
 }
 
+
 function toggleContinuous(){
   unlockAudio();
-  isContinuous=!isContinuous;
-  convoBtn.classList.toggle('active',isContinuous);
-  if(isContinuous){
-    if(!isRecording) startListening();
+  isContinuous = !isContinuous;
+  convoBtn.classList.toggle('active', isContinuous);
+  if (isContinuous) {
+    startListening();
   } else {
-    stopWave(); stopRecording();
+    stopRecording();
   }
 }
 
 function startListening(){
-  // REMOVED isSpeaking/isPlayingQueue LOCK! You can listen anytime.
   if(isRecording) return;
-  recognition=buildRecognition();
+  recognition = buildRecognition();
   if(!recognition) return;
   try{ recognition.start(); }catch(_){}
 }
 
 function buildRecognition(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) {
      addMessage("Speech recognition not supported in this browser.", 'oliver');
      return null;
   }
-  const r=new SR();
-  r.continuous=false; r.interimResults=true; r.lang='en-US';
+  const r = new SR();
   
-  let recTimeout;
-  r.onstart=()=>{ 
-    isRecording=true; micBtn.classList.add('recording'); 
-    setOrb('listening'); startWave('listening'); 
-    interimEl.textContent=''; 
-    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 10000);
+  // Magic Setting: If in Conversation Mode, leave mic hot forever!
+  r.continuous = isContinuous; 
+  r.interimResults = true; 
+  r.lang = 'en-US';
+  
+  let walkieTalkieTimer;
+  
+  r.onstart = () => { 
+    isRecording = true; 
+    micBtn.classList.add('recording'); 
+    interimEl.textContent = ''; 
+    updateOrbState();
   };
   
-  r.onresult=(e)=>{
-    clearTimeout(recTimeout);
-    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 5000); 
+  r.onresult = (e) => {
+    clearTimeout(walkieTalkieTimer);
     
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      e.results[i].isFinal?(final+=t):(interim+=t);
+    if (!isContinuous) {
+        walkieTalkieTimer = setTimeout(() => { if(isRecording) stopRecording(true); }, 5000); 
     }
-    interimEl.textContent=interim||final;
+    
+    let interim='', final='';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const t = e.results[i][0].transcript;
+      e.results[i].isFinal ? (final+=t) : (interim+=t);
+    }
+    interimEl.textContent = interim || final;
+
+    // SMART INTERRUPTION: Only cut off the specific train of thought you are interrupting
+    const spokenText = (interim || final).trim();
+    if (spokenText.length > 2 && currentPlayingRunId) {
+        // Delete any remaining audio for THIS specific task, but save background tasks!
+        audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
+        if (currentAudio) {
+            try { currentAudio.stop(); } catch(_) {}
+            currentAudio = null;
+        }
+        currentPlayingRunId = null;
+        updateOrbState();
+    }
+
     if(final){ 
-      interimEl.textContent=''; 
-      stopRecording(); 
-      pipeline(final.trim(), true); 
+      interimEl.textContent = ''; 
+      const userText = final.trim();
+
+      // Fire thought into pipeline immediately (Does NOT cancel background tasks)
+      pipeline(userText, true); 
+
+      // If just using Walkie-Talkie button, hang up. Otherwise keep rolling!
+      if (!isContinuous) {
+          stopRecording(); 
+      }
     }
   };
   
-  r.onerror=(e)=>{ 
+  r.onerror = (e) => { 
     console.warn('Speech error:',e.error); 
-    if(e.error === 'not-allowed') addMessage("Microphone access denied.", 'oliver');
-    stopRecording(); 
+    if(e.error === 'not-allowed') {
+        isContinuous = false; convoBtn.classList.remove('active');
+        addMessage("Microphone access denied.", 'oliver');
+    }
+    if (!isContinuous) stopRecording(); 
   };
   
-  r.onend=()=>{ if(isRecording) stopRecording(true); };
+  r.onend = () => { 
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    
+    // Auto-Reboot: If browser times out the mic during phone call mode, turn it back on instantly!
+    if (isContinuous) {
+        setTimeout(() => startListening(), 100);
+    } else {
+        updateOrbState();
+    }
+  };
   return r;
 }
 
 function toggleMic(){
   unlockAudio();
   
-  // THE INTERRUPTION ENGINE: If you tap the mic while he's talking, it shuts him up instantly!
-  if(currentAudio || audioQueue.length > 0) {
-    audioQueue = []; // Dump all his pending spoken words in the trash
-    if(currentAudio){ 
-        try { currentAudio.stop(); } catch(_) {} 
-        currentAudio = null; 
-    }
-    isPlayingQueue = false;
-    setOrb(null); stopWave();
-    
-    // Instantly switch to recording your new thought!
-    startListening();
-    return;
+  // If in Phone Call mode, tapping Mic turns it off completely
+  if (isContinuous) {
+      toggleContinuous();
+      return;
   }
 
-  if(isRecording){ stopRecording(true); return; }
+  // Voice Interruption manually via button tap
+  if (currentPlayingRunId) {
+      // Clear ONLY the currently rambling thought, protect the background!
+      audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
+      if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
+      currentPlayingRunId = null;
+      updateOrbState();
+      
+      startListening();
+      return;
+  }
+
+  if (isRecording) { stopRecording(true); return; }
   startListening();
 }
 
 function stopRecording(processCurrent = false){
-  isRecording=false;
+  isRecording = false;
   micBtn.classList.remove('recording');
   
   const capturedText = interimEl.textContent.trim();
-  interimEl.textContent='';
+  interimEl.textContent = '';
   
   try{ if(recognition) recognition.stop(); }catch(_){}
-  if(!isPlayingQueue && audioQueue.length === 0){ setOrb(null); stopWave(); }
+  
+  updateOrbState();
   
   if(processCurrent && capturedText) {
      pipeline(capturedText, true);
@@ -1098,6 +1169,7 @@ function renderMarkdown(md){
 }
 
 window.addEventListener('load', () => {
+    // Silent Ping to wake up Supabase instantly
     fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
     fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
 });
