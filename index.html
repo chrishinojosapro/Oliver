@@ -501,8 +501,11 @@ let canvasIdCounter = 0;
 
 window.hasInterrupted = false; 
 let isMicStarting = false;
-let sentenceTimeout;
-let lastMicRestart = 0; // ADDED: Global debounce timer
+
+// THE GHOST TIMER FIX: All timeouts are absolutely globally scoped
+let recTimeout = null;
+let sentenceTimeout = null;
+let lastMicRestart = 0; 
 
 // ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
@@ -929,26 +932,35 @@ function toggleContinuous(){
 }
 
 function startListening(){
-  // STABILITY FIX: Prevent rapid-fire flashing by enforcing a 600ms gap between restarts
-  if(Date.now() - lastMicRestart < 600) return;
+  // THE DEBOUNCE FIX: Prevent violent rapid-fire CSS flashing by enforcing an 800ms gap
+  if(Date.now() - lastMicRestart < 800) return;
   if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue) return;
   
   isMicStarting = true; 
   lastMicRestart = Date.now();
+
+  // THE GHOST INSTANCE ASSASSIN: Nuke any lingering SpeechRecognition instances
+  if (recognition) {
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.onstart = null;
+      recognition.onresult = null;
+      try { recognition.abort(); } catch(e){}
+      recognition = null;
+  }
+
+  // GLOBAL TIMER ASSASSIN: Destroy lingering timeouts before building a new mic
+  clearTimeout(recTimeout);
+  clearTimeout(sentenceTimeout);
+
   recognition = buildRecognition();
   if(!recognition) {
       isMicStarting = false;
       return;
   }
+
   try{ 
-      setTimeout(() => {
-          // Double-check nothing changed in the 50ms gap before physically starting
-          if(!isThinking && !isSpeaking && !isPlayingQueue && isContinuous) {
-              recognition.start();
-          } else {
-              isMicStarting = false;
-          }
-      }, 50); 
+      recognition.start();
   } catch(err){ 
       console.warn("Mic start failed:", err);
       isMicStarting = false; 
@@ -964,17 +976,20 @@ function buildRecognition(){
   const r=new SR();
   r.continuous=false; r.interimResults=true; r.lang='en-US';
   
-  let recTimeout;
   r.onstart=()=>{ 
-    isRecording=true; micBtn.classList.add('recording'); 
+    isRecording=true; 
+    isMicStarting=false;
+    micBtn.classList.add('recording'); 
     setOrb('listening'); startWave('listening'); 
     interimEl.textContent=''; 
+    
+    clearTimeout(recTimeout);
     recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 10000);
   };
   
   r.onresult=(e)=>{
     clearTimeout(recTimeout);
-    // SPEED BOOST: Cut the breath buffer down to 1.2 seconds for instant snap-off
+    // 1.2 Second Snap for fast replies
     recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 1200); 
     
     let interim='',final='';
@@ -985,16 +1000,16 @@ function buildRecognition(){
 
     const liveText = (interim || final).toLowerCase().trim();
 
-    // 1. The Ironclad Echo Shield (Deaf State during playback)
+    // The Ironclad Echo Shield (Deaf State during playback)
     if (isSpeaking || isPlayingQueue) {
         const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
         if (!isWakeWord) return; 
     }
 
-    // 2. The Anti-Echo Filter
+    // The Anti-Echo Filter
     if(isEcho(liveText)) return; 
 
-    // 3. Explicit Interruptions
+    // Explicit Interruptions
     if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
          stopRecording(false);
          toggleContinuous(); 
@@ -1020,7 +1035,7 @@ function buildRecognition(){
 
     interimEl.textContent = interim || final;
     
-    // 4. Extended Breath Buffer
+    // Extended Breath Buffer (4 Seconds to think mid-sentence)
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
@@ -1042,11 +1057,13 @@ function buildRecognition(){
   };
   
   r.onend=()=>{ 
-     if(isRecording) stopRecording(false); 
      isMicStarting = false;
-     // Add a slight delay before allowing a restart to let the browser hardware fully close the channel
+     if(isRecording) stopRecording(false); 
+     
      if(isContinuous && !isRecording && !isThinking) {
-         setTimeout(startListening, 300);
+         // DYNAMIC CSS THROTTLING: Prevents violent rapid flashing if the browser hardware fights the microphone
+         let delay = (isSpeaking || isPlayingQueue) ? 1000 : 300;
+         setTimeout(startListening, delay);
      }
   };
   return r;
@@ -1071,12 +1088,14 @@ function toggleMic(){
 function stopRecording(processCurrent = false){
   isRecording=false;
   micBtn.classList.remove('recording');
+  
+  // GLOBAL TIMER ASSASSIN: Always clear them so they can never randomly fire again
+  clearTimeout(recTimeout);
   clearTimeout(sentenceTimeout);
   
   const capturedText = interimEl.textContent.trim();
   interimEl.textContent='';
   
-  // STABILITY FIX: Use .abort() instead of .stop() to instantly kill the engine without ghost-events
   try{ if(recognition) recognition.abort(); }catch(_){}
   updateOrbState();
   
@@ -1087,7 +1106,7 @@ function stopRecording(processCurrent = false){
 
 // SELF-HEALING WATCHDOG
 setInterval(() => {
-    // STABILITY FIX: If the mic gets permanently stuck in a "starting" state, safely unlock it after 3 seconds
+    // If the mic gets permanently stuck in a "starting" state, safely unlock it after 3 seconds
     if (isMicStarting && (Date.now() - lastMicRestart > 3000)) {
         isMicStarting = false;
     }
