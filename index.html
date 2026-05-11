@@ -476,7 +476,7 @@
 
 <div class="controls">
   <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()" aria-label="Microphone">
-    <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 16.93A8.001 8.001 0 0 0 19.94 12H18a6 6 0 0 1-12 0H4.06A8.001 8.001 0 0 0 10 17.93V21H8v2h8v-2h-2v-3.07z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 16.93A8.001 8.001 0 0 0 19.94 12H18a6 6 0 0 1-12 0H4.06A8.001 8.001 0 0 0 10 17.93V21H8v2h8v-2h-2v-3.07z"/></svg>
   </button>
   <input type="text" id="text-input" placeholder="Message Oliver…" onkeydown="checkEnter(event)" autocomplete="off" autocorrect="off" spellcheck="false">
   <input type="file" id="file-input" accept="image/*" onchange="onImageSelected(event)">
@@ -862,8 +862,12 @@ function extractCanvasAndMarkdown(text) {
   return { processed: processed.trim(), hasCanvas };
 }
 
-// Upgraded Pipeline Function with Album Art UI parsing & Ignore Engine
+// Upgraded Pipeline Function with Auto Follow-Up Engine
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
+  // Check if this is an automated UI follow-up prompt
+  let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
+  let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
+
   if (isThinking && !isSilentCommand) return; 
   
   const runId = Date.now().toString(); 
@@ -871,18 +875,24 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   
   if (!isSilentCommand) {
       isThinking = true; 
-      userMsgEl = addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
+      
+      // Do not show the hidden auto-prompts in the UI bubble
+      if (!isHiddenPrompt) {
+          userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
+      }
       updateOrbState(); 
       
       // Auto-trigger Spotify Mini-Widget based on user prompt!
-      const lowerMsg = userText.toLowerCase();
-      if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
-          setTimeout(() => { 
-              const w = document.getElementById('mini-sp-widget');
-              if(w) w.classList.add('visible');
-              localStorage.setItem('oliver_spotify_visible', 'true');
-              pollSpotifyStatus();
-          }, 1000);
+      if (!isHiddenPrompt) {
+          const lowerMsg = textToSend.toLowerCase();
+          if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
+              setTimeout(() => { 
+                  const w = document.getElementById('mini-sp-widget');
+                  if(w) w.classList.add('visible');
+                  localStorage.setItem('oliver_spotify_visible', 'true');
+                  pollSpotifyStatus();
+              }, 1000);
+          }
       }
   } else {
       // Don't flash green if it's just the silent status poll
@@ -917,7 +927,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({
-        message: userText + imageContext,
+        message: textToSend + imageContext,
         sessionDuration: timeActive,
         sessionId: getSessionId(),
         inputMode: speakReply ? 'voice' : 'text',
@@ -987,16 +997,43 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
             }
         } 
         else if (data.type === 'final') {
-            const { processed, hasCanvas } = extractCanvasAndMarkdown(data.text);
+            let rawText = data.text || '';
+            let autoFollowUp = false;
+
+            // Explicit auto-loop tag
+            if (rawText.includes("<CONTINUE>")) {
+                autoFollowUp = true;
+                rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
+            } else {
+                // Heuristic detection: Watch what Oliver says. If he says "let me check" or "give me a second", auto loop.
+                const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
+                const lower = rawText.toLowerCase();
+                
+                if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
+                    autoFollowUp = true;
+                }
+            }
+
+            const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
             
             if (!isSilentCommand) {
-                const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
-                if (hasCanvas && oliverMsgEl && speakReply) {
-                    oliverMsgEl.classList.remove('hidden-voice');
+                // Only create bubble if there is actual text or a canvas button
+                if (processed.trim() !== '') {
+                    const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+                    if (hasCanvas && oliverMsgEl && speakReply) {
+                        oliverMsgEl.classList.remove('hidden-voice');
+                    }
+                    if (speakReply) {
+                        audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
+                        if (!isPlayingQueue) processAudioQueue();
+                    }
                 }
-                if (speakReply) {
-                    audioQueue.push({ text: data.text, runId: runId, isFiller: false, msgEl: oliverMsgEl });
-                    if (!isPlayingQueue) processAudioQueue();
+                
+                // Trigger the hidden pipeline call if an auto follow-up was detected
+                if (autoFollowUp) {
+                    setTimeout(() => {
+                        pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
+                    }, 1200);
                 }
             } else {
                 const pip = document.getElementById('main-pip');
