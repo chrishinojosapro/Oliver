@@ -109,6 +109,7 @@
   #chat-container::-webkit-scrollbar { display:none; }
 
   @keyframes msg-in { from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+
   .hidden-voice { display: none !important; }
 
   .message.user {
@@ -137,6 +138,7 @@
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.90); font-weight:300; line-height:1.65; }
   .msg-para { margin-bottom:12px; }
   .msg-para:last-child { margin-bottom:0; }
+
   .msg-image { display:block; max-width:100%; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.10); }
 
   .drive-badge {
@@ -235,6 +237,7 @@
 
   #convo-btn.active { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
   #convo-btn.active svg { fill:rgba(160,210,255,1); }
+
   #file-input { display:none; }
 
   #oliver-canvas {
@@ -273,6 +276,7 @@
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
+  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
@@ -295,6 +299,7 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
+  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -313,6 +318,7 @@
   #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
   #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
   
+  /* FLOATING COPY BUTTON */
   #canvas-copy { 
     position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
     background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
@@ -403,7 +409,12 @@
 </div>
 
 <script>
-// --- BACKGROUND STAR ANIMATION ---
+window.addEventListener('load', () => {
+    fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
+    fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
+    console.log("Oliver's engines are warming up...");
+});
+
 (function(){
   const cv=document.getElementById('star-canvas'),cx=cv.getContext('2d');
   let W,H;
@@ -464,21 +475,15 @@ const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
 let isRecording   = false;
+let isSpeaking    = false;
 let isContinuous  = false;
-let isThinking    = 0; 
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
-
-// --- AUDIO QUEUE ENGINE ---
-let audioQueue = [];
-let isPlayingQueue = false;
+let audioQueue    = [];
+let isPlayingQueue= false;
 let currentPlayingRunId = null; 
-
-// --- ROLLING MEMORY FOR ECHO FILTER ---
-let recentSpokenChunks = []; 
-window.hasInterrupted = false; 
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -486,9 +491,8 @@ let pendingImageName   = null;
 
 let canvasStore = {};
 let canvasIdCounter = 0;
-
-let speechBufferTimeout = null;
-let speechBuffer = '';
+let recentOliverSpeech = [];
+window.hasInterrupted = false; 
 
 const sessionStart = Date.now();
 const getSessionId = () => {
@@ -497,48 +501,21 @@ const getSessionId = () => {
   return sid;
 };
 
-// --- SCREEN SYNC ENGINE ---
 function getUIHistory() {
-  const elements = document.querySelectorAll('#chat-container .message');
-  const recent = Array.from(elements).slice(-14);
-  let historyArr = [];
-  
-  recent.forEach(el => {
-    const isOliver = el.classList.contains('oliver');
-    let text = '';
-    
-    if (isOliver) {
-      const msgEl = el.querySelector('.msg-text');
-      text = msgEl ? msgEl.textContent : '';
-    } else {
-      const clone = el.cloneNode(true);
-      const badge = clone.querySelector('.drive-badge');
-      if(badge) badge.remove();
-      text = clone.textContent.trim();
-    }
-    
-    if(text) {
-      historyArr.push({ role: isOliver ? 'assistant' : 'user', content: text.substring(0, 1000) });
-    }
-  });
-
-  if (historyArr.length > 0 && historyArr[historyArr.length - 1].role === 'user') {
-      historyArr.pop();
-  }
-
-  return historyArr;
-}
-
-function updateOrbState() {
-    if (isPlayingQueue) {
-        setOrb('speaking'); startWave('speaking');
-    } else if (isThinking > 0) {
-        setOrb('thinking'); startWave('thinking');
-    } else if (isRecording) {
-        setOrb('listening'); startWave('listening');
-    } else {
-        setOrb(null); stopWave();
-    }
+    const messages = document.querySelectorAll('.message');
+    const history = [];
+    messages.forEach(msgEl => {
+        const isUser = msgEl.classList.contains('user');
+        const textEl = msgEl.querySelector('.msg-text') || msgEl;
+        const text = textEl.textContent.trim();
+        if(text && text !== "I'm listening, Chris.") {
+            history.push({
+                role: isUser ? 'user' : 'assistant',
+                content: text.substring(0, 1000) 
+            });
+        }
+    });
+    return history.slice(-20); 
 }
 
 function getAudioCtx(){
@@ -557,6 +534,22 @@ function unlockAudio(){
 function setOrb(state){
   orb.classList.remove('thinking','speaking','listening');
   if(state) orb.classList.add(state);
+}
+
+function updateOrbState() {
+    if (isSpeaking || isPlayingQueue) {
+        setOrb('speaking');
+        startWave('speaking');
+    } else if (isRecording) {
+        setOrb('listening');
+        startWave('listening');
+    } else if (audioQueue.length > 0) {
+        setOrb('thinking');
+        startWave('thinking');
+    } else {
+        setOrb(null);
+        stopWave();
+    }
 }
 
 const BAR_COUNT=18;
@@ -625,20 +618,6 @@ async function uploadImageToDrive(base64,mimeType,filename){
   return await res.json();
 }
 
-function cleanForTTS(text){
-  return text
-    .replace(/<CANVAS[\s\S]*?<\/CANVAS>/gi, '')
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/\*\*(.+?)\*\*/g,'$1')
-    .replace(/\*(.+?)\*/g,'$1')
-    .replace(/#+\s/g,'')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
-    .replace(/\n{2,}/g,' ')
-    .replace(/\n/g,' ')
-    .replace(/\s{2,}/g,' ')
-    .trim();
-}
-
 function checkEnter(e){ if(e.key==='Enter') sendMessage(); }
 
 async function sendMessage(){
@@ -692,67 +671,48 @@ function showDriveBadge(filename){
 
 function extractCanvasAndMarkdown(text) {
   let processed = text;
-  
-  const canvasRe = /<CANVAS\s*(?:[^>]*?type="([^"]+)")?(?:[^>]*?title="([^"]*)")?[^>]*>([\s\S]*?)<\/CANVAS>/gi;
+  let hasCanvas = false;
+
+  const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
   processed = processed.replace(canvasRe, (match, type, title, content) => {
+    hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
-    
-    let cleanContent = content
-      .replace(/^\s*```[a-zA-Z]*\n?/i, '') 
-      .replace(/\n?\s*```\s*$/i, '')       
-      .trim();
-      
-    canvasStore[id] = { type: (type || 'code').toLowerCase(), title: title || type || 'code', content: cleanContent };
-    
-    setTimeout(() => {
-        openStoredCanvas(id);
-        const canvasEl = document.getElementById('oliver-canvas');
-        if(canvasEl && canvasEl.classList.contains('open')) {
-             if (isContinuous && recognition && !isRecording) {
-                 startListening(); 
-             }
-        }
-    }, 400); 
-    
+    let cleanContent = content.trim();
+    cleanContent = cleanContent.replace(/^\s*```[a-zA-Z]*\n?/i, '');
+    cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
+
+    canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
+    setTimeout(()=>openStoredCanvas(id), 300); 
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-              View ${title || type || 'Code'}
+              View ${title || type}
             </button>\n`;
   });
 
   const mdRe = /```(\w+)?\n([\s\S]*?)```/g;
   processed = processed.replace(mdRe, (match, lang, content) => {
+    hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
-    
-    setTimeout(() => {
-        openStoredCanvas(id);
-    }, 400); 
-
+    setTimeout(()=>openStoredCanvas(id), 300); 
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
               <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
               View Code
             </button>\n`;
   });
 
-  return processed.trim();
+  return { processed: processed.trim(), hasCanvas };
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  const interruptedFlag = window.hasInterrupted || false;
-  window.hasInterrupted = false; 
-
-  addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
+  const runId = Date.now().toString(); 
   
-  const runId = Date.now();
-  isThinking++; 
-  updateOrbState();
+  addMessage(userText, 'user', imageBase64, imageMime, imageName, speakReply);
+  setOrb('thinking'); startWave('thinking');
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
   const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
-  
-  const uiHistory = getUIHistory(); 
 
   let imageContext='';
   if(imageBase64){
@@ -767,20 +727,24 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     finally{ imgBtn.classList.remove('uploading'); clearImage(); }
   }
 
-  let thinkCounted = true; 
+  // Snap UI History directly from the screen
+  const uiHistory = getUIHistory();
+  const currentInterruptedState = window.hasInterrupted;
+  window.hasInterrupted = false; 
+
   try {
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({
-        message: userText+imageContext,
+        message: userText + imageContext,
         sessionDuration: timeActive,
         sessionId: getSessionId(),
-        inputMode: speakReply?'voice':'text',
+        inputMode: speakReply ? 'voice' : 'text',
         voiceEnabled: speakReply,
         hasImage: !!imageBase64,
-        uiHistory: uiHistory, 
-        wasInterrupted: interruptedFlag 
+        uiHistory: uiHistory,
+        wasInterrupted: currentInterruptedState 
       }),
     });
 
@@ -789,314 +753,279 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     let buffer = '';
 
     while (true) {
-      const { value, done } = await reader.read();
+      const { done, value } = await reader.read();
+      if (done) break;
       
-      if (value) {
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop(); 
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); 
 
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              const data = JSON.parse(line);
-              
-              if (data.type === 'filler') {
-                if (speakReply) speakText(data.text, runId); 
-              } 
-              else if (data.type === 'final') {
-                const ttsCleanText = cleanForTTS(data.text);
-                const processedReply = extractCanvasAndMarkdown(data.text);
-                
-                const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-                
-                if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) {
-                    msgEl.classList.remove('hidden-voice');
-                }
-                
-                if (speakReply && ttsCleanText) {
-                  speakText(ttsCleanText, runId).then(success => {
-                      if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-                  });
-                }
-              }
-              else if (data.type === 'error') {
-                 addMessage('System error: ' + data.text, 'oliver', null, null, null, false);
-              }
-            } catch (e) {
-              console.error("NDJSON Parse error:", e);
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const data = JSON.parse(line);
+
+        if (data.type === 'filler') {
+            if (speakReply) {
+                audioQueue.push({ text: data.text, runId: runId, isFiller: true });
+                if (!isPlayingQueue) processAudioQueue();
             }
-          }
-      }
+        } 
+        else if (data.type === 'final') {
+            const { processed, hasCanvas } = extractCanvasAndMarkdown(data.text);
+            const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+            
+            if (hasCanvas && oliverMsgEl && speakReply) {
+                oliverMsgEl.classList.remove('hidden-voice');
+            }
 
-      if (done) {
-          if (buffer.trim()) {
-             try {
-                const data = JSON.parse(buffer);
-                if (data.type === 'final') {
-                  const ttsCleanText = cleanForTTS(data.text);
-                  const processedReply = extractCanvasAndMarkdown(data.text);
-                  const msgEl = addMessage(processedReply, 'oliver', null, null, null, speakReply);
-                  if (speakReply && (processedReply.includes('chat-canvas-btn') || !ttsCleanText)) msgEl.classList.remove('hidden-voice');
-                  if (speakReply && ttsCleanText) {
-                    speakText(ttsCleanText, runId).then(success => {
-                        if(!success && msgEl) msgEl.classList.remove('hidden-voice');
-                    });
-                  }
-                }
-             } catch(e) {}
-          }
-          break; 
+            if (speakReply) {
+                audioQueue.push({ text: data.text, runId: runId, isFiller: false, msgEl: oliverMsgEl });
+                if (!isPlayingQueue) processAudioQueue();
+            } else {
+                updateOrbState();
+            }
+        }
+        else if (data.type === 'error') {
+            console.error("Pipeline Error:", data.text);
+            updateOrbState();
+        }
       }
     }
   } catch(err) {
-    addMessage('Connection failed. '+err.message,'oliver', null, null, null, false);
-  } finally {
-    if (thinkCounted) {
-        isThinking = Math.max(0, isThinking - 1);
-        updateOrbState();
-    }
+    console.warn("Fetch error:", err);
+    updateOrbState();
   }
 }
 
-function speakText(text, runId) {
-  if(!text) return Promise.resolve(false);
-  return new Promise((resolve) => {
-    audioQueue.push({ text, resolve, runId });
-    processAudioQueue();
-  });
-}
-
 async function processAudioQueue() {
-  if(isPlayingQueue || audioQueue.length === 0) return;
+  if(audioQueue.length === 0) {
+      isPlayingQueue = false;
+      updateOrbState();
+      return;
+  }
   
   isPlayingQueue = true;
-  updateOrbState(); 
+  const currentItem = audioQueue.shift();
+  currentPlayingRunId = currentItem.runId; 
   
-  const { text, resolve, runId } = audioQueue.shift();
-  currentPlayingRunId = runId;
+  await speakText(currentItem.text, currentItem.isFiller, currentItem.msgEl);
+}
+
+function cleanForTTS(text){
+  return text
+    .replace(/<CANVAS[\s\S]*?<\/CANVAS>/gi, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/\*(.+?)\*/g,'$1')
+    .replace(/#+\s/g,'')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
+    .replace(/\n{2,}/g,' ')
+    .replace(/\n/g,' ')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+
+async function speakText(text, isFiller = false, msgEl = null) {
+  const ttsText = cleanForTTS(text);
+  if(!ttsText) {
+      if(msgEl) msgEl.classList.remove('hidden-voice');
+      processAudioQueue();
+      return;
+  }
   
-  recentSpokenChunks.push(text.toLowerCase().replace(/[^\w\s]/gi, '')); 
-  if (recentSpokenChunks.length > 3) recentSpokenChunks.shift(); 
-  
+  recentOliverSpeech.push(ttsText.toLowerCase());
+  if(recentOliverSpeech.length > 3) recentOliverSpeech.shift();
+
+  isSpeaking = true;
+  updateOrbState();
+
   try {
     const ctx = getAudioCtx();
     if(ctx.state === 'suspended') await ctx.resume();
     
     const res = await fetch(XI_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
-      body: JSON.stringify({text}),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ text: ttsText }),
     });
     
-    if(!res.ok) throw new Error(`TTS ${res.status}`);
+    if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
     
-    const decoded = await ctx.decodeAudioData(await res.arrayBuffer());
+    const arrayBuffer = await res.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
     
-    await new Promise((resEnded) => {
+    await new Promise((resolve) => {
       const src = ctx.createBufferSource();
       src.buffer = decoded; 
       src.connect(ctx.destination);
-      src.onended = () => { resEnded(); resolve(true); };
+      src.onended = resolve; 
       src.start(0);
       currentAudio = src;
     });
-    
+
   } catch(err) {
     console.warn('TTS error:', err);
-    resolve(false);
+    if(msgEl) msgEl.classList.remove('hidden-voice');
   } finally {
     currentAudio = null;
     currentPlayingRunId = null; 
-    isPlayingQueue = false;
+    isSpeaking = false;
     
     if(audioQueue.length > 0) {
       processAudioQueue();
     } else {
+      isPlayingQueue = false;
       updateOrbState(); 
+      // BUG FIX: Instantly snap the mic back on the exact millisecond he finishes talking
+      if (isContinuous && !isRecording) {
+          startListening();
+      }
     }
   }
 }
 
 function toggleContinuous(){
   unlockAudio();
-  isContinuous = !isContinuous;
-  convoBtn.classList.toggle('active', isContinuous);
-  if (isContinuous) {
-    startListening();
+  isContinuous=!isContinuous;
+  convoBtn.classList.toggle('active',isContinuous);
+  if(isContinuous){
+    setTimeout(()=>{ if(isContinuous&&!isRecording) startListening(); },300);
   } else {
-    stopRecording();
+    stopWave(); stopRecording();
   }
 }
 
+let sentenceTimeout;
+
 function startListening(){
-  if(isRecording) return; 
-  recognition = buildRecognition();
+  if(isRecording) return;
+  recognition=buildRecognition();
   if(!recognition) return;
-  try{ recognition.start(); }catch(e){ console.warn("Start error:", e); }
+  try{ recognition.start(); }catch(_){}
 }
 
-function calculateWordOverlap(spoken, lastSpoken) {
-    if (!spoken || !lastSpoken) return 0;
-    const w1 = spoken.split(' ').filter(w => w.length > 2);
-    const w2 = lastSpoken.split(' ').filter(w => w.length > 2);
-    if (w1.length === 0) return 0;
-    let matches = 0;
-    w1.forEach(w => { if(w2.includes(w)) matches++; });
-    return matches / w1.length;
+function checkEchoOverlap(transcript) {
+    const tWords = transcript.toLowerCase().split(/\s+/);
+    if(tWords.length < 3) return false; 
+    
+    let overlapCount = 0;
+    const allRecentSpeech = recentOliverSpeech.join(" ");
+    
+    tWords.forEach(word => {
+        if(allRecentSpeech.includes(word)) overlapCount++;
+    });
+    
+    return (overlapCount / tWords.length) > 0.4; 
 }
 
 function buildRecognition(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) {
      addMessage("Speech recognition not supported in this browser.", 'oliver');
      return null;
   }
-  const r = new SR();
+  const r=new SR();
+  r.continuous=true; 
+  r.interimResults=true; 
+  r.lang='en-US';
   
-  r.continuous = isContinuous; 
-  r.interimResults = true; 
-  r.lang = 'en-US';
-  
-  let walkieTalkieTimer;
-  
-  r.onstart = () => { 
-    isRecording = true; 
+  r.onstart=()=>{ 
+    isRecording=true; 
     micBtn.classList.add('recording'); 
-    interimEl.textContent = ''; 
-    speechBuffer = '';
     updateOrbState();
+    interimEl.textContent=''; 
   };
   
-  r.onresult = (e) => {
-    clearTimeout(walkieTalkieTimer);
-    
-    if (!isContinuous) {
-        walkieTalkieTimer = setTimeout(() => { if(isRecording) stopRecording(true); }, 5000); 
-    }
-    
+  r.onresult=(e)=>{
     let interim='', final='';
     for(let i=e.resultIndex; i<e.results.length; i++){
-      const t = e.results[i][0].transcript;
+      const t=e.results[i][0].transcript;
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
     
-    interimEl.textContent = (speechBuffer + ' ' + (interim || final)).trim();
-
-    const rawText = (interim || final).trim().toLowerCase();
-    const spokenText = rawText.replace(/[^\w\s]/gi, '');
+    const liveText = (interim || final).toLowerCase();
     
-    const wakeRegex = /\b(oliver|olive|all over|all of her|hey oliver)\b/i;
-    const hasWakeWord = wakeRegex.test(rawText); 
-    const isStopCommand = /\b(stop oliver|stop listening|stop now)\b/i.test(rawText) || rawText === 'stop';
-    
-    const combinedRecentSpeech = recentSpokenChunks.join(" ");
-    const overlapPercent = calculateWordOverlap(spokenText, combinedRecentSpeech);
-    const isEcho = combinedRecentSpeech && (combinedRecentSpeech.includes(spokenText) || spokenText.includes(combinedRecentSpeech) || overlapPercent > 0.4);
-    
-    if ((hasWakeWord || isStopCommand) && currentPlayingRunId && !isEcho) {
-        audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
-        if (currentAudio) {
-            try { currentAudio.stop(); } catch(_) {}
-            currentAudio = null;
-        }
-        currentPlayingRunId = null;
-        window.hasInterrupted = true; 
-        updateOrbState();
+    // 1. Check for Anti-Echo Loop
+    if(checkEchoOverlap(liveText)) {
+        console.log("Echo detected and ignored:", liveText);
+        return; 
     }
 
-    if (isStopCommand && !isEcho) {
-        interimEl.textContent = 'Conversation ended.';
-        setTimeout(() => { interimEl.textContent = ''; }, 1500);
-        if (isContinuous) toggleContinuous();
-        else stopRecording();
-        return;
+    // 2. Check for Aggressive Interruption / Wake Words
+    if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
+         stopRecording(false);
+         toggleContinuous(); 
+         return;
+    }
+    
+    if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
+         if (isPlayingQueue || isSpeaking) {
+             console.log("Wake word interruption detected!");
+             window.hasInterrupted = true;
+             stopRecording(false);
+             if (currentAudio) { currentAudio.stop(); currentAudio = null; }
+             audioQueue = []; 
+             isPlayingQueue = false;
+             isSpeaking = false;
+             startListening(); 
+             return;
+         }
     }
 
-    if(final && !isEcho){ 
-        speechBuffer += ' ' + final.trim();
-        interimEl.textContent = speechBuffer.trim();
-        
-        clearTimeout(speechBufferTimeout);
-        // INCRESAED BUFFER TO 2500ms (2.5 Seconds) TO PREVENT CUT-OFFS
-        speechBufferTimeout = setTimeout(() => {
-            const userText = speechBuffer.trim();
-            speechBuffer = ''; 
-            interimEl.textContent = ''; 
-            
-            if (userText) {
-                pipeline(userText, true); 
+    interimEl.textContent = interim || final;
+    
+    // 3. Sentence Buffer (Wait 2.5s to allow for deep breaths)
+    clearTimeout(sentenceTimeout);
+    if(liveText.trim()) {
+        sentenceTimeout = setTimeout(() => {
+            if(isRecording && interimEl.textContent.trim()) {
+                stopRecording(true); 
             }
-
-            if (!isContinuous) {
-                stopRecording(false); 
-            }
-        }, 2500); 
+        }, 2500);
     }
   };
   
-  r.onerror = (e) => { 
-    console.warn('Speech error:',e.error); 
-    if(e.error === 'not-allowed') {
-        isContinuous = false; convoBtn.classList.remove('active');
-        addMessage("Microphone access denied.", 'oliver');
-    }
-    if (!isContinuous) stopRecording(); 
+  r.onerror=(e)=>{ 
+    if(e.error === 'not-allowed') addMessage("Microphone access denied.", 'oliver');
+    stopRecording(); 
   };
   
-  r.onend = () => { 
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    
-    if (isContinuous) {
-        // Automatically restarts continuous listening if the browser stops it
-        setTimeout(() => startListening(), 100);
-    } else {
-        updateOrbState();
-    }
+  r.onend=()=>{ 
+     if(isRecording) stopRecording(false); 
+     // Auto-restart if in continuous mode
+     if(isContinuous && !isRecording) {
+         setTimeout(startListening, 300);
+     }
   };
   return r;
 }
 
 function toggleMic(){
   unlockAudio();
+  if(isRecording){ stopRecording(true); return; }
   
-  if (isContinuous) {
-      toggleContinuous();
-      return;
-  }
-
-  if (currentPlayingRunId) {
-      audioQueue = audioQueue.filter(item => item.runId !== currentPlayingRunId);
-      if (currentAudio) { try{ currentAudio.stop(); } catch(_) {} currentAudio = null; }
-      currentPlayingRunId = null;
-      window.hasInterrupted = true; 
+  if(isPlayingQueue || isSpeaking) {
+      window.hasInterrupted = true;
+      if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+      audioQueue = []; 
+      isPlayingQueue = false; 
+      isSpeaking = false;
       updateOrbState();
-      
-      startListening();
-      return;
+      micBtn.classList.remove('locked'); 
   }
-
-  if (isRecording) { stopRecording(true); return; }
+  
   startListening();
 }
 
 function stopRecording(processCurrent = false){
-  isRecording = false;
+  isRecording=false;
   micBtn.classList.remove('recording');
+  clearTimeout(sentenceTimeout);
   
-  let capturedText = interimEl.textContent.trim();
-  
-  if (speechBuffer) {
-      capturedText = speechBuffer.trim();
-  }
-  speechBuffer = '';
-  clearTimeout(speechBufferTimeout);
-
-  interimEl.textContent = '';
+  const capturedText = interimEl.textContent.trim();
+  interimEl.textContent='';
   
   try{ if(recognition) recognition.stop(); }catch(_){}
-  
   updateOrbState();
   
   if(processCurrent && capturedText) {
@@ -1108,10 +1037,11 @@ function stopRecording(processCurrent = false){
 // Browsers sometimes forcefully kill the microphone after a minute or during a glitch.
 // This ensures the mic instantly re-opens if Conversation Mode is active.
 setInterval(() => {
-    if (isContinuous && !isRecording && !isPlayingQueue) {
+    // BUG FIX: Removed the audio playback lock so the mic stays hot 100% of the time!
+    if (isContinuous && !isRecording) {
         startListening();
     }
-}, 2500);
+}, 1500);
 
 const canvasEl     =document.getElementById('oliver-canvas');
 const canvasBody   =document.getElementById('canvas-body');
@@ -1138,10 +1068,14 @@ function openCanvas(type, title, content){
   canvasCopy.style.display='none';
   
   if(type==='code'){
-    const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
-    const pre=document.createElement('pre'); pre.id='canvas-code';
+    const wrap = document.createElement('div'); 
+    wrap.id = 'canvas-code-wrap';
+    const pre=document.createElement('pre'); 
+    pre.id='canvas-code';
     pre.innerHTML=syntaxHighlight(content); 
-    wrap.appendChild(pre); canvasBody.appendChild(wrap); canvasCopy.style.display='block';
+    wrap.appendChild(pre);
+    canvasBody.appendChild(wrap);
+    canvasCopy.style.display='block';
   } else if(type==='image'){
     const img=document.createElement('img'); img.id='canvas-img';
     img.src=content.trim(); img.alt=title||'Image'; canvasBody.appendChild(img);
@@ -1223,17 +1157,12 @@ function renderMarkdown(md){
   return md
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/```(\w+)?\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
+    .replace(/```(\w+)?\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>') 
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`\n]+)`/g,'<code>$1</code>')
     .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
     .replace(/^---$/gm,'<hr>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
     .replace(/\n\n/g,'</p><p>').replace(/^(?!<[hupli]|<\/[hupli]|<pre)(.+)$/gm,'<p>$1</p>');
 }
-
-window.addEventListener('load', () => {
-    fetch(EDGE_FUNCTION_URL, { method: 'OPTIONS' }).catch(()=>{});
-    fetch(XI_URL, { method: 'OPTIONS' }).catch(()=>{});
-});
 </script>
 </body>
 </html>
