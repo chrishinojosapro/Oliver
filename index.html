@@ -7,6 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Oliver AI</title>
+
+<!-- SPEED BOOST: Keep the TTS connection permanently open -->
+<link rel="preconnect" href="https://einfitykkorutgnbxwly.supabase.co" crossorigin>
+<link rel="preconnect" href="https://api.deepgram.com" crossorigin>
+
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
@@ -475,11 +480,10 @@ const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
-// CORE STATE LOCKS
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
-let isThinking    = false; // CRITICAL: Prevents mic from turning on during silence gap
+let isThinking    = false; 
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
@@ -522,7 +526,6 @@ const getSessionId = () => {
   return sid;
 };
 
-// UI SCREEN SYNC
 function getUIHistory() {
     const messages = document.querySelectorAll('.message');
     const history = [];
@@ -559,7 +562,6 @@ function setOrb(state){
 }
 
 function updateOrbState() {
-    // Smoothed transition logic based on strict state priorities
     if (isSpeaking || isPlayingQueue) {
         setOrb('speaking');
         startWave('speaking');
@@ -709,8 +711,6 @@ function extractCanvasAndMarkdown(text) {
     cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
 
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
-    
-    // Automatically open canvas
     setTimeout(() => { openStoredCanvas(id); }, 500); 
     
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
@@ -736,7 +736,7 @@ function extractCanvasAndMarkdown(text) {
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  if (isThinking) return; // Prevent double-trigger overlaps
+  if (isThinking) return; 
   
   isThinking = true; 
   const runId = Date.now().toString(); 
@@ -790,7 +790,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep the incomplete line in the buffer
+      buffer = lines.pop(); 
 
       for (const line of lines) {
         if (!line.trim()) continue;
@@ -823,7 +823,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   } catch(err) {
     console.warn("Fetch error:", err);
   } finally {
-    isThinking = false; // Safely release the lock when stream completely finishes
+    isThinking = false; 
     updateOrbState();
   }
 }
@@ -833,7 +833,6 @@ async function processAudioQueue() {
       isPlayingQueue = false;
       updateOrbState();
       
-      // Force microphone check on exact finish, only if NOT still thinking
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -870,7 +869,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
   }
 
   isSpeaking = true;
-  addOliverMemory(ttsText); // Feed to Anti-Echo engine
+  addOliverMemory(ttsText); 
   updateOrbState();
 
   try {
@@ -910,7 +909,6 @@ async function speakText(text, isFiller = false, msgEl = null) {
     } else {
       isPlayingQueue = false;
       updateOrbState(); 
-      // Instant snap-back for mic
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -953,25 +951,27 @@ function buildRecognition(){
      return null;
   }
   const r=new SR();
-  r.continuous=true; 
-  r.interimResults=true; 
-  r.lang='en-US';
+  r.continuous=false; r.interimResults=true; r.lang='en-US';
   
+  let recTimeout;
   r.onstart=()=>{ 
-    isRecording=true; 
-    isMicStarting=false;
-    micBtn.classList.add('recording'); 
-    updateOrbState();
+    isRecording=true; micBtn.classList.add('recording'); 
+    setOrb('listening'); startWave('listening'); 
     interimEl.textContent=''; 
+    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 10000);
   };
   
   r.onresult=(e)=>{
-    let interim='', final='';
-    for(let i=e.resultIndex; i<e.results.length; i++){
-      const t=e.results[i][0].transcript;
-      e.results[i].isFinal ? (final+=t) : (interim+=t);
-    }
+    clearTimeout(recTimeout);
+    // SPEED BOOST: Cut the breath buffer down to 1.2 seconds for instant snap-off
+    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 1200); 
     
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+        const t=e.results[i][0].transcript;
+        e.results[i].isFinal?(final+=t):(interim+=t);
+    }
+
     const liveText = (interim || final).toLowerCase().trim();
 
     // 1. The Ironclad Echo Shield (Deaf State during playback)
@@ -980,7 +980,7 @@ function buildRecognition(){
         if (!isWakeWord) return; 
     }
 
-    // 2. The Anti-Echo Filter (Protects against delayed hardware loops)
+    // 2. The Anti-Echo Filter
     if(isEcho(liveText)) return; 
 
     // 3. Explicit Interruptions
@@ -1004,12 +1004,12 @@ function buildRecognition(){
          }
     }
 
-    // Noise Filter (Ignore tiny static pops)
+    // Noise Filter
     if(liveText.length < 3) return;
 
     interimEl.textContent = interim || final;
     
-    // 4. Extended Breath Buffer (4 seconds)
+    // 4. Extended Breath Buffer
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
@@ -1020,7 +1020,7 @@ function buildRecognition(){
                     interimEl.textContent = ''; 
                 }
             }
-        }, 4000); // 4-Second buffer prevents him from cutting you off mid-thought!
+        }, 4000); 
     }
   };
   
@@ -1044,7 +1044,6 @@ function toggleMic(){
   unlockAudio();
   if(isRecording){ stopRecording(true); return; }
   
-  // Allow manual cancellation of thoughts/speech via tap
   if(isPlayingQueue || isSpeaking || isThinking) {
       window.hasInterrupted = true;
       if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
@@ -1073,11 +1072,8 @@ function stopRecording(processCurrent = false){
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// SELF-HEALING WATCHDOG (Aggressive Keep-Alive)
-// ════════════════════════════════════════════════════════════════════════
+// SELF-HEALING WATCHDOG
 setInterval(() => {
-    // Starts the mic if it crashed, BUT strictly respects the isThinking lock.
     if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
         startListening();
     }
