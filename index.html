@@ -7,11 +7,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Oliver AI</title>
-
-<!-- SPEED BOOST: Keep the TTS connection permanently open -->
-<link rel="preconnect" href="https://einfitykkorutgnbxwly.supabase.co" crossorigin>
-<link rel="preconnect" href="https://api.deepgram.com" crossorigin>
-
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
@@ -480,10 +475,11 @@ const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
+// CORE STATE LOCKS
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
-let isThinking    = false; 
+let isThinking    = false; // CRITICAL: Prevents mic from turning on during silence gap
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
@@ -501,11 +497,7 @@ let canvasIdCounter = 0;
 
 window.hasInterrupted = false; 
 let isMicStarting = false;
-
-// THE GHOST TIMER FIX: All timeouts are absolutely globally scoped
-let recTimeout = null;
-let sentenceTimeout = null;
-let lastMicRestart = 0; 
+let sentenceTimeout;
 
 // ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
@@ -530,6 +522,7 @@ const getSessionId = () => {
   return sid;
 };
 
+// UI SCREEN SYNC
 function getUIHistory() {
     const messages = document.querySelectorAll('.message');
     const history = [];
@@ -566,6 +559,7 @@ function setOrb(state){
 }
 
 function updateOrbState() {
+    // Smoothed transition logic based on strict state priorities
     if (isSpeaking || isPlayingQueue) {
         setOrb('speaking');
         startWave('speaking');
@@ -715,6 +709,8 @@ function extractCanvasAndMarkdown(text) {
     cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
 
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
+    
+    // Automatically open canvas
     setTimeout(() => { openStoredCanvas(id); }, 500); 
     
     return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
@@ -740,7 +736,7 @@ function extractCanvasAndMarkdown(text) {
 }
 
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null){
-  if (isThinking) return; 
+  if (isThinking) return; // Prevent double-trigger overlaps
   
   isThinking = true; 
   const runId = Date.now().toString(); 
@@ -794,7 +790,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); 
+      buffer = lines.pop(); // keep the incomplete line in the buffer
 
       for (const line of lines) {
         if (!line.trim()) continue;
@@ -827,7 +823,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   } catch(err) {
     console.warn("Fetch error:", err);
   } finally {
-    isThinking = false; 
+    isThinking = false; // Safely release the lock when stream completely finishes
     updateOrbState();
   }
 }
@@ -837,6 +833,7 @@ async function processAudioQueue() {
       isPlayingQueue = false;
       updateOrbState();
       
+      // Force microphone check on exact finish, only if NOT still thinking
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -873,7 +870,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
   }
 
   isSpeaking = true;
-  addOliverMemory(ttsText); 
+  addOliverMemory(ttsText); // Feed to Anti-Echo engine
   updateOrbState();
 
   try {
@@ -913,6 +910,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
     } else {
       isPlayingQueue = false;
       updateOrbState(); 
+      // Instant snap-back for mic
       if (isContinuous && !isRecording && !isThinking) {
           startListening();
       }
@@ -932,35 +930,16 @@ function toggleContinuous(){
 }
 
 function startListening(){
-  // THE DEBOUNCE FIX: Prevent violent rapid-fire CSS flashing by enforcing an 800ms gap
-  if(Date.now() - lastMicRestart < 800) return;
   if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue) return;
   
   isMicStarting = true; 
-  lastMicRestart = Date.now();
-
-  // THE GHOST INSTANCE ASSASSIN: Nuke any lingering SpeechRecognition instances
-  if (recognition) {
-      recognition.onend = null;
-      recognition.onerror = null;
-      recognition.onstart = null;
-      recognition.onresult = null;
-      try { recognition.abort(); } catch(e){}
-      recognition = null;
-  }
-
-  // GLOBAL TIMER ASSASSIN: Destroy lingering timeouts before building a new mic
-  clearTimeout(recTimeout);
-  clearTimeout(sentenceTimeout);
-
   recognition = buildRecognition();
   if(!recognition) {
       isMicStarting = false;
       return;
   }
-
   try{ 
-      recognition.start();
+      setTimeout(() => recognition.start(), 50); 
   } catch(err){ 
       console.warn("Mic start failed:", err);
       isMicStarting = false; 
@@ -974,42 +953,37 @@ function buildRecognition(){
      return null;
   }
   const r=new SR();
-  r.continuous=false; r.interimResults=true; r.lang='en-US';
+  r.continuous=true; 
+  r.interimResults=true; 
+  r.lang='en-US';
   
   r.onstart=()=>{ 
     isRecording=true; 
     isMicStarting=false;
     micBtn.classList.add('recording'); 
-    setOrb('listening'); startWave('listening'); 
+    updateOrbState();
     interimEl.textContent=''; 
-    
-    clearTimeout(recTimeout);
-    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 10000);
   };
   
   r.onresult=(e)=>{
-    clearTimeout(recTimeout);
-    // 1.2 Second Snap for fast replies
-    recTimeout = setTimeout(() => { if(isRecording) stopRecording(true); }, 1200); 
-    
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-        const t=e.results[i][0].transcript;
-        e.results[i].isFinal?(final+=t):(interim+=t);
+    let interim='', final='';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const t=e.results[i][0].transcript;
+      e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
-
+    
     const liveText = (interim || final).toLowerCase().trim();
 
-    // The Ironclad Echo Shield (Deaf State during playback)
+    // 1. The Ironclad Echo Shield (Deaf State during playback)
     if (isSpeaking || isPlayingQueue) {
         const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
         if (!isWakeWord) return; 
     }
 
-    // The Anti-Echo Filter
+    // 2. The Anti-Echo Filter (Protects against delayed hardware loops)
     if(isEcho(liveText)) return; 
 
-    // Explicit Interruptions
+    // 3. Explicit Interruptions
     if (liveText.includes("oliver stop") || liveText.includes("stop oliver") || liveText.includes("stop listening")) {
          stopRecording(false);
          toggleContinuous(); 
@@ -1030,12 +1004,12 @@ function buildRecognition(){
          }
     }
 
-    // Noise Filter
+    // Noise Filter (Ignore tiny static pops)
     if(liveText.length < 3) return;
 
     interimEl.textContent = interim || final;
     
-    // Extended Breath Buffer (4 Seconds to think mid-sentence)
+    // 4. Extended Breath Buffer (4 seconds)
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
@@ -1046,7 +1020,7 @@ function buildRecognition(){
                     interimEl.textContent = ''; 
                 }
             }
-        }, 4000); 
+        }, 4000); // 4-Second buffer prevents him from cutting you off mid-thought!
     }
   };
   
@@ -1057,13 +1031,10 @@ function buildRecognition(){
   };
   
   r.onend=()=>{ 
-     isMicStarting = false;
      if(isRecording) stopRecording(false); 
-     
+     isMicStarting = false;
      if(isContinuous && !isRecording && !isThinking) {
-         // DYNAMIC CSS THROTTLING: Prevents violent rapid flashing if the browser hardware fights the microphone
-         let delay = (isSpeaking || isPlayingQueue) ? 1000 : 300;
-         setTimeout(startListening, delay);
+         setTimeout(startListening, 300);
      }
   };
   return r;
@@ -1073,6 +1044,7 @@ function toggleMic(){
   unlockAudio();
   if(isRecording){ stopRecording(true); return; }
   
+  // Allow manual cancellation of thoughts/speech via tap
   if(isPlayingQueue || isSpeaking || isThinking) {
       window.hasInterrupted = true;
       if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
@@ -1088,15 +1060,12 @@ function toggleMic(){
 function stopRecording(processCurrent = false){
   isRecording=false;
   micBtn.classList.remove('recording');
-  
-  // GLOBAL TIMER ASSASSIN: Always clear them so they can never randomly fire again
-  clearTimeout(recTimeout);
   clearTimeout(sentenceTimeout);
   
   const capturedText = interimEl.textContent.trim();
   interimEl.textContent='';
   
-  try{ if(recognition) recognition.abort(); }catch(_){}
+  try{ if(recognition) recognition.stop(); }catch(_){}
   updateOrbState();
   
   if(processCurrent && capturedText && capturedText.length > 2) {
@@ -1104,13 +1073,11 @@ function stopRecording(processCurrent = false){
   }
 }
 
-// SELF-HEALING WATCHDOG
+// ════════════════════════════════════════════════════════════════════════
+// SELF-HEALING WATCHDOG (Aggressive Keep-Alive)
+// ════════════════════════════════════════════════════════════════════════
 setInterval(() => {
-    // If the mic gets permanently stuck in a "starting" state, safely unlock it after 3 seconds
-    if (isMicStarting && (Date.now() - lastMicRestart > 3000)) {
-        isMicStarting = false;
-    }
-    
+    // Starts the mic if it crashed, BUT strictly respects the isThinking lock.
     if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking) {
         startListening();
     }
