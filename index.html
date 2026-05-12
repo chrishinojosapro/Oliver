@@ -190,7 +190,7 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
 
-  /* COMPACT Spotify Widget — Replicating the User's Screenshot */
+  /* COMPACT Spotify Widget */
   .smart-card.spotify {
     background: #0b0c10;
     border: 2px solid #25272d;
@@ -216,7 +216,7 @@
     transition: opacity 0.3s;
   }
   .smart-card.spotify .sc-info { 
-    display: block; /* Removed flex entirely to destroy the gap bug */
+    display: block; 
     padding-right: 0; 
     flex: 1; overflow: hidden;
   }
@@ -883,7 +883,24 @@ function formatMessageText(text) {
     }
   }
 
+  // Inject the calendar card directly as a smart widget into the UI flow
   if (events.length > 0) {
+    events.sort((a, b) => {
+      const parseTime = (str) => {
+        if (str.toLowerCase().includes('all day')) return -1;
+        const match = str.match(/(\d+)(?::(\d+))?\s*(am|pm)?/i);
+        if (!match) return 9999;
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2] || '0', 10);
+        const isPM = match[3] && match[3].toLowerCase() === 'pm';
+        const isAM = match[3] && match[3].toLowerCase() === 'am';
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        return h * 60 + m;
+      };
+      return parseTime(a.time) - parseTime(b.time);
+    });
+
     const colors = ['#ff7b72', '#79c0ff', '#a5d6ff', '#7ee787', '#d2a8ff'];
     let eventsHtml = events.map((ev, i) => {
       return `
@@ -898,9 +915,9 @@ function formatMessageText(text) {
       `;
     }).join('');
 
-    const calId = 'cal_' + (++canvasIdCounter);
-    const calCardHtml = `
-      <div class="smart-card calendar" style="max-width:100%;width:100%">
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `
+      <div class="smart-card calendar" style="max-width:100%;width:100%;margin-top:8px;margin-bottom:8px;">
         <div class="cal-header">
           <div class="cal-title">
             <svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg>
@@ -910,21 +927,7 @@ function formatMessageText(text) {
         <div class="cal-events">${eventsHtml}</div>
       </div>
     `;
-    canvasStore[calId] = { type: 'calendar', title: 'Your Schedule', content: calCardHtml };
-    setTimeout(() => openStoredCanvas(calId), 400);
-
-    const uId = 'ui_' + (++uiId);
-    uiStore[uId] = `
-      <div class="pill-btn" onclick="openStoredCanvas('${calId}')">
-        <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg></div>
-        <div class="pill-info">
-          <span class="pill-title">Schedule</span>
-          <span class="pill-type">${events.length} event${events.length !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="pill-action">Open</div>
-      </div>
-    `;
-    text = cleanLines.join('\n').trim() + `\n[[${uId}]]`;
+    text = cleanLines.join('\n').trim() + `\n\n[[${uId}]]`;
   } else {
     text = cleanLines.join('\n').trim();
   }
