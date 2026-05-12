@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Oliver AI</title>
 
-<!-- Fix for 404 Favicon Error: Crystal Ball SVG -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
 
 <style>
@@ -144,9 +143,8 @@
   .msg-para { margin-bottom:12px; }
   .msg-para:last-child { margin-bottom:0; }
 
-  /* UPDATED IMAGE CONTROL */
-  .msg-image { 
-    display:block; max-width:240px; max-height:240px; 
+  .msg-image {
+    display:block; max-width:240px; max-height:240px;
     border-radius:14px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.15);
     object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
   }
@@ -158,24 +156,30 @@
   }
   .drive-badge svg { width:12px; height:12px; fill:currentColor; }
 
-  /* UPDATED PILL ATTACHMENT FOR CODE/MD */
   .pill-btn {
     display:inline-flex; align-items:center; gap:12px;
-    margin-top:10px; padding:10px 14px 10px 10px; border-radius:99px;
+    margin-top:10px; padding:8px 12px 8px 8px; border-radius:99px;
     background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
     cursor:pointer; transition:all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
     -webkit-tap-highlight-color:transparent;
+    width: 100%; max-width: 300px;
   }
   .pill-btn:active { transform:scale(0.96); background:rgba(255,255,255,0.1); }
   .pill-icon {
     width:32px; height:32px; border-radius:50%; background:rgba(140,100,255,0.2);
     display:flex; align-items:center; justify-content:center; color:rgba(200,170,255,1);
+    flex-shrink: 0;
   }
   .pill-icon svg { width:16px; height:16px; fill:currentColor; }
-  .pill-info { display:flex; flex-direction:column; gap:2px; padding-right:8px; }
-  .pill-title { font-size:0.9em; font-weight:500; color:white; }
+  .pill-info { display:flex; flex-direction:column; gap:2px; padding-right:8px; flex: 1; overflow: hidden; }
+  .pill-title { font-size:0.9em; font-weight:500; color:white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pill-type { font-size:0.75em; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.05em; }
-  .pill-action { font-size:0.85em; font-weight:600; color:rgba(160,120,255,0.9); padding-left:8px; border-left:1px solid rgba(255,255,255,0.1); }
+  .pill-action { 
+    font-size:0.85em; font-weight:700; color:#fff; 
+    background: rgba(160,120,255,0.3);
+    padding: 6px 14px; border-radius: 99px; 
+    margin-left: auto; border: none; flex-shrink: 0;
+  }
 
   /* SMART CARDS (SPOTIFY, TIMER, CALENDAR) */
   .smart-card {
@@ -185,34 +189,48 @@
     display: flex; align-items: center; gap: 12px; width: fit-content; min-width: 240px; max-width: 320px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
-  
-  /* Spotify Variant (Screenshot Match) */
-  .smart-card.spotify { 
-    border-color: rgba(30, 215, 96, 0.25); 
-    background: linear-gradient(135deg, rgba(20, 35, 24, 0.8), rgba(12, 20, 16, 0.95)); 
-    padding: 12px 18px; border-radius: 99px; 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+
+  /* COMPACT Spotify Widget — Frosted Glass iOS Style */
+  .smart-card.spotify {
+    background: rgba(30, 215, 96, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     margin: 10px 0;
+    width: 100%;
+    max-width: 280px;
+    gap: 14px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
-  .sc-art { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.5); flex-shrink: 0; }
-  .sc-art.spinning { animation: spin-record 6s linear infinite; }
-  @keyframes spin-record { 100% { transform: rotate(360deg); } }
-  .sc-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; text-align: left; padding: 0 8px; justify-content: center; }
-  .sc-title { font-size: 1.05em; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; margin-bottom: 2px; letter-spacing: -0.01em; }
-  .sc-subtitle { font-size: 0.85em; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sc-controls { flex-shrink: 0; display: flex; align-items: center; }
-  .sc-btn { 
-    width: 36px; height: 36px; border-radius: 50%; background: transparent; 
-    display: flex; align-items: center; justify-content: center; cursor: pointer; 
-    border: none; color: white; transition: 0.2s; -webkit-tap-highlight-color: transparent;
+  .smart-card.spotify .sc-art {
+    width: 54px; height: 54px; border-radius: 12px;
+    object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); flex-shrink: 0;
   }
-  .sc-btn.play { 
-    width: 44px; height: 44px; background: transparent; 
-    color: #1DB954; border: 2px solid rgba(29, 185, 84, 0.6); 
+  .smart-card.spotify .sc-info { 
+    padding: 0; flex: 1; overflow: hidden; 
+    display: flex; flex-direction: column; justify-content: center; 
   }
-  .sc-btn.play:active { background: rgba(30, 215, 96, 0.15); transform: scale(0.92); border-color: #1DB954; }
-  .sc-btn svg { width: 16px; height: 16px; fill: currentColor; }
-  .sc-btn.play svg { width: 18px; height: 18px; }
+  .smart-card.spotify .sc-title { 
+    font-size: 0.95em; font-weight: 600; color: white; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    line-height: 1.3; margin-bottom: 2px; 
+  }
+  .smart-card.spotify .sc-subtitle { 
+    font-size: 0.8em; color: rgba(255,255,255,0.6); 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  }
+  .smart-card.spotify .sc-controls { flex-shrink: 0; }
+  .smart-card.spotify .sc-btn.play {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #1DB954; color: #000;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent;
+  }
+  .smart-card.spotify .sc-btn.play svg { width: 18px; height: 18px; fill: currentColor; }
+  .smart-card.spotify .sc-btn.play:active { background: #1ed760; transform: scale(0.9); }
 
   /* Timer Variant */
   .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; max-width: 320px; }
@@ -312,14 +330,13 @@
 
   #file-input { display:none; }
 
-  /* UPDATED BOTTOM SHEET CANVAS */
   #oliver-canvas {
     position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
     background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
     opacity:0; pointer-events:none; transition:opacity 0.3s cubic-bezier(0.25,0.8,0.25,1);
   }
   #oliver-canvas.open { opacity:1; pointer-events:all; }
-  
+
   #canvas-panel {
     width:100%; height:85vh; max-width:900px;
     background:rgba(15,15,22,0.95); border:1px solid rgba(255,255,255,0.1);
@@ -332,7 +349,7 @@
   #canvas-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; }
   #canvas-title { font-size:0.95em; font-weight:600; color:white; display:flex; align-items:center; gap:10px; }
   #canvas-type-badge { font-size:0.7em; padding:3px 8px; border-radius:8px; background:rgba(140,100,255,0.2); color:rgba(200,160,255,1); text-transform:uppercase; font-weight:600; letter-spacing:0.05em; }
-  
+
   .canvas-controls { display:flex; gap:8px; }
   .canvas-header-btn {
     width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.1);
@@ -345,29 +362,29 @@
   #canvas-body-wrap { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
   #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:20px; }
   #canvas-body::-webkit-scrollbar { display:none; }
-  
+
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
-  #canvas-code { 
-    font-family:"JetBrains Mono", ui-monospace, monospace; 
-    font-size:14px; line-height:1.6; color:#c9d1d9; white-space:pre; margin:0; tab-size:4; min-width:min-content; 
-    counter-reset: line-counter; 
+  #canvas-code {
+    font-family:"JetBrains Mono", ui-monospace, monospace;
+    font-size:14px; line-height:1.6; color:#c9d1d9; white-space:pre; margin:0; tab-size:4; min-width:min-content;
+    counter-reset: line-counter;
   }
   .line-row { display:flex; padding:0 20px; }
   .line-row:hover { background:rgba(255,255,255,0.05); }
-  .line-num { 
-    flex-shrink:0; width:40px; color:#484f58; user-select:none; text-align:right; 
-    margin-right:16px; border-right:1px solid #30363d; padding-right:12px; font-size:12px; line-height:1.8; 
+  .line-num {
+    flex-shrink:0; width:40px; color:#484f58; user-select:none; text-align:right;
+    margin-right:16px; border-right:1px solid #30363d; padding-right:12px; font-size:12px; line-height:1.8;
   }
   .line-num::before { counter-increment: line-counter; content: counter(line-counter); }
   .line-content { white-space:pre; }
-  
+
   .tok-kw  { color:#ff7b72; }
   .tok-str { color:#a5d6ff; }
   .tok-num { color:#79c0ff; }
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
-  
+
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -375,48 +392,23 @@
   #canvas-iframe { width:100%; height:100%; border:none; border-radius:0; background:white; }
   video.canvas-vid { width:100%; max-height:100%; outline:none; }
 
-  /* COMPACT SPOTIFY CANVAS UI */
-  #canvas-body.type-spotify { 
-    display: flex; align-items: center; justify-content: center; 
-    background: radial-gradient(circle at top, rgba(30,215,96,0.12), transparent 60%); 
+  /* Calendar canvas body */
+  #canvas-body.type-calendar {
+    display: flex; align-items: flex-start; justify-content: center;
+    background: rgba(10, 8, 20, 0.6);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
-  .spotify-wrap {
-    background: rgba(20, 20, 25, 0.65);
-    border: 1px solid rgba(255,255,255,0.1);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border-radius: 28px;
-    padding: 32px 24px;
-    display: flex; flex-direction: column; align-items: center;
-    gap: 16px;
-    width: 100%; max-width: 340px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    text-align: center;
-    margin: auto;
+  .canvas-calendar-wrap {
+    width: 100%; max-width: 520px; padding: 20px;
   }
-  .sp-hero { 
-    width: 160px; height: 160px; border-radius: 16px; 
-    object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
-    margin-bottom: 8px;
+  .canvas-calendar-wrap .smart-card.calendar {
+    max-width: 100%; width: 100%; min-width: 0;
+    background: rgba(20, 15, 35, 0.7);
+    border-color: rgba(140, 100, 255, 0.3);
   }
-  .sp-info { display: flex; flex-direction: column; gap: 4px; }
-  .sp-title { font-size: 1.35em; font-weight: 700; color: white; letter-spacing: -0.01em; line-height: 1.2; }
-  .sp-sub { font-size: 0.95em; color: rgba(255,255,255,0.6); }
-  .sp-ctrl-row { display: flex; align-items: center; justify-content: center; gap: 24px; width: 100%; margin-top: 12px; }
-  .sp-ctrl-btn { 
-    width: 48px; height: 48px; border-radius: 50%; background: transparent; 
-    display: flex; align-items: center; justify-content: center; border: none; color: rgba(255,255,255,0.7); 
-    cursor: pointer; transition: 0.2s; touch-action: manipulation;
-  }
-  .sp-ctrl-btn:active { transform: scale(0.85); color: white; }
-  .sp-play-btn { 
-    width: 68px; height: 68px; border-radius: 50%; background: #1DB954; color: black; 
-    display: flex; align-items: center; justify-content: center; border: none; 
-    cursor: pointer; transition: 0.2s; box-shadow: 0 8px 20px rgba(29, 185, 84, 0.3); 
-    touch-action: manipulation;
-  }
-  .sp-play-btn:active { transform: scale(0.92); background: #1ed760; box-shadow: 0 4px 10px rgba(29, 185, 84, 0.4); }
-  .sp-play-btn svg { width: 32px; height: 32px; fill: currentColor; }
-  .sp-ctrl-btn svg { width: 24px; height: 24px; fill: currentColor; }
+  .canvas-calendar-wrap .cal-event { padding: 12px 14px; }
+  .canvas-calendar-wrap .cal-event-title { font-size: 1em; }
+  .canvas-calendar-wrap .cal-time { font-size: 0.82em; width: 80px; }
 
   #canvas-body.type-markdown { font-size:1em; line-height:1.7; color:rgba(255,255,255,0.9); }
   #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:white; margin:1em 0 0.5em; }
@@ -425,14 +417,13 @@
   #canvas-body.type-markdown pre code { background:transparent; padding:0; }
   #canvas-body.type-markdown ul,#canvas-body.type-markdown ol { padding-left:20px; margin:0.5em 0; }
   #canvas-body.type-markdown a { color:#a5d6ff; }
-  
-  #canvas-copy { 
-    position:absolute; bottom:20px; right:20px; padding:10px 20px; border-radius:99px; 
-    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:0.9em; 
+
+  #canvas-copy {
+    position:absolute; bottom:20px; right:20px; padding:10px 20px; border-radius:99px;
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:0.9em;
     font-weight:600; cursor:pointer; touch-action:manipulation; transition:0.2s; z-index:10; backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.3);
   }
   #canvas-copy:active { transform:scale(0.95); background:rgba(255,255,255,0.25); }
-  
 </style>
 </head>
 <body>
@@ -504,7 +495,7 @@
   <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
     <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
   </button>
-  
+
   <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
     <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
   </button>
@@ -517,20 +508,14 @@
 // FRONTEND STATE
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
-let oliverSleepMode = false; 
+let oliverSleepMode = false;
 
 window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
     console.log("Oliver's engines are warming up...");
-    
-    const widgetState = localStorage.getItem('oliver_spotify_visible');
-    if (widgetState === 'true') {
-        pollSpotifyStatus(); 
-    }
 });
 
-// START BACKGROUND SPOTIFY POLLING
 function pollSpotifyStatus() {
     if (spotifyPollInterval) clearInterval(spotifyPollInterval);
     silentSpotifyCommand('status');
@@ -597,18 +582,17 @@ const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
 const interimEl = { textContent:'' };
 
-// CORE STATE LOCKS
 let isRecording   = false;
 let isSpeaking    = false;
 let isContinuous  = false;
-let isThinking    = false; 
+let isThinking    = false;
 let recognition   = null;
 let currentAudio  = null;
 let audioCtx      = null;
 let audioUnlocked = false;
 let audioQueue    = [];
 let isPlayingQueue= false;
-let currentPlayingRunId = null; 
+let currentPlayingRunId = null;
 
 let pendingImageBase64 = null;
 let pendingImageMime   = null;
@@ -617,7 +601,7 @@ let pendingImageName   = null;
 let canvasStore = {};
 let canvasIdCounter = 0;
 
-window.hasInterrupted = false; 
+window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
 
@@ -654,11 +638,11 @@ function getUIHistory() {
         if(text && text !== "I'm listening, Chris. The visual interface is active.") {
             history.push({
                 role: isUser ? 'user' : 'assistant',
-                content: text.substring(0, 1000) 
+                content: text.substring(0, 1000)
             });
         }
     });
-    return history.slice(-20); 
+    return history.slice(-20);
 }
 
 function getAudioCtx(){
@@ -681,24 +665,19 @@ function setOrb(state){
 
 function updateOrbState() {
     if (oliverSleepMode) {
-        setOrb(null);
-        stopWave();
+        setOrb(null); stopWave();
         const pip = document.getElementById('main-pip');
-        if(pip) pip.style.background = '#555'; 
+        if(pip) pip.style.background = '#555';
     } else if (isSpeaking || isPlayingQueue) {
-        setOrb('speaking');
-        startWave('speaking');
+        setOrb('speaking'); startWave('speaking');
     } else if (isRecording) {
-        setOrb('listening');
-        startWave('listening');
+        setOrb('listening'); startWave('listening');
         const pip = document.getElementById('main-pip');
         if(pip && !spotifyIsPlaying) pip.style.background = 'white';
     } else if (isThinking || audioQueue.length > 0) {
-        setOrb('thinking');
-        startWave('thinking');
+        setOrb('thinking'); startWave('thinking');
     } else {
-        setOrb(null);
-        stopWave();
+        setOrb(null); stopWave();
     }
 }
 
@@ -741,7 +720,7 @@ function injectTimerCard(seconds) {
   const tId = 'timer_'+Date.now();
   let remaining = seconds;
   const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-  
+
   const html = `
     <div class="smart-card timer" id="${tId}">
       <div class="timer-left">
@@ -782,18 +761,20 @@ function updateOrInjectSpotifyCard(spData) {
   if(!activeSpotifyCardId || currentSpotifyTrack !== spData.trackName) {
     activeSpotifyCardId = 'sp_'+Date.now();
     currentSpotifyTrack = spData.trackName;
-    
+
+    const fallbackArt = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231DB954' d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z'/%3E%3C/svg%3E";
+
     const html = `
       <div class="smart-card spotify" id="${activeSpotifyCardId}">
-        <img class="sc-art ${spData.isPlaying?'spinning':''}" id="${activeSpotifyCardId}-art" src="${spData.albumArt||'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%231DB954%22 d=%22M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z%22/></svg>'}" alt="Art">
+        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" alt="Art">
         <div class="sc-info">
           <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
           <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
         </div>
         <div class="sc-controls">
-           <button class="sc-btn play" id="${activeSpotifyCardId}-btn" onclick="silentSpotifyCommand('toggle')">
-             ${spData.isPlaying ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
-           </button>
+          <button class="sc-btn play" id="${activeSpotifyCardId}-btn" onclick="silentSpotifyCommand('toggle')">
+            ${spData.isPlaying ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
+          </button>
         </div>
       </div>
     `;
@@ -801,10 +782,9 @@ function updateOrInjectSpotifyCard(spData) {
   } else {
     const card = document.getElementById(activeSpotifyCardId);
     if(card) {
-      const art = document.getElementById(`${activeSpotifyCardId}-art`);
       const btn = document.getElementById(`${activeSpotifyCardId}-btn`);
-      if(spData.isPlaying) { art.classList.add('spinning'); btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
-      else { art.classList.remove('spinning'); btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
+      if(spData.isPlaying) { btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
+      else { btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
     }
   }
 }
@@ -858,86 +838,91 @@ async function sendMessage(){
   await pipeline(text||"I've shared an image with you.", false, pendingImageBase64, pendingImageMime, pendingImageName);
 }
 
+// CAL SVG path shared constant
+const CAL_SVG = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z';
+
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
-  // Bypass wrapping if it's already an injected UI component (smart cards, pills)
   if(text.includes('<div class="smart-card"') || text.includes('<div class="pill-btn"')) return text;
-  
-  // Intercept real text-based schedules from the AI and turn them into beautiful cards
+
   let cardHtml = '';
   let events = [];
   let cleanLines = [];
-  
+
   const lines = text.split('\n');
   for (let line of lines) {
-     // Regex to dynamically match "- **Title** — Time (Location)" OR "- Time - **Title**"
-     const eventMatch = line.match(/^(?:-|\*)\s*(?:\*\*)?(.+?)(?:\*\*)?\s*(?:—|-|–|:)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*)$/i) || 
-                        line.match(/^(?:-|\*)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*?)\s*(?:—|-|–|:)\s*(?:\*\*)?(.+?)(?:\*\*)?$/i);
-     if(eventMatch) {
-         let timeDesc, title;
-         // Determine which group is the time based on typical time keywords
-         if (/(AM|PM|am|pm|all day|\d:\d)/.test(eventMatch[1])) {
-             timeDesc = eventMatch[1].trim();
-             title = eventMatch[2].trim();
-         } else {
-             title = eventMatch[1].trim();
-             timeDesc = eventMatch[2].trim();
-         }
-         
-         title = title.replace(/\*\*/g, '').trim();
-         let time = timeDesc;
-         let loc = '';
-         const locMatch = timeDesc.match(/(.*?)\s*\((.*?)\)$/);
-         if (locMatch) {
-             time = locMatch[1].trim();
-             loc = locMatch[2].trim();
-         }
-         events.push({ title, time, loc });
-     } else {
-         cleanLines.push(line);
-     }
+    const eventMatch = line.match(/^(?:-|\*)\s*(?:\*\*)?(.+?)(?:\*\*)?\s*(?:—|-|–|:)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*)$/i) ||
+                       line.match(/^(?:-|\*)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*?)\s*(?:—|-|–|:)\s*(?:\*\*)?(.+?)(?:\*\*)?$/i);
+    if(eventMatch) {
+      let timeDesc, title;
+      if (/(AM|PM|am|pm|all day|\d:\d)/.test(eventMatch[1])) {
+        timeDesc = eventMatch[1].trim(); title = eventMatch[2].trim();
+      } else {
+        title = eventMatch[1].trim(); timeDesc = eventMatch[2].trim();
+      }
+      title = title.replace(/\*\*/g, '').trim();
+      let time = timeDesc, loc = '';
+      const locMatch = timeDesc.match(/(.*?)\s*\((.*?)\)$/);
+      if (locMatch) { time = locMatch[1].trim(); loc = locMatch[2].trim(); }
+      events.push({ title, time, loc });
+    } else {
+      cleanLines.push(line);
+    }
   }
 
   if (events.length > 0) {
     const colors = ['#ff7b72', '#79c0ff', '#a5d6ff', '#7ee787', '#d2a8ff'];
     let eventsHtml = events.map((ev, i) => {
-        const timeStr = ev.time.replace(/ to /gi, '<br><span style="font-size:0.8em;opacity:0.5;line-height:1;">to </span>');
-        return `
-          <div class="cal-event">
-            <div class="cal-time">${timeStr}</div>
-            <div class="cal-divider" style="background:${colors[i % colors.length]}"></div>
-            <div class="cal-details">
-              <div class="cal-event-title">${ev.title}</div>
-              ${ev.loc ? `<div class="cal-event-loc">${ev.loc}</div>` : ''}
-            </div>
+      return `
+        <div class="cal-event">
+          <div class="cal-time">${ev.time}</div>
+          <div class="cal-divider" style="background:${colors[i % colors.length]}"></div>
+          <div class="cal-details">
+            <div class="cal-event-title">${ev.title}</div>
+            ${ev.loc ? `<div class="cal-event-loc">${ev.loc}</div>` : ''}
           </div>
-        `;
+        </div>
+      `;
     }).join('');
 
-    cardHtml = `
-      <div class="smart-card calendar">
+    // Store calendar in canvas and auto-open the bottom sheet
+    const calId = 'cal_' + (++canvasIdCounter);
+    const calCardHtml = `
+      <div class="smart-card calendar" style="max-width:100%;width:100%">
         <div class="cal-header">
           <div class="cal-title">
-            <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg>
             Schedule
           </div>
         </div>
         <div class="cal-events">${eventsHtml}</div>
       </div>
     `;
+    canvasStore[calId] = { type: 'calendar', title: 'Your Schedule', content: calCardHtml };
+    setTimeout(() => openStoredCanvas(calId), 400);
+
+    // Return a compact pill instead of the full inline card
+    cardHtml = `
+      <div class="pill-btn" onclick="openStoredCanvas('${calId}')">
+        <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg></div>
+        <div class="pill-info">
+          <span class="pill-title">Schedule</span>
+          <span class="pill-type">${events.length} event${events.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="pill-action">Open</div>
+      </div>
+    `;
     text = cleanLines.join('\n').trim();
   }
 
-  // Parse markdown bold text
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
+  text = text.replace(/\*\*(.+?)\*\*/g, '$1');
   const paragraphs = text.split(/\n{2,}/);
   let html = paragraphs.map(p => {
     if(!p.trim()) return '';
     return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
   }).join('');
-  
+
   return html + cardHtml;
 }
 
@@ -946,7 +931,7 @@ function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = f
   const div=document.createElement('div');
   div.className='message '+sender;
   if(isVoice) div.classList.add('hidden-voice');
-  
+
   if(sender==='oliver'){
     div.innerHTML=`<div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
       <div class="oliver-card"><div class="msg-text">${formatMessageText(text)}</div></div>`;
@@ -957,11 +942,7 @@ function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = f
     div.innerHTML=`<div class="user-card">${inner}</div>`;
   }
   c.appendChild(div);
-  
-  setTimeout(() => {
-    c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
-  }, 10);
-  
+  setTimeout(() => { c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }); }, 10);
   return div;
 }
 
@@ -987,14 +968,12 @@ function extractCanvasAndMarkdown(text) {
     let cleanContent = content.trim();
     cleanContent = cleanContent.replace(/^\s*```[a-zA-Z]*\n?/i, '');
     cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
-
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
-    setTimeout(() => { openStoredCanvas(id); }, 500); 
-    
+    setTimeout(() => { openStoredCanvas(id); }, 500);
     return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
               <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
               <div class="pill-info"><span class="pill-title">${title || type}</span><span class="pill-type">${type}</span></div>
-              <div class="pill-action">View</div>
+              <div class="pill-action">Open</div>
             </div>\n`;
   });
 
@@ -1005,11 +984,10 @@ function extractCanvasAndMarkdown(text) {
     const type = lang || 'code';
     canvasStore[id] = { type: type, title: lang ? `Code Snippet` : 'Code', content: content.trim() };
     setTimeout(() => { openStoredCanvas(id); }, 500);
-    
     return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
               <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
               <div class="pill-info"><span class="pill-title">Code Snippet</span><span class="pill-type">${type}</span></div>
-              <div class="pill-action">View</div>
+              <div class="pill-action">Open</div>
             </div>\n`;
   });
 
@@ -1025,39 +1003,35 @@ function checkLocalIntercepts(text) {
   }
 }
 
-// Upgraded Pipeline Function with Auto Follow-Up Engine
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
   let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
   let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
 
-  if (isThinking && !isSilentCommand) return; 
-  
-  const runId = Date.now().toString(); 
+  if (isThinking && !isSilentCommand) return;
+
+  const runId = Date.now().toString();
   let userMsgEl = null;
-  
+
   if (!isSilentCommand) {
-      isThinking = true; 
-      
-      if (!isHiddenPrompt) {
-          checkLocalIntercepts(textToSend); // Catch visual commands
-          userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
+    isThinking = true;
+    if (!isHiddenPrompt) {
+      checkLocalIntercepts(textToSend);
+      userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
+    }
+    updateOrbState();
+    if (!isHiddenPrompt) {
+      const lowerMsg = textToSend.toLowerCase();
+      if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
+        setTimeout(() => {
+          pollSpotifyStatus();
+        }, 1000);
       }
-      updateOrbState(); 
-      
-      if (!isHiddenPrompt) {
-          const lowerMsg = textToSend.toLowerCase();
-          if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
-              setTimeout(() => { 
-                  localStorage.setItem('oliver_spotify_visible', 'true');
-                  pollSpotifyStatus();
-              }, 1000);
-          }
-      }
+    }
   } else {
-      if (!userText.includes("status")) {
-          const pip = document.getElementById('main-pip');
-          if (pip && !oliverSleepMode) pip.style.background = '#1DB954'; 
-      }
+    if (!userText.includes("status")) {
+      const pip = document.getElementById('main-pip');
+      if (pip && !oliverSleepMode) pip.style.background = '#1DB954';
+    }
   }
 
   const elapsed = Math.floor((Date.now()-sessionStart)/1000);
@@ -1078,7 +1052,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
   const uiHistory = getUIHistory();
   const currentInterruptedState = window.hasInterrupted;
-  window.hasInterrupted = false; 
+  window.hasInterrupted = false;
 
   try {
     const res = await fetch(EDGE_FUNCTION_URL, {
@@ -1092,7 +1066,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         voiceEnabled: speakReply,
         hasImage: !!imageBase64,
         uiHistory: uiHistory,
-        wasInterrupted: currentInterruptedState 
+        wasInterrupted: currentInterruptedState
       }),
     });
 
@@ -1103,7 +1077,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
+
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
@@ -1113,68 +1087,70 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         const data = JSON.parse(line);
 
         if (data.type === 'ignore') {
-            if (userMsgEl) {
-                userMsgEl.style.transition = 'all 0.4s ease';
-                userMsgEl.style.opacity = '0';
-                userMsgEl.style.transform = 'scale(0.95)';
-                setTimeout(() => userMsgEl.remove(), 400);
-            }
+          if (userMsgEl) {
+            userMsgEl.style.transition = 'all 0.4s ease';
+            userMsgEl.style.opacity = '0';
+            userMsgEl.style.transform = 'scale(0.95)';
+            setTimeout(() => userMsgEl.remove(), 400);
+          }
         }
         else if (data.type === 'spotify_update') {
-            if (data.data) {
-                updateOrInjectSpotifyCard(data.data);
-                spotifyIsPlaying = data.data.isPlaying;
-                localStorage.setItem('oliver_spotify_visible', 'true');
-            }
+          if (data.data) {
+            updateOrInjectSpotifyCard(data.data);
+            spotifyIsPlaying = data.data.isPlaying;
+          }
         }
         else if (data.type === 'filler') {
-            if (speakReply && !isSilentCommand) {
-                audioQueue.push({ text: data.text, runId: runId, isFiller: true });
-                if (!isPlayingQueue) processAudioQueue();
-            }
-        } 
+          if (speakReply && !isSilentCommand) {
+            audioQueue.push({ text: data.text, runId: runId, isFiller: true });
+            if (!isPlayingQueue) processAudioQueue();
+          }
+        }
         else if (data.type === 'final') {
-            let rawText = data.text || '';
-            let autoFollowUp = false;
+          let rawText = data.text || '';
+          let autoFollowUp = false;
 
-            if (rawText.includes("<CONTINUE>")) {
-                autoFollowUp = true;
-                rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
-            } else {
-                const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
-                const lower = rawText.toLowerCase();
-                
-                if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
-                    autoFollowUp = true;
-                }
+          if (rawText.includes("<CONTINUE>")) {
+            autoFollowUp = true;
+            rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
+          } else {
+            const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
+            const lower = rawText.toLowerCase();
+            if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
+              autoFollowUp = true;
+            }
+          }
+
+          const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
+
+          if (!isSilentCommand) {
+            if (processed.trim() !== '') {
+              const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+
+              // In voice mode: show message if it has canvas or any interactive elements (pills, cards)
+              if (speakReply && oliverMsgEl) {
+                const hasInteractive = hasCanvas || oliverMsgEl.querySelector('.pill-btn, .smart-card');
+                if (hasInteractive) oliverMsgEl.classList.remove('hidden-voice');
+              }
+
+              if (speakReply) {
+                audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
+                if (!isPlayingQueue) processAudioQueue();
+              }
             }
 
-            const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
-            
-            if (!isSilentCommand) {
-                if (processed.trim() !== '') {
-                    const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
-                    if (hasCanvas && oliverMsgEl && speakReply) {
-                        oliverMsgEl.classList.remove('hidden-voice');
-                    }
-                    if (speakReply) {
-                        audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
-                        if (!isPlayingQueue) processAudioQueue();
-                    }
-                }
-                
-                if (autoFollowUp) {
-                    setTimeout(() => {
-                        pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
-                    }, 1200);
-                }
-            } else {
-                const pip = document.getElementById('main-pip');
-                if (pip && !oliverSleepMode) pip.style.background = 'white';
+            if (autoFollowUp) {
+              setTimeout(() => {
+                pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
+              }, 1200);
             }
+          } else {
+            const pip = document.getElementById('main-pip');
+            if (pip && !oliverSleepMode) pip.style.background = 'white';
+          }
         }
         else if (data.type === 'error') {
-            console.error("Pipeline Error:", data.text);
+          console.error("Pipeline Error:", data.text);
         }
       }
     }
@@ -1182,41 +1158,40 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     console.warn("Fetch error:", err);
   } finally {
     if (!isSilentCommand) {
-        isThinking = false;
-        updateOrbState();
+      isThinking = false;
+      updateOrbState();
     } else {
-        const pip = document.getElementById('main-pip');
-        if (pip && !oliverSleepMode) pip.style.background = 'white';
+      const pip = document.getElementById('main-pip');
+      if (pip && !oliverSleepMode) pip.style.background = 'white';
     }
   }
 }
 
 async function processAudioQueue() {
   if(audioQueue.length === 0) {
-      isPlayingQueue = false;
-      updateOrbState();
-      
-      if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
-          startListening();
-      }
-      return;
+    isPlayingQueue = false;
+    updateOrbState();
+    if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
+      startListening();
+    }
+    return;
   }
-  
   isPlayingQueue = true;
   const currentItem = audioQueue.shift();
-  currentPlayingRunId = currentItem.runId; 
-  
+  currentPlayingRunId = currentItem.runId;
   await speakText(currentItem.text, currentItem.isFiller, currentItem.msgEl);
 }
 
 function cleanForTTS(text){
   return text
     .replace(/<CANVAS[\s\S]*?<\/CANVAS>/gi, '')
-    .replace(/```[\s\S]*?```/g, '')
+    .replace(/```[\s\S]*?
+```/g, '')
     .replace(/\*\*(.+?)\*\*/g,'$1')
     .replace(/\*(.+?)\*/g,'$1')
     .replace(/#+\s/g,'')
     .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
+    .replace(/<[^>]+>/g,' ')
     .replace(/\n{2,}/g,' ')
     .replace(/\n/g,' ')
     .replace(/\s{2,}/g,' ')
@@ -1226,35 +1201,35 @@ function cleanForTTS(text){
 async function speakText(text, isFiller = false, msgEl = null) {
   const ttsText = cleanForTTS(text);
   if(!ttsText) {
-      if(msgEl) msgEl.classList.remove('hidden-voice');
-      processAudioQueue();
-      return;
+    if(msgEl) msgEl.classList.remove('hidden-voice');
+    processAudioQueue();
+    return;
   }
 
   isSpeaking = true;
-  addOliverMemory(ttsText); 
+  addOliverMemory(ttsText);
   updateOrbState();
 
   try {
     const ctx = getAudioCtx();
     if(ctx.state === 'suspended') await ctx.resume();
-    
+
     const res = await fetch(XI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({ text: ttsText }),
     });
-    
+
     if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
-    
+
     const arrayBuffer = await res.arrayBuffer();
     const decoded = await ctx.decodeAudioData(arrayBuffer);
-    
+
     await new Promise((resolve) => {
       const src = ctx.createBufferSource();
-      src.buffer = decoded; 
+      src.buffer = decoded;
       src.connect(ctx.destination);
-      src.onended = resolve; 
+      src.onended = resolve;
       src.start(0);
       currentAudio = src;
     });
@@ -1264,16 +1239,15 @@ async function speakText(text, isFiller = false, msgEl = null) {
     if(msgEl) msgEl.classList.remove('hidden-voice');
   } finally {
     currentAudio = null;
-    currentPlayingRunId = null; 
+    currentPlayingRunId = null;
     isSpeaking = false;
-    
     if(audioQueue.length > 0) {
       processAudioQueue();
     } else {
       isPlayingQueue = false;
-      updateOrbState(); 
+      updateOrbState();
       if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
-          startListening();
+        startListening();
       }
     }
   }
@@ -1292,145 +1266,104 @@ function toggleContinuous(){
 
 function startListening(){
   if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue || oliverSleepMode) return;
-  
-  isMicStarting = true; 
+  isMicStarting = true;
   recognition = buildRecognition();
-  if(!recognition) {
-      isMicStarting = false;
-      return;
-  }
-  try{ 
-      setTimeout(() => recognition.start(), 50); 
-  } catch(err){ 
-      console.warn("Mic start failed:", err);
-      isMicStarting = false; 
-  }
+  if(!recognition) { isMicStarting = false; return; }
+  try{ setTimeout(() => recognition.start(), 50); }
+  catch(err){ console.warn("Mic start failed:", err); isMicStarting = false; }
 }
 
 function buildRecognition(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) {
-     addMessage("Speech recognition not supported in this browser.", 'oliver');
-     return null;
-  }
+  if(!SR) { addMessage("Speech recognition not supported in this browser.", 'oliver'); return null; }
   const r=new SR();
-  r.continuous=true; 
-  r.interimResults=true; 
-  r.lang='en-US';
-  
-  r.onstart=()=>{ 
-    isRecording=true; 
-    isMicStarting=false;
+  r.continuous=true; r.interimResults=true; r.lang='en-US';
+
+  r.onstart=()=>{
+    isRecording=true; isMicStarting=false;
     document.getElementById('convo-btn').classList.add('recording');
-    updateOrbState();
-    interimEl.textContent=''; 
+    updateOrbState(); interimEl.textContent='';
   };
-  
+
   r.onresult=(e)=>{
     let interim='', final='';
     for(let i=e.resultIndex; i<e.results.length; i++){
       const t=e.results[i][0].transcript;
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
-    
     const liveText = (interim || final).toLowerCase().trim();
 
     if (isSpeaking || isPlayingQueue) {
-        const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
-        if (!isWakeWord) return; 
+      const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
+      if (!isWakeWord) return;
     }
+    if(isEcho(liveText)) return;
 
-    if(isEcho(liveText)) return; 
-
-    // FRONTEND TAP-TO-WAKE SLEEP LOGIC
     if (!oliverSleepMode && (liveText.includes("oliver ignore me") || liveText.includes("ignore me oliver") || liveText.includes("go to sleep oliver"))) {
-        oliverSleepMode = true;
-        interimEl.textContent = '';
-        clearTimeout(sentenceTimeout);
-        updateOrbState();
-        
-        stopRecording(false);
-        
-        const msgEl = addMessage("I'm going to sleep. Tap my microphone button when you need me.", "oliver", null, null, null, true);
-        msgEl.classList.remove('hidden-voice');
-        audioQueue.push({ text: "I'll go to sleep now. Tap my microphone button when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
-        if (!isPlayingQueue) processAudioQueue();
-        return;
+      oliverSleepMode = true;
+      interimEl.textContent = '';
+      clearTimeout(sentenceTimeout);
+      updateOrbState();
+      stopRecording(false);
+      const msgEl = addMessage("I'm going to sleep. Tap my microphone button when you need me.", "oliver", null, null, null, true);
+      msgEl.classList.remove('hidden-voice');
+      audioQueue.push({ text: "I'll go to sleep now. Tap my microphone button when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+      if (!isPlayingQueue) processAudioQueue();
+      return;
     }
 
     if (liveText.includes("oliver stop") || liveText.includes("stop listening completely")) {
-         stopRecording(false);
-         toggleContinuous(); 
-         return;
+      stopRecording(false); toggleContinuous(); return;
     }
-    
+
     if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
-         if (isPlayingQueue || isSpeaking) {
-             window.hasInterrupted = true;
-             stopRecording(false);
-             if (currentAudio) { try{currentAudio.stop();}catch(e){} currentAudio = null; }
-             audioQueue = []; 
-             isPlayingQueue = false;
-             isSpeaking = false;
-             startListening(); 
-             return;
-         }
+      if (isPlayingQueue || isSpeaking) {
+        window.hasInterrupted = true;
+        stopRecording(false);
+        if (currentAudio) { try{currentAudio.stop();}catch(e){} currentAudio = null; }
+        audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+        startListening(); return;
+      }
     }
 
     if(liveText.length < 3) return;
-
     interimEl.textContent = interim || final;
-    
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
-        sentenceTimeout = setTimeout(() => {
-            if(isRecording && interimEl.textContent.trim() && !oliverSleepMode) {
-                if (interimEl.textContent.trim().length > 2) {
-                    stopRecording(true); 
-                } else {
-                    interimEl.textContent = ''; 
-                }
-            }
-        }, 1200); 
+      sentenceTimeout = setTimeout(() => {
+        if(isRecording && interimEl.textContent.trim() && !oliverSleepMode) {
+          if (interimEl.textContent.trim().length > 2) { stopRecording(true); }
+          else { interimEl.textContent = ''; }
+        }
+      }, 1200);
     }
   };
-  
-  r.onerror=(e)=>{ 
+
+  r.onerror=(e)=>{
     if(e.error === 'not-allowed') addMessage("Microphone access denied.", 'oliver');
-    isMicStarting = false;
-    stopRecording(false); 
+    isMicStarting = false; stopRecording(false);
   };
-  
-  r.onend=()=>{ 
-     if(isRecording) stopRecording(false); 
-     isMicStarting = false;
-     if(isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
-         setTimeout(startListening, 300);
-     }
+
+  r.onend=()=>{
+    if(isRecording) stopRecording(false);
+    isMicStarting = false;
+    if(isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
+      setTimeout(startListening, 300);
+    }
   };
   return r;
 }
 
 function toggleMic(){
   unlockAudio();
-  
-  // WAKE UP LOGIC: If he was asleep, tap to wake him up!
-  if (oliverSleepMode) {
-      oliverSleepMode = false;
-      updateOrbState();
-  }
-  
+  if (oliverSleepMode) { oliverSleepMode = false; updateOrbState(); }
   if(isRecording){ stopRecording(true); return; }
-  
   if(isPlayingQueue || isSpeaking || isThinking) {
-      window.hasInterrupted = true;
-      if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
-      audioQueue = []; 
-      isPlayingQueue = false; 
-      isSpeaking = false;
-      updateOrbState();
+    window.hasInterrupted = true;
+    if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+    audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+    updateOrbState();
   }
-  
   startListening();
 }
 
@@ -1438,29 +1371,26 @@ function stopRecording(processCurrent = false){
   isRecording=false;
   document.getElementById('convo-btn').classList.remove('recording');
   clearTimeout(sentenceTimeout);
-  
   const capturedText = interimEl.textContent.trim();
   interimEl.textContent='';
-  
   try{ if(recognition) recognition.stop(); }catch(_){}
   updateOrbState();
-  
   if(processCurrent && capturedText && capturedText.length > 2) {
-      pipeline(capturedText, true);
+    pipeline(capturedText, true);
   }
 }
 
 setInterval(() => {
-    if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking && !oliverSleepMode) {
-        startListening();
-    }
+  if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking && !oliverSleepMode) {
+    startListening();
+  }
 }, 1500);
 
-const canvasEl     =document.getElementById('oliver-canvas');
-const canvasBody   =document.getElementById('canvas-body');
-const canvasCopy   =document.getElementById('canvas-copy');
-const canvasBadge  =document.getElementById('canvas-type-badge');
-const canvasTTitle =document.getElementById('canvas-title-text');
+const canvasEl    = document.getElementById('oliver-canvas');
+const canvasBody  = document.getElementById('canvas-body');
+const canvasCopy  = document.getElementById('canvas-copy');
+const canvasBadge = document.getElementById('canvas-type-badge');
+const canvasTTitle= document.getElementById('canvas-title-text');
 let canvasRawContent='';
 let isMaximized = false;
 
@@ -1472,28 +1402,34 @@ function openStoredCanvas(id) {
 function openCanvas(type, title, content){
   if(['html','js','json','css','python','ts','typescript','javascript','sh','bash'].includes(type)) type = 'code';
   if(['mp4','webm','mov'].includes(type)) type = 'video';
-  
+
   canvasTTitle.textContent=title||'Canvas';
   canvasBadge.textContent=type||'code';
   canvasRawContent=content;
   canvasBody.className='type-'+type;
   canvasBody.innerHTML='';
   canvasCopy.style.display='none';
-  
+
   if(type==='code'){
-    const wrap = document.createElement('div'); 
+    const wrap = document.createElement('div');
     wrap.id = 'canvas-code-wrap';
-    const pre=document.createElement('pre'); 
+    const pre=document.createElement('pre');
     pre.id='canvas-code';
-    pre.innerHTML=syntaxHighlight(content); 
+    pre.innerHTML=syntaxHighlight(content);
     wrap.appendChild(pre);
     canvasBody.appendChild(wrap);
     canvasCopy.style.display='block';
+  } else if(type==='calendar'){
+    // Full-bleed calendar view in canvas
+    const wrap = document.createElement('div');
+    wrap.className = 'canvas-calendar-wrap';
+    wrap.innerHTML = content;
+    canvasBody.appendChild(wrap);
   } else if(type==='image'){
     const img=document.createElement('img'); img.id='canvas-img';
     img.src=content.trim(); img.alt=title||'Image'; canvasBody.appendChild(img);
   } else if(type==='pdf'){
-    const obj=document.createElement('object'); 
+    const obj=document.createElement('object');
     obj.data=content.trim(); obj.type="application/pdf"; obj.style.width="100%"; obj.style.height="100%";
     canvasBody.appendChild(obj);
   } else if(type==='video'){
@@ -1522,14 +1458,11 @@ function toggleMaximize(){
   isMaximized = !isMaximized;
   const panel = document.getElementById('canvas-panel');
   const maxIcon = document.getElementById('max-icon');
-  
   if(isMaximized) {
-    panel.style.height = '100vh';
-    panel.style.borderRadius = '0';
+    panel.style.height = '100vh'; panel.style.borderRadius = '0';
     maxIcon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
   } else {
-    panel.style.height = '85vh';
-    panel.style.borderRadius = '24px 24px 0 0';
+    panel.style.height = '85vh'; panel.style.borderRadius = '24px 24px 0 0';
     maxIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
   }
 }
@@ -1561,7 +1494,7 @@ function renderMarkdown(md){
   return md
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/```(\w+)?\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>') 
+    .replace(/```(\w+)?\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`\n]+)`/g,'<code>$1</code>')
     .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
     .replace(/^---$/gm,'<hr>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
