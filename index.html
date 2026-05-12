@@ -140,6 +140,7 @@
     box-shadow:0 8px 32px rgba(0,0,0,0.3);
   }
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.95); font-weight:300; line-height:1.65; }
+  .msg-text strong { font-weight:600; color:#fff; }
   .msg-para { margin-bottom:12px; }
   .msg-para:last-child { margin-bottom:0; }
 
@@ -176,32 +177,45 @@
   .pill-type { font-size:0.75em; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.05em; }
   .pill-action { font-size:0.85em; font-weight:600; color:rgba(160,120,255,0.9); padding-left:8px; border-left:1px solid rgba(255,255,255,0.1); }
 
-  /* SMART CARDS (SPOTIFY, TIMER) */
+  /* SMART CARDS (SPOTIFY, TIMER, CALENDAR) */
   .smart-card {
-    margin-top: 12px; padding: 14px; border-radius: 18px;
+    margin-top: 10px; padding: 10px 14px; border-radius: 16px;
     background: rgba(10, 10, 15, 0.5); border: 1px solid rgba(255,255,255,0.1);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    display: flex; align-items: center; gap: 14px; width: 100%; min-width: 260px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    display: flex; align-items: center; gap: 12px; width: fit-content; min-width: 240px; max-width: 320px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
-  .smart-card.spotify { border-color: rgba(30, 215, 96, 0.3); background: rgba(15, 30, 20, 0.6); }
-  .sc-art { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-  .sc-art.spinning { border-radius: 50%; animation: spin-record 6s linear infinite; }
+  
+  /* Spotify Variant (Screenshot Match) */
+  .smart-card.spotify { 
+    border-color: rgba(30, 215, 96, 0.25); 
+    background: linear-gradient(135deg, rgba(20, 35, 24, 0.8), rgba(12, 20, 16, 0.95)); 
+    padding: 12px 18px; border-radius: 99px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    margin: 10px 0;
+  }
+  .sc-art { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.5); flex-shrink: 0; }
+  .sc-art.spinning { animation: spin-record 6s linear infinite; }
   @keyframes spin-record { 100% { transform: rotate(360deg); } }
-  .sc-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .sc-title { font-size: 0.95em; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sc-subtitle { font-size: 0.8em; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top:2px; }
-  .sc-controls { display: flex; align-items: center; gap: 8px; }
+  .sc-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; text-align: left; padding: 0 8px; justify-content: center; }
+  .sc-title { font-size: 1.05em; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; margin-bottom: 2px; letter-spacing: -0.01em; }
+  .sc-subtitle { font-size: 0.85em; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-controls { flex-shrink: 0; display: flex; align-items: center; }
   .sc-btn { 
-    width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); 
+    width: 36px; height: 36px; border-radius: 50%; background: transparent; 
     display: flex; align-items: center; justify-content: center; cursor: pointer; 
     border: none; color: white; transition: 0.2s; -webkit-tap-highlight-color: transparent;
   }
-  .sc-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
-  .sc-btn.play { background: rgba(30, 215, 96, 0.2); color: #1DB954; border: 1px solid rgba(30, 215, 96, 0.4); }
+  .sc-btn.play { 
+    width: 44px; height: 44px; background: transparent; 
+    color: #1DB954; border: 2px solid rgba(29, 185, 84, 0.6); 
+  }
+  .sc-btn.play:active { background: rgba(30, 215, 96, 0.15); transform: scale(0.92); border-color: #1DB954; }
   .sc-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .sc-btn.play svg { width: 18px; height: 18px; }
 
-  .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; }
+  /* Timer Variant */
+  .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; max-width: 320px; }
   .timer-left { display: flex; align-items: center; gap: 14px; }
   .timer-ring-wrap { position: relative; width: 44px; height: 44px; }
   .timer-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
@@ -211,6 +225,20 @@
   .timer-icon svg { width: 18px; height: 18px; fill: #ffaa32; }
   .timer-digits { font-size: 1.4em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; }
   .timer-label { font-size: 0.75em; color: #ffaa32; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+
+  /* Calendar Variant */
+  .smart-card.calendar { border-color: rgba(140, 100, 255, 0.25); background: rgba(20, 15, 35, 0.5); flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; width: 100%; max-width: 360px; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+  .cal-title { font-weight: 600; font-size: 0.9em; color: white; display: flex; align-items: center; gap: 6px; }
+  .cal-title svg { width: 14px; height: 14px; fill: #8c64ff; }
+  .cal-events { display: flex; flex-direction: column; gap: 4px; }
+  .cal-event { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.02); transition: 0.2s; }
+  .cal-event:hover { background: rgba(255,255,255,0.06); }
+  .cal-time { font-size: 0.75em; font-weight: 600; color: rgba(200, 170, 255, 0.9); width: 75px; flex-shrink: 0; text-align: right; line-height: 1.3; }
+  .cal-divider { width: 2px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+  .cal-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; justify-content: center; }
+  .cal-event-title { font-size: 0.9em; font-weight: 500; color: white; line-height: 1.2; }
+  .cal-event-loc { font-size: 0.75em; color: rgba(255,255,255,0.5); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   #img-preview-bar {
     position:relative; z-index:10; flex-shrink:0;
@@ -277,15 +305,12 @@
   #img-btn.has-image svg { fill:#fff; }
   #img-btn.uploading { opacity:0.5; pointer-events:none; }
 
-  #convo-btn.active { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
+  #convo-btn.active, #convo-btn.recording { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
   #convo-btn.active svg { fill:rgba(160,210,255,1); }
+  #convo-btn.recording svg { animation: mic-pulse 1s infinite alternate; }
+  @keyframes mic-pulse { 0% { fill: rgba(160,210,255,1); transform:scale(1); } 100% { fill: white; transform:scale(1.15); } }
 
   #file-input { display:none; }
-
-  @media (max-width: 480px) {
-    .controls { flex-wrap: wrap; justify-content: space-evenly; gap: 12px; padding-bottom: 20px; }
-    #text-input { flex: 1 1 100%; order: -1; margin-bottom: 4px; }
-  }
 
   /* UPDATED BOTTOM SHEET CANVAS */
   #oliver-canvas {
@@ -349,6 +374,49 @@
   #canvas-body.type-video { display:flex; align-items:center; justify-content:center; background:#000; padding:0; }
   #canvas-iframe { width:100%; height:100%; border:none; border-radius:0; background:white; }
   video.canvas-vid { width:100%; max-height:100%; outline:none; }
+
+  /* COMPACT SPOTIFY CANVAS UI */
+  #canvas-body.type-spotify { 
+    display: flex; align-items: center; justify-content: center; 
+    background: radial-gradient(circle at top, rgba(30,215,96,0.12), transparent 60%); 
+  }
+  .spotify-wrap {
+    background: rgba(20, 20, 25, 0.65);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-radius: 28px;
+    padding: 32px 24px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px;
+    width: 100%; max-width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    text-align: center;
+    margin: auto;
+  }
+  .sp-hero { 
+    width: 160px; height: 160px; border-radius: 16px; 
+    object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+    margin-bottom: 8px;
+  }
+  .sp-info { display: flex; flex-direction: column; gap: 4px; }
+  .sp-title { font-size: 1.35em; font-weight: 700; color: white; letter-spacing: -0.01em; line-height: 1.2; }
+  .sp-sub { font-size: 0.95em; color: rgba(255,255,255,0.6); }
+  .sp-ctrl-row { display: flex; align-items: center; justify-content: center; gap: 24px; width: 100%; margin-top: 12px; }
+  .sp-ctrl-btn { 
+    width: 48px; height: 48px; border-radius: 50%; background: transparent; 
+    display: flex; align-items: center; justify-content: center; border: none; color: rgba(255,255,255,0.7); 
+    cursor: pointer; transition: 0.2s; touch-action: manipulation;
+  }
+  .sp-ctrl-btn:active { transform: scale(0.85); color: white; }
+  .sp-play-btn { 
+    width: 68px; height: 68px; border-radius: 50%; background: #1DB954; color: black; 
+    display: flex; align-items: center; justify-content: center; border: none; 
+    cursor: pointer; transition: 0.2s; box-shadow: 0 8px 20px rgba(29, 185, 84, 0.3); 
+    touch-action: manipulation;
+  }
+  .sp-play-btn:active { transform: scale(0.92); background: #1ed760; box-shadow: 0 4px 10px rgba(29, 185, 84, 0.4); }
+  .sp-play-btn svg { width: 32px; height: 32px; fill: currentColor; }
+  .sp-ctrl-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
   #canvas-body.type-markdown { font-size:1em; line-height:1.7; color:rgba(255,255,255,0.9); }
   #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:white; margin:1em 0 0.5em; }
@@ -796,10 +864,81 @@ function formatMessageText(text) {
   // Bypass wrapping if it's already an injected UI component (smart cards, pills)
   if(text.includes('<div class="smart-card"') || text.includes('<div class="pill-btn"')) return text;
   
+  // Intercept real text-based schedules from the AI and turn them into beautiful cards
+  let cardHtml = '';
+  let events = [];
+  let cleanLines = [];
+  
+  const lines = text.split('\n');
+  for (let line of lines) {
+     // Regex to dynamically match "- **Title** — Time (Location)" OR "- Time - **Title**"
+     const eventMatch = line.match(/^(?:-|\*)\s*(?:\*\*)?(.+?)(?:\*\*)?\s*(?:—|-|–|:)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*)$/i) || 
+                        line.match(/^(?:-|\*)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*?)\s*(?:—|-|–|:)\s*(?:\*\*)?(.+?)(?:\*\*)?$/i);
+     if(eventMatch) {
+         let timeDesc, title;
+         // Determine which group is the time based on typical time keywords
+         if (/(AM|PM|am|pm|all day|\d:\d)/.test(eventMatch[1])) {
+             timeDesc = eventMatch[1].trim();
+             title = eventMatch[2].trim();
+         } else {
+             title = eventMatch[1].trim();
+             timeDesc = eventMatch[2].trim();
+         }
+         
+         title = title.replace(/\*\*/g, '').trim();
+         let time = timeDesc;
+         let loc = '';
+         const locMatch = timeDesc.match(/(.*?)\s*\((.*?)\)$/);
+         if (locMatch) {
+             time = locMatch[1].trim();
+             loc = locMatch[2].trim();
+         }
+         events.push({ title, time, loc });
+     } else {
+         cleanLines.push(line);
+     }
+  }
+
+  if (events.length > 0) {
+    const colors = ['#ff7b72', '#79c0ff', '#a5d6ff', '#7ee787', '#d2a8ff'];
+    let eventsHtml = events.map((ev, i) => {
+        const timeStr = ev.time.replace(/ to /gi, '<br><span style="font-size:0.8em;opacity:0.5;line-height:1;">to </span>');
+        return `
+          <div class="cal-event">
+            <div class="cal-time">${timeStr}</div>
+            <div class="cal-divider" style="background:${colors[i % colors.length]}"></div>
+            <div class="cal-details">
+              <div class="cal-event-title">${ev.title}</div>
+              ${ev.loc ? `<div class="cal-event-loc">${ev.loc}</div>` : ''}
+            </div>
+          </div>
+        `;
+    }).join('');
+
+    cardHtml = `
+      <div class="smart-card calendar">
+        <div class="cal-header">
+          <div class="cal-title">
+            <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
+            Schedule
+          </div>
+        </div>
+        <div class="cal-events">${eventsHtml}</div>
+      </div>
+    `;
+    text = cleanLines.join('\n').trim();
+  }
+
+  // Parse markdown bold text
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
   const paragraphs = text.split(/\n{2,}/);
-  return paragraphs.map(p => {
+  let html = paragraphs.map(p => {
+    if(!p.trim()) return '';
     return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
   }).join('');
+  
+  return html + cardHtml;
 }
 
 function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = false){
@@ -1182,6 +1321,7 @@ function buildRecognition(){
   r.onstart=()=>{ 
     isRecording=true; 
     isMicStarting=false;
+    document.getElementById('convo-btn').classList.add('recording');
     updateOrbState();
     interimEl.textContent=''; 
   };
@@ -1296,6 +1436,7 @@ function toggleMic(){
 
 function stopRecording(processCurrent = false){
   isRecording=false;
+  document.getElementById('convo-btn').classList.remove('recording');
   clearTimeout(sentenceTimeout);
   
   const capturedText = interimEl.textContent.trim();
@@ -1365,6 +1506,8 @@ function openCanvas(type, title, content){
     iframe.contentDocument.open(); iframe.contentDocument.write(content); iframe.contentDocument.close();
   } else if(type==='markdown'){
     canvasBody.innerHTML=renderMarkdown(content);
+  } else if(type==='spotify'){
+    canvasBody.innerHTML=content;
   } else {
     const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
     const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
