@@ -190,47 +190,48 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
 
-  /* COMPACT Spotify Widget — Frosted Glass iOS Style */
+  /* COMPACT Spotify Widget — Replicating the User's Screenshot */
   .smart-card.spotify {
-    background: rgba(30, 215, 96, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 12px;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: #0b0c10;
+    border: 2px solid #25272d;
+    padding: 10px 14px;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     margin: 10px 0;
     width: 100%;
-    max-width: 280px;
+    max-width: 320px;
+    display: flex;
+    align-items: center;
     gap: 14px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
   }
+  .smart-card.spotify:active { transform: scale(0.98); }
   .smart-card.spotify .sc-art {
-    width: 54px; height: 54px; border-radius: 12px;
-    object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); flex-shrink: 0;
+    width: 72px; height: 72px; border-radius: 8px;
+    border: 2px solid #355883;
+    background: #222;
+    object-fit: cover; flex-shrink: 0;
+    transition: opacity 0.3s;
   }
   .smart-card.spotify .sc-info { 
-    padding: 0; flex: 1; overflow: hidden; 
-    display: flex; flex-direction: column; justify-content: center; 
+    display: block; /* Removed flex entirely to destroy the gap bug */
+    padding-right: 0; 
+    flex: 1; overflow: hidden;
   }
   .smart-card.spotify .sc-title { 
-    font-size: 0.95em; font-weight: 600; color: white; 
+    display: block;
+    font-size: 16px; font-weight: 600; color: #fff; 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-    line-height: 1.3; margin-bottom: 2px; 
+    line-height: 1.1; margin: 0; letter-spacing: -0.2px;
   }
   .smart-card.spotify .sc-subtitle { 
-    font-size: 0.8em; color: rgba(255,255,255,0.6); 
+    display: block;
+    font-size: 14px; color: #a0a2a8; font-weight: 500;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    line-height: 1.1; margin: 3px 0 0 0; letter-spacing: -0.1px;
   }
-  .smart-card.spotify .sc-controls { flex-shrink: 0; }
-  .smart-card.spotify .sc-btn.play {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: #1DB954; color: #000;
-    border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent;
-  }
-  .smart-card.spotify .sc-btn.play svg { width: 18px; height: 18px; fill: currentColor; }
-  .smart-card.spotify .sc-btn.play:active { background: #1ed760; transform: scale(0.9); }
 
   /* Timer Variant */
   .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; max-width: 320px; }
@@ -330,100 +331,75 @@
 
   #file-input { display:none; }
 
+  /* OVERHAULED CANVAS IDE UI */
   #oliver-canvas {
     position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
-    background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
     opacity:0; pointer-events:none; transition:opacity 0.3s cubic-bezier(0.25,0.8,0.25,1);
   }
   #oliver-canvas.open { opacity:1; pointer-events:all; }
 
   #canvas-panel {
-    width:100%; height:85vh; max-width:900px;
-    background:rgba(15,15,22,0.95); border:1px solid rgba(255,255,255,0.1);
-    border-radius:24px 24px 0 0; box-shadow:0 -10px 50px rgba(0,0,0,0.5);
-    display:flex; flex-direction:column; transform:translateY(100%);
-    transition:all 0.4s cubic-bezier(0.25,0.8,0.25,1);
+    width: 100%; height: 100vh; max-width: 100%;
+    background: rgba(10, 10, 15, 0.85); 
+    backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+    border: none;
+    border-radius: 0; 
+    box-shadow: none;
+    display: flex; flex-direction: column; 
+    transform: translateY(100%);
+    transition: all 0.4s cubic-bezier(0.25,0.8,0.25,1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  #oliver-canvas.open #canvas-panel { transform:translateY(0); }
+  #oliver-canvas.open #canvas-panel { transform: translateY(0); }
 
-  #canvas-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; }
-  #canvas-title { font-size:0.95em; font-weight:600; color:white; display:flex; align-items:center; gap:10px; }
-  #canvas-type-badge { font-size:0.7em; padding:3px 8px; border-radius:8px; background:rgba(140,100,255,0.2); color:rgba(200,160,255,1); text-transform:uppercase; font-weight:600; letter-spacing:0.05em; }
-
-  .canvas-controls { display:flex; gap:8px; }
-  .canvas-header-btn {
-    width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.1);
-    background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center;
-    cursor:pointer; touch-action:manipulation; transition:0.2s; color:white;
+  .ide-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0; user-select: none; flex-shrink: 0;
   }
-  .canvas-header-btn:active { background:rgba(255,255,255,0.15); transform:scale(0.9); }
-  .canvas-header-btn svg { width:16px; height:16px; fill:currentColor; }
+  .ide-left { display: flex; align-items: center; gap: 10px; }
+  .ide-icon { width: 16px; height: 16px; fill: #8b949e; }
+  .ide-title { font-size: 14px; font-weight: 500; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .ide-cloud { width: 16px; height: 16px; fill: #8b949e; }
+  
+  .ide-center { display: flex; align-items: center; }
+  .ide-tabs { display: flex; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+  .ide-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; color: #8b949e; background: transparent; border: none; cursor: pointer; transition: 0.2s; outline: none; }
+  .ide-tab.active { background: rgba(255,255,255,0.15); color: #fff; }
+  
+  .ide-right { display: flex; align-items: center; gap: 10px; }
+  .ide-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+  .ide-share { background: #1f6feb; color: #ffffff; border-color: rgba(240,246,252,0.1); }
+  .ide-share:active { background: #1158c7; }
+  .ide-share svg { width: 14px; height: 14px; fill: currentColor; }
+  .ide-close { background: transparent; color: #8b949e; padding: 6px; }
+  .ide-close:hover { background: #21262d; color: #c9d1d9; }
+  .ide-close svg { width: 16px; height: 16px; fill: currentColor; }
 
-  #canvas-body-wrap { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
-  #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:20px; }
-  #canvas-body::-webkit-scrollbar { display:none; }
+  #canvas-body-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  
+  /* Code Area */
+  #canvas-code-wrap { flex: 1; overflow: auto; background: transparent; padding: 20px 0; -webkit-overflow-scrolling: touch; }
+  #canvas-code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; line-height: 1.5; color: #c9d1d9; white-space: pre; margin: 0; tab-size: 4; counter-reset: line; }
+  .line-row { display: flex; padding: 0 16px; }
+  .line-row:hover { background: rgba(255,255,255,0.04); }
+  .line-num { flex-shrink: 0; width: 40px; color: #484f58; text-align: right; margin-right: 16px; padding-right: 12px; font-size: 12px; user-select: none; }
+  .line-num::before { counter-increment: line; content: counter(line); }
+  .line-content { white-space: pre; }
 
-  #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
-  #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
-  #canvas-code {
-    font-family:"JetBrains Mono", ui-monospace, monospace;
-    font-size:14px; line-height:1.6; color:#c9d1d9; white-space:pre; margin:0; tab-size:4; min-width:min-content;
-    counter-reset: line-counter;
-  }
-  .line-row { display:flex; padding:0 20px; }
-  .line-row:hover { background:rgba(255,255,255,0.05); }
-  .line-num {
-    flex-shrink:0; width:40px; color:#484f58; user-select:none; text-align:right;
-    margin-right:16px; border-right:1px solid #30363d; padding-right:12px; font-size:12px; line-height:1.8;
-  }
-  .line-num::before { counter-increment: line-counter; content: counter(line-counter); }
-  .line-content { white-space:pre; }
+  /* Syntax Highlighting */
+  .tok-kw  { color: #ff7b72; }
+  .tok-str { color: #a5d6ff; }
+  .tok-num { color: #79c0ff; }
+  .tok-cmt { color: #8b949e; font-style: italic; }
+  .tok-fn  { color: #d2a8ff; }
+  .tok-tag { color: #7ee787; }
 
-  .tok-kw  { color:#ff7b72; }
-  .tok-str { color:#a5d6ff; }
-  .tok-num { color:#79c0ff; }
-  .tok-cmt { color:#8b949e; font-style:italic; }
-  .tok-fn  { color:#d2a8ff; }
-
-  #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
-  #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
-  #canvas-body.type-pdf { padding:0; background:#333; }
-  #canvas-body.type-video { display:flex; align-items:center; justify-content:center; background:#000; padding:0; }
-  #canvas-iframe { width:100%; height:100%; border:none; border-radius:0; background:white; }
-  video.canvas-vid { width:100%; max-height:100%; outline:none; }
-
-  /* Calendar canvas body */
-  #canvas-body.type-calendar {
-    display: flex; align-items: flex-start; justify-content: center;
-    background: rgba(10, 8, 20, 0.6);
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-  }
-  .canvas-calendar-wrap {
-    width: 100%; max-width: 520px; padding: 20px;
-  }
-  .canvas-calendar-wrap .smart-card.calendar {
-    max-width: 100%; width: 100%; min-width: 0;
-    background: rgba(20, 15, 35, 0.7);
-    border-color: rgba(140, 100, 255, 0.3);
-  }
-  .canvas-calendar-wrap .cal-event { padding: 12px 14px; }
-  .canvas-calendar-wrap .cal-event-title { font-size: 1em; }
-  .canvas-calendar-wrap .cal-time { font-size: 0.82em; width: 80px; }
-
-  #canvas-body.type-markdown { font-size:1em; line-height:1.7; color:rgba(255,255,255,0.9); }
-  #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:white; margin:1em 0 0.5em; }
-  #canvas-body.type-markdown code { font-family:monospace; font-size:0.9em; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; }
-  #canvas-body.type-markdown pre { background:#0d1117; padding:16px; border-radius:12px; overflow-x:auto; border:1px solid rgba(255,255,255,0.1); margin:1em 0; }
-  #canvas-body.type-markdown pre code { background:transparent; padding:0; }
-  #canvas-body.type-markdown ul,#canvas-body.type-markdown ol { padding-left:20px; margin:0.5em 0; }
-  #canvas-body.type-markdown a { color:#a5d6ff; }
-
-  #canvas-copy {
-    position:absolute; bottom:20px; right:20px; padding:10px 20px; border-radius:99px;
-    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:0.9em;
-    font-weight:600; cursor:pointer; touch-action:manipulation; transition:0.2s; z-index:10; backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.3);
-  }
-  #canvas-copy:active { transform:scale(0.95); background:rgba(255,255,255,0.25); }
+  /* Preview Area */
+  #canvas-preview-wrap { flex: 1; display: none; background: #fff; }
+  #canvas-preview-wrap.visible { display: flex; }
+  #canvas-iframe { width: 100%; height: 100%; border: none; }
 </style>
 </head>
 <body>
@@ -439,24 +415,34 @@
 
 <div id="oliver-canvas" onclick="if(event.target===this) closeCanvas()">
   <div id="canvas-panel">
-    <div id="canvas-header">
-      <div id="canvas-title">
-        <span id="canvas-title-text">Canvas</span>
-        <span id="canvas-type-badge">code</span>
+    
+    <div class="ide-header">
+      <div class="ide-left">
+        <svg class="ide-icon" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+        <span class="ide-title" id="canvas-title-text">Oliver AI</span>
+        <svg class="ide-cloud" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17l5.09-5.09L16.5 10.5 10 17z"/></svg>
       </div>
-      <div class="canvas-controls">
-        <button class="canvas-header-btn" onclick="toggleMaximize()" aria-label="Maximize">
-          <svg viewBox="0 0 24 24" id="max-icon"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      <div class="ide-center">
+        <div class="ide-tabs" id="ide-tabs-container">
+          <button class="ide-tab active" id="tab-code" onclick="showIdeTab('code')">Code</button>
+          <button class="ide-tab" id="tab-preview" onclick="showIdeTab('preview')">Preview</button>
+        </div>
+      </div>
+      <div class="ide-right">
+        <button class="ide-btn ide-share" onclick="copyCanvas()" id="copy-btn-text">
+           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg> Share
         </button>
-        <button class="canvas-header-btn" onclick="closeCanvas()" aria-label="Close">
-          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        <button class="ide-btn ide-close" onclick="closeCanvas()">
+           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
     </div>
+    
     <div id="canvas-body-wrap">
-      <div id="canvas-body"></div>
-      <button id="canvas-copy" onclick="copyCanvas()" style="display:none">Copy</button>
+      <div id="canvas-code-wrap"><pre id="canvas-code"></pre></div>
+      <div id="canvas-preview-wrap"><iframe id="canvas-iframe" sandbox="allow-scripts allow-same-origin"></iframe></div>
     </div>
+    
   </div>
 </div>
 
@@ -600,6 +586,9 @@ let pendingImageName   = null;
 
 let canvasStore = {};
 let canvasIdCounter = 0;
+
+let uiStore = {};
+let uiId = 0;
 
 window.hasInterrupted = false;
 let isMicStarting = false;
@@ -754,7 +743,7 @@ function injectTimerCard(seconds) {
       <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
   `;
-  addMessage(html, 'oliver', null, null, null, false);
+  addMessage(html, 'oliver', null, null, null, false, true);
 
   activeTimers[tId] = setInterval(() => {
     remaining--;
@@ -777,29 +766,24 @@ function updateOrInjectSpotifyCard(spData) {
     activeSpotifyCardId = 'sp_'+Date.now();
     currentSpotifyTrack = spData.trackName;
 
-    const fallbackArt = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231DB954' d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z'/%3E%3C/svg%3E";
+    const fallbackArt = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath fill=%22%231DB954%22 d=%22M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z%22/%3E%3C/svg%3E";
 
     const html = `
-      <div class="smart-card spotify" id="${activeSpotifyCardId}">
-        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" alt="Art">
+      <div class="smart-card spotify" id="${activeSpotifyCardId}" onclick="silentSpotifyCommand('toggle')">
+        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" onerror="this.onerror=null;this.src='${fallbackArt}';" alt="Art" style="${!spData.isPlaying ? 'opacity: 0.6;' : ''}">
         <div class="sc-info">
           <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
           <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
         </div>
-        <div class="sc-controls">
-          <button class="sc-btn play" id="${activeSpotifyCardId}-btn" onclick="silentSpotifyCommand('toggle')">
-            ${spData.isPlaying ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
-          </button>
-        </div>
       </div>
     `;
-    addMessage(html, 'oliver', null, null, null, false);
+    addMessage(html, 'oliver', null, null, null, false, true);
   } else {
     const card = document.getElementById(activeSpotifyCardId);
     if(card) {
-      const btn = document.getElementById(`${activeSpotifyCardId}-btn`);
-      if(spData.isPlaying) { btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
-      else { btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
+      const art = document.getElementById(`${activeSpotifyCardId}-art`);
+      if(spData.isPlaying) { art.style.opacity = '1'; }
+      else { art.style.opacity = '0.6'; }
     }
   }
 }
@@ -859,9 +843,7 @@ const CAL_SVG = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
-  if(text.includes('<div class="smart-card"') || text.includes('<div class="pill-btn"')) return text;
-
-  let cardHtml = '';
+  
   let events = [];
   let cleanLines = [];
 
@@ -916,7 +898,8 @@ function formatMessageText(text) {
     canvasStore[calId] = { type: 'calendar', title: 'Your Schedule', content: calCardHtml };
     setTimeout(() => openStoredCanvas(calId), 400);
 
-    cardHtml = `
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `
       <div class="pill-btn" onclick="openStoredCanvas('${calId}')">
         <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg></div>
         <div class="pill-info">
@@ -926,32 +909,45 @@ function formatMessageText(text) {
         <div class="pill-action">Open</div>
       </div>
     `;
+    text = cleanLines.join('\n').trim() + `\n[[${uId}]]`;
+  } else {
     text = cleanLines.join('\n').trim();
   }
 
-  text = text.replace(/\*\*(.+?)\*\*/g, '$1');
+  // Immunize the chat UI by escaping raw HTML brackets
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Format markdown bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
   const paragraphs = text.split(/\n{2,}/);
   let html = paragraphs.map(p => {
     if(!p.trim()) return '';
     return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
   }).join('');
 
-  return html + cardHtml;
+  // Safely restore our injected UI interactive elements (post-escape)
+  html = html.replace(/\[\[ui_(\d+)\]\]/g, (match, id) => {
+    return uiStore['ui_' + id] || '';
+  });
+
+  return html;
 }
 
-function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = false){
+function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = false, isRawHtml = false){
   const c=document.getElementById('chat-container');
   const div=document.createElement('div');
   div.className='message '+sender;
   if(isVoice) div.classList.add('hidden-voice');
 
   if(sender==='oliver'){
+    // isRawHtml flag entirely bypasses the formatMessageText escaper for safe internal widgets like Spotify
     div.innerHTML=`<div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
-      <div class="oliver-card"><div class="msg-text">${formatMessageText(text)}</div></div>`;
+      <div class="oliver-card"><div class="msg-text">${isRawHtml ? text : formatMessageText(text)}</div></div>`;
   } else {
     let inner='';
     if(imageBase64) inner+=`<img class="msg-image" src="data:${imageMime||'image/jpeg'};base64,${imageBase64}" alt="${imageName||'image'}">`;
-    if(text) inner+=`<div>${text}</div>`;
+    if(text) inner+=`<div>${formatMessageText(text)}</div>`;
     div.innerHTML=`<div class="user-card">${inner}</div>`;
   }
   c.appendChild(div);
@@ -974,36 +970,74 @@ function extractCanvasAndMarkdown(text) {
   let processed = text;
   let hasCanvas = false;
   const bt = String.fromCharCode(96, 96, 96);
-
-  const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
-  processed = processed.replace(canvasRe, (match, type, title, content) => {
+  
+  // Extract <canvas> blocks reliably regardless of attribute order
+  const canvasRe = /<canvas\b([^>]*)>([\s\S]*?)<\/canvas>/gi;
+  processed = processed.replace(canvasRe, (match, attrs, content) => {
     hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
+    let type = (attrs.match(/type=["']?([^"'\s]+)["']?/i) || [])[1] || 'code';
+    let title = (attrs.match(/title=["']?([^"']+)["']?/i) || [])[1] || 'Web Application';
+    
     let cleanContent = content.trim();
-    cleanContent = cleanContent.replace(new RegExp('^\\s*' + bt + '[a-zA-Z]*\\n?', 'i'), '');
-    cleanContent = cleanContent.replace(new RegExp('\\n?\\s*' + bt + '\\s*$', 'i'), '');
-    canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
+    cleanContent = cleanContent.replace(new RegExp('^\\s*' + bt + '.*?\\n', 'i'), '');
+    cleanContent = cleanContent.replace(new RegExp('\\n?\\s*' + bt + '(?:eof)?\\s*$', 'i'), '');
+    
+    canvasStore[id] = { type: type.toLowerCase(), title: title, content: cleanContent };
     setTimeout(() => { openStoredCanvas(id); }, 500);
-    return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+    
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
               <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
-              <div class="pill-info"><span class="pill-title">${title || type}</span><span class="pill-type">${type}</span></div>
+              <div class="pill-info"><span class="pill-title">${title}</span><span class="pill-type">${type}</span></div>
               <div class="pill-action">Open</div>
             </div>\n`;
+    return `[[${uId}]]`;
   });
 
-  const mdRe = new RegExp(bt + '(\\w+)?\\n([\\s\\S]*?)' + bt, 'g');
-  processed = processed.replace(mdRe, (match, lang, content) => {
+  // Extract proper Markdown codeblocks
+  const mdRe = new RegExp(bt + '([^\\n]*)\\n?([\\s\\S]*?)' + bt + '(?:eof)?', 'gi');
+  processed = processed.replace(mdRe, (match, langInfo, content) => {
     hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
-    const type = lang || 'code';
-    canvasStore[id] = { type: type, title: lang ? `Code Snippet` : 'Code', content: content.trim() };
+    const type = langInfo ? langInfo.split(':')[0].trim() : 'code';
+    const title = langInfo && langInfo.includes(':') ? langInfo.split(':')[1].trim() : (type === 'html' ? 'Web Application' : 'Code Snippet');
+    
+    canvasStore[id] = { type: type || 'code', title: title, content: content.trim() };
     setTimeout(() => { openStoredCanvas(id); }, 500);
-    return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
-              <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
-              <div class="pill-info"><span class="pill-title">Code Snippet</span><span class="pill-type">${type}</span></div>
-              <div class="pill-action">Open</div>
-            </div>\n`;
+    
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+        <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+        <div class="pill-info"><span class="pill-title">${title}</span><span class="pill-type">${type}</span></div>
+        <div class="pill-action">Open</div>
+      </div>\n`;
+    return `\n[[${uId}]]\n`;
   });
+
+  // Auto-catcher: If code leaked without backticks, intercept it securely!
+  if (!hasCanvas && (processed.includes('<style>') || processed.includes('<!DOCTYPE html>') || processed.includes('function ') || processed.includes('class="'))) {
+     if(processed.length > 200 && (processed.match(/<[a-z][\s\S]*>/i) || processed.match(/\{[\s\S]*\}/))) {
+        hasCanvas = true;
+        const id = 'c_' + (++canvasIdCounter);
+        
+        // Critical fix: If the raw HTML was sent inside an unparsed <canvas> tag, forcefully strip the tag
+        // so it doesn't break the IDE preview rendering engine!
+        let safeContent = processed.trim();
+        safeContent = safeContent.replace(/^<canvas[^>]*>/gi, '').replace(/<\/canvas>$/gi, '').trim();
+
+        canvasStore[id] = { type: 'code', title: 'Generated Code', content: safeContent };
+        setTimeout(() => { openStoredCanvas(id); }, 500);
+        
+        const uId = 'ui_' + (++uiId);
+        uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+            <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+            <div class="pill-info"><span class="pill-title">Generated Code</span><span class="pill-type">code</span></div>
+            <div class="pill-action">Open</div>
+          </div>\n`;
+        processed = `Here is the code you requested:\n[[${uId}]]`;
+     }
+  }
 
   return { processed: processed.trim(), hasCanvas };
 }
@@ -1020,6 +1054,20 @@ function checkLocalIntercepts(text) {
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
   let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
   let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
+
+  // Intercept the test command
+  if (textToSend.toLowerCase() === "test spotify") {
+      addMessage(textToSend, 'user', null, null, null, speakReply);
+      setTimeout(() => {
+          updateOrInjectSpotifyCard({
+              trackName: "Runaway",
+              artistName: "Electric Youth",
+              albumArt: "https://i.scdn.co/image/ab67616d00001e029c07ed104e12c145cd42c8d2",
+              isPlaying: true
+          });
+      }, 500);
+      return;
+  }
 
   if (isThinking && !isSilentCommand) return;
 
@@ -1191,8 +1239,9 @@ async function processAudioQueue() {
 function cleanForTTS(text){
   const bt = String.fromCharCode(96, 96, 96);
   return text
-    .replace(/<CANVAS[\s\S]*?<\/CANVAS>/gi, '')
-    .replace(new RegExp(bt + '[\\s\\S]*?' + bt, 'g'), '')
+    .replace(/\[\[ui_\d+\]\]/g, '')
+    .replace(/<canvas[\s\S]*?<\/canvas>/gi, '')
+    .replace(new RegExp(bt + '.*?\\n[\\s\\S]*?' + bt + '(?:eof)?', 'gi'), '')
     .replace(/\*\*(.+?)\*\*/g,'$1')
     .replace(/\*(.+?)\*/g,'$1')
     .replace(/#+\s/g,'')
@@ -1393,84 +1442,43 @@ setInterval(() => {
 }, 1500);
 
 const canvasEl    = document.getElementById('oliver-canvas');
-const canvasBody  = document.getElementById('canvas-body');
-const canvasCopy  = document.getElementById('canvas-copy');
-const canvasBadge = document.getElementById('canvas-type-badge');
-const canvasTTitle= document.getElementById('canvas-title-text');
 let canvasRawContent='';
-let isMaximized = false;
 
 function openStoredCanvas(id) {
   const data = canvasStore[id];
   if(data) openCanvas(data.type, data.title, data.content);
 }
 
+function showIdeTab(tab) {
+  document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+  document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
+  document.getElementById('canvas-code-wrap').style.display = tab === 'code' ? 'block' : 'none';
+  document.getElementById('canvas-preview-wrap').style.display = tab === 'preview' ? 'flex' : 'none';
+}
+
 function openCanvas(type, title, content){
-  if(['html','js','json','css','python','ts','typescript','javascript','sh','bash'].includes(type)) type = 'code';
-  if(['mp4','webm','mov'].includes(type)) type = 'video';
+  document.getElementById('canvas-title-text').textContent = title || 'Oliver AI Generated Code';
+  canvasRawContent = content;
 
-  canvasTTitle.textContent=title||'Canvas';
-  canvasBadge.textContent=type||'code';
-  canvasRawContent=content;
-  canvasBody.className='type-'+type;
-  canvasBody.innerHTML='';
-  canvasCopy.style.display='none';
+  // Set the Code Tab content with beautiful IDE Syntax highlighting
+  document.getElementById('canvas-code').innerHTML = syntaxHighlight(content);
 
-  if(type==='code'){
-    const wrap = document.createElement('div');
-    wrap.id = 'canvas-code-wrap';
-    const pre=document.createElement('pre');
-    pre.id='canvas-code';
-    pre.innerHTML=syntaxHighlight(content);
-    wrap.appendChild(pre);
-    canvasBody.appendChild(wrap);
-    canvasCopy.style.display='block';
-  } else if(type==='calendar'){
-    const wrap = document.createElement('div');
-    wrap.className = 'canvas-calendar-wrap';
-    wrap.innerHTML = content;
-    canvasBody.appendChild(wrap);
-  } else if(type==='image'){
-    const img=document.createElement('img'); img.id='canvas-img';
-    img.src=content.trim(); img.alt=title||'Image'; canvasBody.appendChild(img);
-  } else if(type==='pdf'){
-    const obj=document.createElement('object');
-    obj.data=content.trim(); obj.type="application/pdf"; obj.style.width="100%"; obj.style.height="100%";
-    canvasBody.appendChild(obj);
-  } else if(type==='video'){
-    const vid=document.createElement('video'); vid.className='canvas-vid'; vid.controls=true; vid.autoplay=true;
-    const src=document.createElement('source'); src.src=content.trim(); vid.appendChild(src);
-    canvasBody.appendChild(vid);
-  } else if(type==='html_preview'){
-    const iframe=document.createElement('iframe'); iframe.id='canvas-iframe'; iframe.sandbox='allow-scripts';
-    canvasBody.appendChild(iframe);
-    iframe.contentDocument.open(); iframe.contentDocument.write(content); iframe.contentDocument.close();
-  } else if(type==='markdown'){
-    canvasBody.innerHTML=renderMarkdown(content);
-  } else if(type==='spotify'){
-    canvasBody.innerHTML=content;
+  // Set up the preview tab if it's a web document
+  const isWeb = content.includes('<!DOCTYPE html>') || content.includes('<html') || type === 'html' || type === 'web';
+  if(isWeb) {
+    document.getElementById('canvas-iframe').srcdoc = content;
+    document.getElementById('tab-preview').style.display = 'block';
+    showIdeTab('code'); // Start on code by default
   } else {
-    const wrap = document.createElement('div'); wrap.id = 'canvas-code-wrap';
-    const pre=document.createElement('pre'); pre.id='canvas-code'; pre.textContent=content;
-    wrap.appendChild(pre); canvasBody.appendChild(wrap); canvasCopy.style.display='block';
+    document.getElementById('canvas-iframe').srcdoc = '';
+    document.getElementById('tab-preview').style.display = 'none';
+    showIdeTab('code');
   }
+
   canvasEl.classList.add('open');
 }
 
 function closeCanvas(){ canvasEl.classList.remove('open'); }
-
-function toggleMaximize(){
-  isMaximized = !isMaximized;
-  const panel = document.getElementById('canvas-panel');
-  const maxIcon = document.getElementById('max-icon');
-  if(isMaximized) {
-    panel.style.height = '100vh'; panel.style.borderRadius = '0';
-    maxIcon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
-  } else {
-    panel.style.height = '85vh'; panel.style.borderRadius = '24px 24px 0 0';
-    maxIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
-  }
-}
 
 function copyCanvas(){
   const ta = document.createElement('textarea');
@@ -1482,37 +1490,31 @@ function copyCanvas(){
   ta.select();
   try { document.execCommand('copy'); } catch(e) {}
   document.body.removeChild(ta);
-  canvasCopy.textContent='Copied!';
-  setTimeout(()=>{ canvasCopy.textContent='Copy'; },1800);
+  
+  const btn = document.getElementById('copy-btn-text');
+  btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Copied!`;
+  setTimeout(()=>{ 
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg> Share`;
+  }, 2000);
 }
 
 function syntaxHighlight(code){
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   return code.split('\n').map((line)=>{
-    let parsed = line;
-    if(/^\s*(\/\/|#|--|\/\*)/.test(line)) {
-      parsed = `<span class="tok-cmt">${esc(line)}</span>`;
+    let parsed = esc(line);
+    if(parsed.match(/^\s*(\/\/|#|--|\/\*)/)) {
+      parsed = `<span class="tok-cmt">${parsed}</span>`;
     } else {
-      parsed = esc(line)
-        .replace(/(&#39;.*?&#39;|&quot;.*?&quot;|`.*?`)/g,'<span class="tok-str">$1</span>')
-        .replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-num">$1</span>')
+      parsed = parsed
+        .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|`.*?`)/g,'<span class="tok-str">$1</span>')
+        .replace(/&lt;([a-zA-Z0-9\-]+)(.*?)&gt;/g, '&lt;<span class="tok-tag">$1</span>$2&gt;')
+        .replace(/&lt;\/([a-zA-Z0-9\-]+)&gt;/g, '&lt;/<span class="tok-tag">$1</span>&gt;')
         .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|new|this|null|undefined|true|false|def|self|print|in|is|not|and|or|type|interface|extends|implements|public|private|static|void|int|string|bool)\b/g,'<span class="tok-kw">$1</span>')
-        .replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'<span class="tok-fn">$1</span>');
+        .replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'<span class="tok-fn">$1</span>')
+        .replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-num">$1</span>');
     }
     return `<div class="line-row"><span class="line-num"></span><span class="line-content">${parsed||' '}</span></div>`;
   }).join('');
-}
-
-function renderMarkdown(md){
-  const bt = String.fromCharCode(96, 96, 96);
-  return md
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(new RegExp(bt + '(\\w+)?\\n([\\s\\S]*?)' + bt, 'g'),'<pre><code>$2</code></pre>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`\n]+)`/g,'<code>$1</code>')
-    .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
-    .replace(/^---$/gm,'<hr>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
-    .replace(/\n\n/g,'</p><p>').replace(/^(?!<[hupli]|<\/[hupli]|<pre)(.+)$/gm,'<p>$1</p>');
 }
 </script>
 </body>
