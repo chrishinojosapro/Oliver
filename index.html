@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,9 +29,9 @@
   #star-canvas { position:fixed; inset:0; pointer-events:none; z-index:0; }
 
   .orb-scene {
-    position:fixed; top:50%; left:50%;
+    position:fixed; top:45%; left:50%;
     transform:translate(-50%,-50%);
-    width:300px; height:300px;
+    width:280px; height:280px;
     pointer-events:none; z-index:1;
     opacity:0; animation:orb-enter 2s ease forwards;
   }
@@ -110,60 +110,107 @@
     overflow-y:auto; -webkit-overflow-scrolling:touch;
     display:flex; flex-direction:column; gap:14px;
     scroll-behavior: smooth;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
   }
   #chat-container::-webkit-scrollbar { display:none; }
 
-  @keyframes msg-in { from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  @keyframes msg-in { from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
 
   .hidden-voice { display: none !important; }
 
-  .message.user {
-    align-self:flex-end; max-width:84%;
-    padding:11px 16px;
-    border-radius:20px 20px 5px 20px;
-    font-size:0.93em; line-height:1.55;
-    color:rgba(255,255,255,0.60);
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.12);
-    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-    animation:msg-in 0.28s ease forwards;
-    transform-origin: bottom right;
+  .message { display: flex; flex-direction: column; max-width: 90%; animation:msg-in 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+  .message.user { align-self:flex-end; align-items: flex-end; }
+  .message.oliver { align-self:flex-start; align-items: flex-start; }
+
+  .user-card {
+    padding:11px 16px; border-radius:20px 20px 5px 20px;
+    font-size:0.93em; line-height:1.55; color:rgba(255,255,255,0.9);
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   }
-  .message.oliver { align-self:flex-start; max-width:92%; animation:msg-in 0.28s ease forwards; }
-  .sender-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+
+  .sender-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; margin-left: 4px; }
   .sender-dot { width:5px; height:5px; border-radius:50%; background:rgba(160,120,255,0.7); box-shadow:0 0 6px rgba(140,100,255,0.6); }
-  .sender-name { font-size:10px; color:rgba(255,255,255,0.30); font-weight:600; letter-spacing:0.12em; text-transform:uppercase; }
+  .sender-name { font-size:10px; color:rgba(255,255,255,0.4); font-weight:600; letter-spacing:0.12em; text-transform:uppercase; }
   .oliver-card {
-    padding:12px 16px;
-    border-radius:5px 20px 20px 20px;
-    background:rgba(120,90,220,0.08);
-    border:1px solid rgba(160,120,255,0.18);
-    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-    box-shadow:0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+    padding:14px 18px; border-radius:5px 20px 20px 20px;
+    background:rgba(20, 15, 35, 0.65); border:1px solid rgba(160,120,255,0.25);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    box-shadow:0 8px 32px rgba(0,0,0,0.3);
   }
-  .msg-text { font-size:1.02em; color:rgba(255,255,255,0.90); font-weight:300; line-height:1.65; }
+  .msg-text { font-size:1.02em; color:rgba(255,255,255,0.95); font-weight:300; line-height:1.65; }
   .msg-para { margin-bottom:12px; }
   .msg-para:last-child { margin-bottom:0; }
 
-  .msg-image { display:block; max-width:100%; border-radius:12px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.10); }
+  /* UPDATED IMAGE CONTROL */
+  .msg-image { 
+    display:block; max-width:240px; max-height:240px; 
+    border-radius:14px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.15);
+    object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
 
   .drive-badge {
-    display:inline-flex; align-items:center; gap:5px;
-    margin-top:6px; padding:3px 10px; border-radius:12px; font-size:0.74em;
-    background:rgba(100,180,100,0.15); border:1px solid rgba(100,200,100,0.25);
-    color:rgba(150,220,150,0.85);
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:8px; padding:4px 12px; border-radius:12px; font-size:0.75em;
+    background:rgba(30,180,90,0.15); border:1px solid rgba(30,180,90,0.3); color:rgba(120,240,150,0.9);
   }
-  .drive-badge svg { width:11px; height:11px; fill:rgba(150,220,150,0.85); }
+  .drive-badge svg { width:12px; height:12px; fill:currentColor; }
 
-  .chat-canvas-btn {
-    display:inline-flex; align-items:center; gap:8px;
-    margin-top:10px; padding:8px 14px; border-radius:8px;
-    background:rgba(140,100,255,0.15); border:1px solid rgba(160,120,255,0.35);
-    color:rgba(200,170,255,0.95); font-size:0.85em; font-weight:500;
-    cursor:pointer; transition:all 0.2s; -webkit-tap-highlight-color:transparent;
+  /* UPDATED PILL ATTACHMENT FOR CODE/MD */
+  .pill-btn {
+    display:inline-flex; align-items:center; gap:12px;
+    margin-top:10px; padding:10px 14px 10px 10px; border-radius:99px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+    cursor:pointer; transition:all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    -webkit-tap-highlight-color:transparent;
   }
-  .chat-canvas-btn:active { background:rgba(140,100,255,0.3); transform:scale(0.98); }
-  .chat-canvas-btn svg { width:14px; height:14px; fill:currentColor; }
+  .pill-btn:active { transform:scale(0.96); background:rgba(255,255,255,0.1); }
+  .pill-icon {
+    width:32px; height:32px; border-radius:50%; background:rgba(140,100,255,0.2);
+    display:flex; align-items:center; justify-content:center; color:rgba(200,170,255,1);
+  }
+  .pill-icon svg { width:16px; height:16px; fill:currentColor; }
+  .pill-info { display:flex; flex-direction:column; gap:2px; padding-right:8px; }
+  .pill-title { font-size:0.9em; font-weight:500; color:white; }
+  .pill-type { font-size:0.75em; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.05em; }
+  .pill-action { font-size:0.85em; font-weight:600; color:rgba(160,120,255,0.9); padding-left:8px; border-left:1px solid rgba(255,255,255,0.1); }
+
+  /* SMART CARDS (SPOTIFY, TIMER) */
+  .smart-card {
+    margin-top: 12px; padding: 14px; border-radius: 18px;
+    background: rgba(10, 10, 15, 0.5); border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; gap: 14px; width: 100%; min-width: 260px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .smart-card.spotify { border-color: rgba(30, 215, 96, 0.3); background: rgba(15, 30, 20, 0.6); }
+  .sc-art { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .sc-art.spinning { border-radius: 50%; animation: spin-record 6s linear infinite; }
+  @keyframes spin-record { 100% { transform: rotate(360deg); } }
+  .sc-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .sc-title { font-size: 0.95em; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-subtitle { font-size: 0.8em; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top:2px; }
+  .sc-controls { display: flex; align-items: center; gap: 8px; }
+  .sc-btn { 
+    width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; 
+    border: none; color: white; transition: 0.2s; -webkit-tap-highlight-color: transparent;
+  }
+  .sc-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+  .sc-btn.play { background: rgba(30, 215, 96, 0.2); color: #1DB954; border: 1px solid rgba(30, 215, 96, 0.4); }
+  .sc-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; }
+  .timer-left { display: flex; align-items: center; gap: 14px; }
+  .timer-ring-wrap { position: relative; width: 44px; height: 44px; }
+  .timer-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .timer-ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 4; }
+  .timer-ring-fg { fill: none; stroke: #ffaa32; stroke-width: 4; stroke-dasharray: 113; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+  .timer-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .timer-icon svg { width: 18px; height: 18px; fill: #ffaa32; }
+  .timer-digits { font-size: 1.4em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; }
+  .timer-label { font-size: 0.75em; color: #ffaa32; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 
   #img-preview-bar {
     position:relative; z-index:10; flex-shrink:0;
@@ -173,20 +220,17 @@
   #img-preview-bar.visible { display:flex; }
   #img-preview-wrap { position:relative; display:inline-block; }
   #img-preview {
-    width:64px; height:64px; border-radius:10px; object-fit:cover;
-    border:1px solid rgba(160,120,255,0.35);
-    box-shadow:0 0 12px rgba(140,100,255,0.25);
+    width:60px; height:60px; border-radius:12px; object-fit:cover;
+    border:1px solid rgba(160,120,255,0.4); box-shadow:0 4px 15px rgba(0,0,0,0.3);
   }
   #img-preview-remove {
-    position:absolute; top:-6px; right:-6px;
-    width:20px; height:20px; border-radius:50%;
-    background:rgba(30,20,50,0.95); border:1px solid rgba(255,255,255,0.20);
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer; touch-action:manipulation;
+    position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:50%;
+    background:rgba(20,15,30,0.95); border:1px solid rgba(255,255,255,0.3);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  #img-preview-remove svg { width:10px; height:10px; fill:rgba(255,255,255,0.70); }
+  #img-preview-remove svg { width:12px; height:12px; fill:rgba(255,255,255,0.8); }
   #img-preview-info { font-size:0.78em; color:rgba(255,255,255,0.38); line-height:1.4; }
-  #img-preview-name { color:rgba(200,170,255,0.75); font-size:0.82em; }
+  #img-preview-name { color:rgba(200,170,255,0.75); font-weight:500; }
 
   #waveform {
     position:relative; z-index:10;
@@ -207,94 +251,88 @@
   }
   #text-input {
     flex:1; min-width:0;
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.13);
-    color:white; padding:13px 16px; border-radius:26px;
-    font-size:16px; outline:none;
-    transition:border-color 0.2s, background 0.2s;
-    -webkit-appearance:none;
-    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+    color:white; padding:14px 18px; border-radius:26px;
+    font-size:16px; outline:none; transition:all 0.2s;
+    -webkit-appearance:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   }
-  #text-input:focus { border-color:rgba(160,120,255,0.45); background:rgba(255,255,255,0.07); }
-  #text-input::placeholder { color:rgba(255,255,255,0.26); }
+  #text-input:focus { border-color:rgba(160,120,255,0.5); background:rgba(255,255,255,0.12); box-shadow:0 0 15px rgba(140,100,255,0.15); }
+  #text-input::placeholder { color:rgba(255,255,255,0.3); }
 
   .ctrl-btn {
-    width:50px; height:50px; border-radius:50%;
+    width:48px; height:48px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer; flex-shrink:0; touch-action:manipulation;
-    transition:background 0.2s, transform 0.12s, box-shadow 0.2s, border-color 0.2s;
-    border:1px solid rgba(255,255,255,0.15);
-    background:rgba(255,255,255,0.05);
+    transition:all 0.2s; border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.08);
   }
-  .ctrl-btn:active { transform:scale(0.91); }
-  .ctrl-btn svg { width:20px; height:20px; fill:rgba(255,255,255,0.65); transition:fill 0.2s; }
+  .ctrl-btn:active { transform:scale(0.92); }
+  .ctrl-btn svg { width:22px; height:22px; fill:rgba(255,255,255,0.8); transition:fill 0.2s; }
 
-  #send-btn { background:rgba(120,90,220,0.22); border-color:rgba(160,120,255,0.35); }
-  #send-btn:active { background:rgba(140,100,255,0.40); }
+  #send-btn { background:rgba(120,90,220,0.25); border-color:rgba(160,120,255,0.4); }
+  #send-btn:active { background:rgba(140,100,255,0.45); }
   #send-btn svg { fill:white; }
 
-  #mic-btn.recording { background:rgba(200,100,255,0.20); border-color:rgba(200,120,255,0.55); animation:mic-ring 1s ease-in-out infinite alternate; }
-  #mic-btn.recording svg { fill:rgba(230,190,255,1); }
-  @keyframes mic-ring { 0%{ box-shadow:0 0 10px rgba(180,100,255,0.25); } 100%{ box-shadow:0 0 26px rgba(200,120,255,0.60); } }
-
-  #img-btn.has-image { background:rgba(140,100,255,0.22); border-color:rgba(160,120,255,0.55); box-shadow:0 0 14px rgba(140,100,255,0.30); }
-  #img-btn.has-image svg { fill:rgba(200,170,255,1); }
-  #img-btn.uploading { opacity:0.45; pointer-events:none; }
+  #img-btn.has-image { background:rgba(140,100,255,0.25); border-color:rgba(160,120,255,0.6); box-shadow:0 0 15px rgba(140,100,255,0.3); }
+  #img-btn.has-image svg { fill:#fff; }
+  #img-btn.uploading { opacity:0.5; pointer-events:none; }
 
   #convo-btn.active { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
   #convo-btn.active svg { fill:rgba(160,210,255,1); }
 
   #file-input { display:none; }
 
+  @media (max-width: 480px) {
+    .controls { flex-wrap: wrap; justify-content: space-evenly; gap: 12px; padding-bottom: 20px; }
+    #text-input { flex: 1 1 100%; order: -1; margin-bottom: 4px; }
+  }
+
+  /* UPDATED BOTTOM SHEET CANVAS */
   #oliver-canvas {
-    position:fixed; inset:0; z-index:100;
-    display:flex; flex-direction:column;
-    transform:translateY(100%);
-    transition:transform 0.42s cubic-bezier(0.32,0.72,0,1);
-    pointer-events:none;
+    position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
+    background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    opacity:0; pointer-events:none; transition:opacity 0.3s cubic-bezier(0.25,0.8,0.25,1);
   }
-  #oliver-canvas.open { transform:translateY(0); pointer-events:all; }
-  #canvas-backdrop { flex:0 0 60px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px; cursor:pointer; transition:flex 0.3s; }
-  #canvas-handle { width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,0.20); }
+  #oliver-canvas.open { opacity:1; pointer-events:all; }
+  
   #canvas-panel {
-    flex:1; display:flex; flex-direction:column;
-    background:rgba(8,6,18,0.97);
-    border-top:1px solid rgba(160,120,255,0.22);
-    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-    box-shadow:0 -20px 80px rgba(0,0,0,0.6);
-    overflow:hidden; border-radius:24px 24px 0 0;
-    transition:border-radius 0.3s;
+    width:100%; height:85vh; max-width:900px;
+    background:rgba(15,15,22,0.95); border:1px solid rgba(255,255,255,0.1);
+    border-radius:24px 24px 0 0; box-shadow:0 -10px 50px rgba(0,0,0,0.5);
+    display:flex; flex-direction:column; transform:translateY(100%);
+    transition:all 0.4s cubic-bezier(0.25,0.8,0.25,1);
   }
-  #canvas-header { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 12px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.06); }
-  #canvas-title { font-size:0.82em; font-weight:500; letter-spacing:0.06em; color:rgba(200,160,255,0.75); text-transform:uppercase; display:flex; align-items:center; gap:8px; }
-  #canvas-type-badge { font-size:0.70em; padding:2px 8px; border-radius:10px; background:rgba(140,100,255,0.18); border:1px solid rgba(160,120,255,0.25); color:rgba(180,150,255,0.80); letter-spacing:0.08em; }
+  #oliver-canvas.open #canvas-panel { transform:translateY(0); }
+
+  #canvas-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; }
+  #canvas-title { font-size:0.95em; font-weight:600; color:white; display:flex; align-items:center; gap:10px; }
+  #canvas-type-badge { font-size:0.7em; padding:3px 8px; border-radius:8px; background:rgba(140,100,255,0.2); color:rgba(200,160,255,1); text-transform:uppercase; font-weight:600; letter-spacing:0.05em; }
   
   .canvas-controls { display:flex; gap:8px; }
   .canvas-header-btn {
-    width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,0.12);
+    width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.1);
     background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center;
-    cursor:pointer; touch-action:manipulation; transition:background 0.2s;
+    cursor:pointer; touch-action:manipulation; transition:0.2s; color:white;
   }
-  .canvas-header-btn:active { background:rgba(255,255,255,0.12); }
-  .canvas-header-btn svg { width:14px; height:14px; fill:rgba(255,255,255,0.55); }
+  .canvas-header-btn:active { background:rgba(255,255,255,0.15); transform:scale(0.9); }
+  .canvas-header-btn svg { width:16px; height:16px; fill:currentColor; }
 
   #canvas-body-wrap { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
-  #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 18px; }
+  #canvas-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:20px; }
   #canvas-body::-webkit-scrollbar { display:none; }
   
-  /* CODE EDITOR VIEW */
   #canvas-body.type-code { background:#0d1117; padding:0; display:flex; flex-direction:column; position:relative; }
   #canvas-code-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding:16px 0; }
   #canvas-code { 
-    font-family:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; 
-    font-size:13.5px; line-height:1.6; color:#c9d1d9; white-space:pre; word-wrap:normal; margin:0; tab-size:4; min-width:min-content; 
+    font-family:"JetBrains Mono", ui-monospace, monospace; 
+    font-size:14px; line-height:1.6; color:#c9d1d9; white-space:pre; margin:0; tab-size:4; min-width:min-content; 
     counter-reset: line-counter; 
   }
-  .line-row { display:flex; padding:0 16px; }
-  .line-row:hover { background:rgba(255,255,255,0.04); }
+  .line-row { display:flex; padding:0 20px; }
+  .line-row:hover { background:rgba(255,255,255,0.05); }
   .line-num { 
-    flex-shrink:0; width:35px; color:#484f58; user-select:none; text-align:right; 
-    margin-right:16px; border-right:1px solid #30363d; padding-right:10px; font-size:12px; line-height:1.8; 
+    flex-shrink:0; width:40px; color:#484f58; user-select:none; text-align:right; 
+    margin-right:16px; border-right:1px solid #30363d; padding-right:12px; font-size:12px; line-height:1.8; 
   }
   .line-num::before { counter-increment: line-counter; content: counter(line-counter); }
   .line-content { white-space:pre; }
@@ -305,7 +343,6 @@
   .tok-cmt { color:#8b949e; font-style:italic; }
   .tok-fn  { color:#d2a8ff; }
   
-  /* OTHER MEDIA VIEWS */
   #canvas-body.type-image { display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.30); }
   #canvas-img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5); object-fit:contain; }
   #canvas-body.type-pdf { padding:0; background:#333; }
@@ -313,90 +350,21 @@
   #canvas-iframe { width:100%; height:100%; border:none; border-radius:0; background:white; }
   video.canvas-vid { width:100%; max-height:100%; outline:none; }
 
-  #canvas-body.type-markdown { font-size:0.97em; line-height:1.75; color:rgba(255,255,255,0.85); }
-  #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:rgba(200,170,255,0.95); font-weight:500; margin:1em 0 0.4em; }
-  #canvas-body.type-markdown code { font-family:ui-monospace,monospace; font-size:0.88em; background:rgba(140,100,255,0.15); padding:1px 5px; border-radius:4px; color:rgba(200,170,255,0.90); }
-  #canvas-body.type-markdown pre { background:#0d1117; padding:12px; border-radius:8px; overflow-x:auto; border:1px solid #30363d; margin:1em 0; }
-  #canvas-body.type-markdown pre code { background:transparent; padding:0; color:#c9d1d9; }
-  #canvas-body.type-markdown ul,#canvas-body.type-markdown ol { padding-left:1.4em; margin:.5em 0; }
-  #canvas-body.type-markdown li { margin:.25em 0; }
-  #canvas-body.type-markdown strong { color:rgba(255,255,255,0.95); }
-  #canvas-body.type-markdown a { color:rgba(140,180,255,0.90); }
-  #canvas-body.type-markdown hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1.2em 0; }
+  #canvas-body.type-markdown { font-size:1em; line-height:1.7; color:rgba(255,255,255,0.9); }
+  #canvas-body.type-markdown h1,#canvas-body.type-markdown h2,#canvas-body.type-markdown h3 { color:white; margin:1em 0 0.5em; }
+  #canvas-body.type-markdown code { font-family:monospace; font-size:0.9em; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; }
+  #canvas-body.type-markdown pre { background:#0d1117; padding:16px; border-radius:12px; overflow-x:auto; border:1px solid rgba(255,255,255,0.1); margin:1em 0; }
+  #canvas-body.type-markdown pre code { background:transparent; padding:0; }
+  #canvas-body.type-markdown ul,#canvas-body.type-markdown ol { padding-left:20px; margin:0.5em 0; }
+  #canvas-body.type-markdown a { color:#a5d6ff; }
   
-  /* SPOTIFY CANVAS UI STYLES */
-  .spotify-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 40px 20px; gap: 35px; height: 100%; text-align: center; }
-  .sp-hero { width:110px; height:110px; border-radius:50%; background:rgba(30,215,96,0.15); display:flex; align-items:center; justify-content:center; box-shadow:0 0 40px rgba(30,215,96,0.25); margin:0 auto 15px; animation: pulse-sp 3s infinite alternate; }
-  @keyframes pulse-sp { 0% { transform: scale(1); box-shadow:0 0 30px rgba(30,215,96,0.2); } 100% { transform: scale(1.05); box-shadow:0 0 60px rgba(30,215,96,0.4); } }
-  .sp-hero svg { width:50px; height:50px; fill:#1DB954; }
-  .sp-title { font-size:1.6em; color:rgba(255,255,255,0.95); font-weight:600; margin-bottom:8px; letter-spacing: 0.02em; }
-  .sp-sub { font-size:1em; color:rgba(255,255,255,0.5); }
-  .sp-ctrl-row { display:flex; gap:25px; align-items:center; justify-content:center; margin-top: 10px; }
-  .sp-ctrl-btn { width:56px; height:56px; border-radius:50%; border:none; background:rgba(255,255,255,0.08); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; touch-action: manipulation; }
-  .sp-ctrl-btn:active { transform:scale(0.88); background:rgba(255,255,255,0.18); }
-  .sp-ctrl-btn svg { width:24px; height:24px; fill:currentColor; }
-  .sp-play-btn { width:72px; height:72px; border-radius:50%; border:1px solid rgba(30,215,96,0.5); background:rgba(30,215,96,0.2); color:#1DB954; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(30,215,96,0.2); transition:all 0.2s; touch-action: manipulation; }
-  .sp-play-btn:active { transform:scale(0.88); background:rgba(30,215,96,0.35); }
-  .sp-play-btn svg { width:32px; height:32px; fill:currentColor; }
-
-  /* FLOATING COPY BUTTON */
   #canvas-copy { 
-    position:absolute; top:12px; right:12px; padding:6px 14px; border-radius:6px; 
-    background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:0.75em; 
-    font-weight:600; cursor:pointer; touch-action:manipulation; transition:background 0.2s, border-color 0.2s; z-index:10; 
+    position:absolute; bottom:20px; right:20px; padding:10px 20px; border-radius:99px; 
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:0.9em; 
+    font-weight:600; cursor:pointer; touch-action:manipulation; transition:0.2s; z-index:10; backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.3);
   }
-  #canvas-copy:active { background:#30363d; border-color:#8b949e; }
+  #canvas-copy:active { transform:scale(0.95); background:rgba(255,255,255,0.25); }
   
-  /* MINI SPOTIFY WIDGET WITH ALBUM ART */
-  #mini-sp-widget {
-    position: absolute;
-    top: 65px;
-    right: 16px;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 24px;
-    background: rgba(10, 20, 15, 0.75);
-    border: 1px solid rgba(30, 215, 96, 0.25);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 0 15px rgba(30, 215, 96, 0.12);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    opacity: 0;
-    transform: translateX(30px);
-    pointer-events: none;
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  }
-  #mini-sp-widget.visible {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: all;
-  }
-  
-  /* Spinning Record Album Art */
-  .mini-sp-art { 
-    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; 
-    border: 1px solid rgba(30,215,96,0.3); animation: spin-record 8s linear infinite; 
-  }
-  .mini-sp-art.paused { animation-play-state: paused; }
-  @keyframes spin-record { 100% { transform: rotate(360deg); } }
-  
-  /* Track Info */
-  .mini-sp-info { display: flex; flex-direction: column; justify-content: center; max-width: 90px; }
-  .mini-sp-title { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mini-sp-artist { font-size: 9px; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .mini-sp-btn {
-    background: transparent; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%;
-    background: rgba(255,255,255,0.05); transition: all 0.2s; touch-action: manipulation;
-  }
-  .mini-sp-btn:active { transform: scale(0.85); background: rgba(30, 215, 96, 0.2); }
-  .mini-sp-btn svg { width: 14px; height: 14px; fill: rgba(255,255,255,0.8); }
-  .mini-sp-btn.play { background: rgba(30, 215, 96, 0.15); border: 1px solid rgba(30, 215, 96, 0.3); }
-  .mini-sp-btn.play svg { fill: #1DB954; width: 15px; height: 15px;}
 </style>
 </head>
 <body>
@@ -410,8 +378,7 @@
   <div class="orb-core"></div>
 </div>
 
-<div id="oliver-canvas">
-  <div id="canvas-backdrop" onclick="closeCanvas()"><div id="canvas-handle"></div></div>
+<div id="oliver-canvas" onclick="if(event.target===this) closeCanvas()">
   <div id="canvas-panel">
     <div id="canvas-header">
       <div id="canvas-title">
@@ -441,21 +408,10 @@
   </div>
 </header>
 
-<div id="mini-sp-widget">
-  <img id="mini-sp-art" class="mini-sp-art paused" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231DB954' d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.899 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.84.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781s.18-1.2.78-1.381c4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.619.36z'/%3E%3C/svg%3E" alt="Album Art">
-  <div class="mini-sp-info">
-    <div id="mini-sp-title" class="mini-sp-title">Spotify</div>
-    <div id="mini-sp-artist" class="mini-sp-artist">Connecting...</div>
-  </div>
-  <button class="mini-sp-btn" onclick="silentSpotifyCommand('previous')"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-  <button class="mini-sp-btn play" id="mini-sp-play" onclick="toggleSpotifyPlay()"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-  <button class="mini-sp-btn" onclick="silentSpotifyCommand('next')"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-</div>
-
 <div id="chat-container">
   <div class="message oliver">
     <div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
-    <div class="oliver-card"><div class="msg-text"><div class="msg-para">I'm listening, Chris.</div></div></div>
+    <div class="oliver-card"><div class="msg-text"><div class="msg-para">I'm listening, Chris. The visual interface is active.</div></div></div>
   </div>
 </div>
 
@@ -475,9 +431,6 @@
 <div id="waveform"></div>
 
 <div class="controls">
-  <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()" aria-label="Microphone">
-    <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 16.93A8.001 8.001 0 0 0 19.94 12H18a6 6 0 0 1-12 0H4.06A8.001 8.001 0 0 0 10 17.93V21H8v2h8v-2h-2v-3.07z"/></svg>
-  </button>
   <input type="text" id="text-input" placeholder="Message Oliver…" onkeydown="checkEnter(event)" autocomplete="off" autocorrect="off" spellcheck="false">
   <input type="file" id="file-input" accept="image/*" onchange="onImageSelected(event)">
   <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
@@ -496,18 +449,15 @@
 // FRONTEND STATE
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
-let oliverSleepMode = false; // Tap-to-Wake Mode Flag
+let oliverSleepMode = false; 
 
 window.addEventListener('load', () => {
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
     fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
     console.log("Oliver's engines are warming up...");
     
-    // Check if the Spotify widget was open before refresh
     const widgetState = localStorage.getItem('oliver_spotify_visible');
     if (widgetState === 'true') {
-        const w = document.getElementById('mini-sp-widget');
-        if (w) w.classList.add('visible');
         pollSpotifyStatus(); 
     }
 });
@@ -515,7 +465,6 @@ window.addEventListener('load', () => {
 // START BACKGROUND SPOTIFY POLLING
 function pollSpotifyStatus() {
     if (spotifyPollInterval) clearInterval(spotifyPollInterval);
-    // Poll immediately, then every 10 seconds silently
     silentSpotifyCommand('status');
     spotifyPollInterval = setInterval(() => {
         silentSpotifyCommand('status');
@@ -575,7 +524,6 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
 const orb       = document.getElementById('ai-orb');
-const micBtn    = document.getElementById('mic-btn');
 const convoBtn  = document.getElementById('convo-btn');
 const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
@@ -633,9 +581,9 @@ function getUIHistory() {
     const history = [];
     messages.forEach(msgEl => {
         const isUser = msgEl.classList.contains('user');
-        const textEl = msgEl.querySelector('.msg-text') || msgEl;
+        const textEl = msgEl.querySelector('.msg-text') || msgEl.querySelector('.user-card') || msgEl;
         const text = textEl.textContent.trim();
-        if(text && text !== "I'm listening, Chris.") {
+        if(text && text !== "I'm listening, Chris. The visual interface is active.") {
             history.push({
                 role: isUser ? 'user' : 'assistant',
                 content: text.substring(0, 1000) 
@@ -668,7 +616,7 @@ function updateOrbState() {
         setOrb(null);
         stopWave();
         const pip = document.getElementById('main-pip');
-        if(pip) pip.style.background = '#555'; // Dim indicator when asleep
+        if(pip) pip.style.background = '#555'; 
     } else if (isSpeaking || isPlayingQueue) {
         setOrb('speaking');
         startWave('speaking');
@@ -718,28 +666,82 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
-function toggleSpotifyPlay() {
-    spotifyIsPlaying = !spotifyIsPlaying;
-    const action = spotifyIsPlaying ? "resume" : "pause";
+// INLINE SMART CARDS LOGIC
+
+const activeTimers = {};
+function injectTimerCard(seconds) {
+  const tId = 'timer_'+Date.now();
+  let remaining = seconds;
+  const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  
+  const html = `
+    <div class="smart-card timer" id="${tId}">
+      <div class="timer-left">
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-label">Timer Active</div>
+          <div class="timer-digits" id="${tId}-txt">${format(remaining)}</div>
+        </div>
+      </div>
+      <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+  `;
+  addMessage(html, 'oliver', null, null, null, false);
+
+  activeTimers[tId] = setInterval(() => {
+    remaining--;
+    const txt = document.getElementById(`${tId}-txt`);
+    const ring = document.getElementById(`${tId}-ring`);
+    if(txt && ring) {
+      txt.textContent = format(remaining);
+      ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
+      if(remaining <= 0) { stopTimer(tId); txt.textContent = "00:00"; txt.style.color="#ffaa32"; }
+    } else { clearInterval(activeTimers[tId]); }
+  }, 1000);
+}
+window.stopTimer = function(tId) { clearInterval(activeTimers[tId]); const c = document.getElementById(tId); if(c) c.style.opacity="0.5"; }
+
+let activeSpotifyCardId = null;
+let currentSpotifyTrack = null;
+
+function updateOrInjectSpotifyCard(spData) {
+  if(!activeSpotifyCardId || currentSpotifyTrack !== spData.trackName) {
+    activeSpotifyCardId = 'sp_'+Date.now();
+    currentSpotifyTrack = spData.trackName;
     
-    // Optimistic UI update
-    const btn = document.getElementById('mini-sp-play');
-    const art = document.getElementById('mini-sp-art');
-    if (btn) {
-        btn.innerHTML = spotifyIsPlaying 
-            ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' // Pause icon
-            : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; // Play icon
+    const html = `
+      <div class="smart-card spotify" id="${activeSpotifyCardId}">
+        <img class="sc-art ${spData.isPlaying?'spinning':''}" id="${activeSpotifyCardId}-art" src="${spData.albumArt||'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%231DB954%22 d=%22M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z%22/></svg>'}" alt="Art">
+        <div class="sc-info">
+          <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
+          <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
+        </div>
+        <div class="sc-controls">
+           <button class="sc-btn play" id="${activeSpotifyCardId}-btn" onclick="silentSpotifyCommand('toggle')">
+             ${spData.isPlaying ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
+           </button>
+        </div>
+      </div>
+    `;
+    addMessage(html, 'oliver', null, null, null, false);
+  } else {
+    const card = document.getElementById(activeSpotifyCardId);
+    if(card) {
+      const art = document.getElementById(`${activeSpotifyCardId}-art`);
+      const btn = document.getElementById(`${activeSpotifyCardId}-btn`);
+      if(spData.isPlaying) { art.classList.add('spinning'); btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
+      else { art.classList.remove('spinning'); btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
     }
-    if (art) {
-        if (spotifyIsPlaying) art.classList.remove('paused');
-        else art.classList.add('paused');
-    }
-    
-    silentSpotifyCommand(action);
+  }
 }
 
 async function silentSpotifyCommand(action) {
-  // Sends a targeted bypass command to the Edge Function instantly
   await pipeline(`[SPOTIFY_REMOTE]:${action}`, false, null, null, null, true);
 }
 
@@ -791,6 +793,9 @@ async function sendMessage(){
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
+  // Bypass wrapping if it's already an injected UI component (smart cards, pills)
+  if(text.includes('<div class="smart-card"') || text.includes('<div class="pill-btn"')) return text;
+  
   const paragraphs = text.split(/\n{2,}/);
   return paragraphs.map(p => {
     return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
@@ -810,7 +815,7 @@ function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = f
     let inner='';
     if(imageBase64) inner+=`<img class="msg-image" src="data:${imageMime||'image/jpeg'};base64,${imageBase64}" alt="${imageName||'image'}">`;
     if(text) inner+=`<div>${text}</div>`;
-    div.innerHTML=inner;
+    div.innerHTML=`<div class="user-card">${inner}</div>`;
   }
   c.appendChild(div);
   
@@ -845,13 +850,13 @@ function extractCanvasAndMarkdown(text) {
     cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
 
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
-    
     setTimeout(() => { openStoredCanvas(id); }, 500); 
     
-    return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
-              <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-              View ${title || type}
-            </button>\n`;
+    return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+              <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+              <div class="pill-info"><span class="pill-title">${title || type}</span><span class="pill-type">${type}</span></div>
+              <div class="pill-action">View</div>
+            </div>\n`;
   });
 
   const mdRe = /```(\w+)?\n([\s\S]*?)```/g;
@@ -859,20 +864,30 @@ function extractCanvasAndMarkdown(text) {
     hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
     const type = lang || 'code';
-    canvasStore[id] = { type: type, title: lang ? `Code (${lang})` : 'Code', content: content.trim() };
+    canvasStore[id] = { type: type, title: lang ? `Code Snippet` : 'Code', content: content.trim() };
     setTimeout(() => { openStoredCanvas(id); }, 500);
-    return `\n<button class="chat-canvas-btn" onclick="openStoredCanvas('${id}')">
-              <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-              View Code
-            </button>\n`;
+    
+    return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+              <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+              <div class="pill-info"><span class="pill-title">Code Snippet</span><span class="pill-type">${type}</span></div>
+              <div class="pill-action">View</div>
+            </div>\n`;
   });
 
   return { processed: processed.trim(), hasCanvas };
 }
 
+function checkLocalIntercepts(text) {
+  const tMatch = text.match(/timer for (\d+) (minute|minutes|second|seconds)/i);
+  if(tMatch) {
+    const val = parseInt(tMatch[1]);
+    const secs = tMatch[2].toLowerCase().startsWith('min') ? val * 60 : val;
+    setTimeout(() => injectTimerCard(secs), 1000);
+  }
+}
+
 // Upgraded Pipeline Function with Auto Follow-Up Engine
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
-  // Check if this is an automated UI follow-up prompt
   let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
   let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
 
@@ -884,26 +899,22 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   if (!isSilentCommand) {
       isThinking = true; 
       
-      // Do not show the hidden auto-prompts in the UI bubble
       if (!isHiddenPrompt) {
+          checkLocalIntercepts(textToSend); // Catch visual commands
           userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
       }
       updateOrbState(); 
       
-      // Auto-trigger Spotify Mini-Widget based on user prompt!
       if (!isHiddenPrompt) {
           const lowerMsg = textToSend.toLowerCase();
           if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
               setTimeout(() => { 
-                  const w = document.getElementById('mini-sp-widget');
-                  if(w) w.classList.add('visible');
                   localStorage.setItem('oliver_spotify_visible', 'true');
                   pollSpotifyStatus();
               }, 1000);
           }
       }
   } else {
-      // Don't flash green if it's just the silent status poll
       if (!userText.includes("status")) {
           const pip = document.getElementById('main-pip');
           if (pip && !oliverSleepMode) pip.style.background = '#1DB954'; 
@@ -963,7 +974,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         const data = JSON.parse(line);
 
         if (data.type === 'ignore') {
-            // Ambient Awareness Activated by backend: Smoothly fade out the user's accidental message
             if (userMsgEl) {
                 userMsgEl.style.transition = 'all 0.4s ease';
                 userMsgEl.style.opacity = '0';
@@ -973,29 +983,9 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         }
         else if (data.type === 'spotify_update') {
             if (data.data) {
-                const spData = data.data;
-                const widget = document.getElementById('mini-sp-widget');
-                const art = document.getElementById('mini-sp-art');
-                const title = document.getElementById('mini-sp-title');
-                const artist = document.getElementById('mini-sp-artist');
-                const btn = document.getElementById('mini-sp-play');
-                
-                widget.classList.add('visible');
+                updateOrInjectSpotifyCard(data.data);
+                spotifyIsPlaying = data.data.isPlaying;
                 localStorage.setItem('oliver_spotify_visible', 'true');
-                
-                if (spData.albumArt) art.src = spData.albumArt;
-                title.textContent = spData.trackName || 'Unknown Track';
-                artist.textContent = spData.artistName || 'Unknown Artist';
-                
-                spotifyIsPlaying = spData.isPlaying;
-                
-                if (spotifyIsPlaying) {
-                    art.classList.remove('paused');
-                    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-                } else {
-                    art.classList.add('paused');
-                    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                }
             }
         }
         else if (data.type === 'filler') {
@@ -1008,12 +998,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
             let rawText = data.text || '';
             let autoFollowUp = false;
 
-            // Explicit auto-loop tag
             if (rawText.includes("<CONTINUE>")) {
                 autoFollowUp = true;
                 rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
             } else {
-                // Heuristic detection: Watch what Oliver says. If he says "let me check" or "give me a second", auto loop.
                 const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
                 const lower = rawText.toLowerCase();
                 
@@ -1025,7 +1013,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
             const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
             
             if (!isSilentCommand) {
-                // Only create bubble if there is actual text or a canvas button
                 if (processed.trim() !== '') {
                     const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
                     if (hasCanvas && oliverMsgEl && speakReply) {
@@ -1037,7 +1024,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                     }
                 }
                 
-                // Trigger the hidden pipeline call if an auto follow-up was detected
                 if (autoFollowUp) {
                     setTimeout(() => {
                         pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
@@ -1196,7 +1182,6 @@ function buildRecognition(){
   r.onstart=()=>{ 
     isRecording=true; 
     isMicStarting=false;
-    micBtn.classList.add('recording'); 
     updateOrbState();
     interimEl.textContent=''; 
   };
@@ -1224,10 +1209,8 @@ function buildRecognition(){
         clearTimeout(sentenceTimeout);
         updateOrbState();
         
-        // Completely kill the mic (zero beeps)
         stopRecording(false);
         
-        // Push an instant fake Oliver response into the UI
         const msgEl = addMessage("I'm going to sleep. Tap my microphone button when you need me.", "oliver", null, null, null, true);
         msgEl.classList.remove('hidden-voice');
         audioQueue.push({ text: "I'll go to sleep now. Tap my microphone button when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
@@ -1261,7 +1244,6 @@ function buildRecognition(){
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
         sentenceTimeout = setTimeout(() => {
-            // Only stop recording and send to backend if he is NOT in sleep mode
             if(isRecording && interimEl.textContent.trim() && !oliverSleepMode) {
                 if (interimEl.textContent.trim().length > 2) {
                     stopRecording(true); 
@@ -1314,7 +1296,6 @@ function toggleMic(){
 
 function stopRecording(processCurrent = false){
   isRecording=false;
-  micBtn.classList.remove('recording');
   clearTimeout(sentenceTimeout);
   
   const capturedText = interimEl.textContent.trim();
@@ -1397,19 +1378,15 @@ function closeCanvas(){ canvasEl.classList.remove('open'); }
 function toggleMaximize(){
   isMaximized = !isMaximized;
   const panel = document.getElementById('canvas-panel');
-  const backdrop = document.getElementById('canvas-backdrop');
-  const handle = document.getElementById('canvas-handle');
   const maxIcon = document.getElementById('max-icon');
   
   if(isMaximized) {
+    panel.style.height = '100vh';
     panel.style.borderRadius = '0';
-    backdrop.style.flex = '0';
-    handle.style.display = 'none';
     maxIcon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
   } else {
+    panel.style.height = '85vh';
     panel.style.borderRadius = '24px 24px 0 0';
-    backdrop.style.flex = '0 0 60px';
-    handle.style.display = 'block';
     maxIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
   }
 }
@@ -1419,13 +1396,6 @@ function copyCanvas(){
   canvasCopy.textContent='Copied!';
   setTimeout(()=>{ canvasCopy.textContent='Copy'; },1800);
 }
-
-(function(){
-  let startY=0;
-  const panel=document.getElementById('canvas-panel');
-  panel.addEventListener('touchstart',e=>{ startY=e.touches[0].clientY; },{passive:true});
-  panel.addEventListener('touchend',e=>{ if(!isMaximized && e.changedTouches[0].clientY-startY>80) closeCanvas(); },{passive:true});
-})();
 
 function syntaxHighlight(code){
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
