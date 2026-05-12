@@ -623,8 +623,16 @@ function isEcho(text) {
 
 const sessionStart = Date.now();
 const getSessionId = () => {
-  let sid=sessionStorage.getItem('oliver_sid');
-  if(!sid){ sid=crypto.randomUUID(); sessionStorage.setItem('oliver_sid',sid); }
+  let sid;
+  try { sid = sessionStorage.getItem('oliver_sid'); } catch(e) {}
+  if(!sid){
+    try {
+      sid = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
+      sessionStorage.setItem('oliver_sid', sid);
+    } catch(e) {
+      sid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+  }
   return sid;
 };
 
@@ -646,16 +654,23 @@ function getUIHistory() {
 }
 
 function getAudioCtx(){
-  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if(AudioContext) audioCtx = new AudioContext();
+  }
   return audioCtx;
 }
+
 function unlockAudio(){
   if(audioUnlocked) return;
-  const ctx=getAudioCtx();
-  if(ctx.state==='suspended') ctx.resume();
-  const buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();
-  src.buffer=buf; src.connect(ctx.destination); src.start(0);
-  audioUnlocked=true;
+  try {
+    const ctx=getAudioCtx();
+    if(!ctx) return;
+    if(ctx.state==='suspended') ctx.resume();
+    const buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+    audioUnlocked=true;
+  } catch(e) { console.warn('Audio contextual unlock failed:', e); }
 }
 
 function setOrb(state){
@@ -886,7 +901,6 @@ function formatMessageText(text) {
       `;
     }).join('');
 
-    // Store calendar in canvas and auto-open the bottom sheet
     const calId = 'cal_' + (++canvasIdCounter);
     const calCardHtml = `
       <div class="smart-card calendar" style="max-width:100%;width:100%">
@@ -902,7 +916,6 @@ function formatMessageText(text) {
     canvasStore[calId] = { type: 'calendar', title: 'Your Schedule', content: calCardHtml };
     setTimeout(() => openStoredCanvas(calId), 400);
 
-    // Return a compact pill instead of the full inline card
     cardHtml = `
       <div class="pill-btn" onclick="openStoredCanvas('${calId}')">
         <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg></div>
@@ -960,14 +973,15 @@ function showDriveBadge(filename){
 function extractCanvasAndMarkdown(text) {
   let processed = text;
   let hasCanvas = false;
+  const bt = String.fromCharCode(96, 96, 96);
 
   const canvasRe = /<CANVAS\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/CANVAS>/gi;
   processed = processed.replace(canvasRe, (match, type, title, content) => {
     hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
     let cleanContent = content.trim();
-    cleanContent = cleanContent.replace(/^\s*```[a-zA-Z]*\n?/i, '');
-    cleanContent = cleanContent.replace(/\n?\s*```\s*$/i, '');
+    cleanContent = cleanContent.replace(new RegExp('^\\s*' + bt + '[a-zA-Z]*\\n?', 'i'), '');
+    cleanContent = cleanContent.replace(new RegExp('\\n?\\s*' + bt + '\\s*$', 'i'), '');
     canvasStore[id] = { type: type.toLowerCase(), title: title || type, content: cleanContent };
     setTimeout(() => { openStoredCanvas(id); }, 500);
     return `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
@@ -977,7 +991,7 @@ function extractCanvasAndMarkdown(text) {
             </div>\n`;
   });
 
-  const mdRe = /```(\w+)?\n([\s\S]*?)```/g;
+  const mdRe = new RegExp(bt + '(\\w+)?\\n([\\s\\S]*?)' + bt, 'g');
   processed = processed.replace(mdRe, (match, lang, content) => {
     hasCanvas = true;
     const id = 'c_' + (++canvasIdCounter);
@@ -1012,49 +1026,47 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   const runId = Date.now().toString();
   let userMsgEl = null;
 
-  if (!isSilentCommand) {
-    isThinking = true;
-    if (!isHiddenPrompt) {
-      checkLocalIntercepts(textToSend);
-      userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
-    }
-    updateOrbState();
-    if (!isHiddenPrompt) {
-      const lowerMsg = textToSend.toLowerCase();
-      if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
-        setTimeout(() => {
-          pollSpotifyStatus();
-        }, 1000);
-      }
-    }
-  } else {
-    if (!userText.includes("status")) {
-      const pip = document.getElementById('main-pip');
-      if (pip && !oliverSleepMode) pip.style.background = '#1DB954';
-    }
-  }
-
-  const elapsed = Math.floor((Date.now()-sessionStart)/1000);
-  const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
-
-  let imageContext='';
-  if(imageBase64){
-    imgBtn.classList.add('uploading');
-    try{
-      const driveResult=await uploadImageToDrive(imageBase64,imageMime||'image/jpeg',imageName||'image.jpg');
-      if(driveResult.success){
-        imageContext=`\n\n[IMAGE UPLOADED TO DRIVE: filename="${driveResult.filename}"]`;
-        showDriveBadge(driveResult.filename);
-      }
-    }catch(err){ console.warn('Drive upload failed:',err); }
-    finally{ imgBtn.classList.remove('uploading'); clearImage(); }
-  }
-
-  const uiHistory = getUIHistory();
-  const currentInterruptedState = window.hasInterrupted;
-  window.hasInterrupted = false;
-
   try {
+    if (!isSilentCommand) {
+      isThinking = true;
+      if (!isHiddenPrompt) {
+        checkLocalIntercepts(textToSend);
+        userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
+      }
+      updateOrbState();
+      if (!isHiddenPrompt) {
+        const lowerMsg = textToSend.toLowerCase();
+        if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
+          setTimeout(() => { pollSpotifyStatus(); }, 1000);
+        }
+      }
+    } else {
+      if (!userText.includes("status")) {
+        const pip = document.getElementById('main-pip');
+        if (pip && !oliverSleepMode) pip.style.background = '#1DB954';
+      }
+    }
+
+    const elapsed = Math.floor((Date.now()-sessionStart)/1000);
+    const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
+
+    let imageContext='';
+    if(imageBase64){
+      imgBtn.classList.add('uploading');
+      try{
+        const driveResult=await uploadImageToDrive(imageBase64,imageMime||'image/jpeg',imageName||'image.jpg');
+        if(driveResult.success){
+          imageContext=`\n\n[IMAGE UPLOADED TO DRIVE: filename="${driveResult.filename}"]`;
+          showDriveBadge(driveResult.filename);
+        }
+      }catch(err){ console.warn('Drive upload failed:',err); }
+      finally{ imgBtn.classList.remove('uploading'); clearImage(); }
+    }
+
+    const uiHistory = getUIHistory();
+    const currentInterruptedState = window.hasInterrupted;
+    window.hasInterrupted = false;
+
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
@@ -1126,13 +1138,10 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
           if (!isSilentCommand) {
             if (processed.trim() !== '') {
               const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
-
-              // In voice mode: show message if it has canvas or any interactive elements (pills, cards)
               if (speakReply && oliverMsgEl) {
                 const hasInteractive = hasCanvas || oliverMsgEl.querySelector('.pill-btn, .smart-card');
                 if (hasInteractive) oliverMsgEl.classList.remove('hidden-voice');
               }
-
               if (speakReply) {
                 audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
                 if (!isPlayingQueue) processAudioQueue();
@@ -1144,9 +1153,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
                 pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
               }, 1200);
             }
-          } else {
-            const pip = document.getElementById('main-pip');
-            if (pip && !oliverSleepMode) pip.style.background = 'white';
           }
         }
         else if (data.type === 'error') {
@@ -1155,7 +1161,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       }
     }
   } catch(err) {
-    console.warn("Fetch error:", err);
+    console.warn("Pipeline execution error:", err);
   } finally {
     if (!isSilentCommand) {
       isThinking = false;
@@ -1183,10 +1189,10 @@ async function processAudioQueue() {
 }
 
 function cleanForTTS(text){
+  const bt = String.fromCharCode(96, 96, 96);
   return text
     .replace(/<CANVAS[\s\S]*?<\/CANVAS>/gi, '')
-    .replace(/```[\s\S]*?
-```/g, '')
+    .replace(new RegExp(bt + '[\\s\\S]*?' + bt, 'g'), '')
     .replace(/\*\*(.+?)\*\*/g,'$1')
     .replace(/\*(.+?)\*/g,'$1')
     .replace(/#+\s/g,'')
@@ -1212,7 +1218,7 @@ async function speakText(text, isFiller = false, msgEl = null) {
 
   try {
     const ctx = getAudioCtx();
-    if(ctx.state === 'suspended') await ctx.resume();
+    if(ctx && ctx.state === 'suspended') await ctx.resume();
 
     const res = await fetch(XI_URL, {
       method: 'POST',
@@ -1223,17 +1229,17 @@ async function speakText(text, isFiller = false, msgEl = null) {
     if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
 
     const arrayBuffer = await res.arrayBuffer();
-    const decoded = await ctx.decodeAudioData(arrayBuffer);
-
-    await new Promise((resolve) => {
-      const src = ctx.createBufferSource();
-      src.buffer = decoded;
-      src.connect(ctx.destination);
-      src.onended = resolve;
-      src.start(0);
-      currentAudio = src;
-    });
-
+    if(ctx) {
+      const decoded = await ctx.decodeAudioData(arrayBuffer);
+      await new Promise((resolve) => {
+        const src = ctx.createBufferSource();
+        src.buffer = decoded;
+        src.connect(ctx.destination);
+        src.onended = resolve;
+        src.start(0);
+        currentAudio = src;
+      });
+    }
   } catch(err) {
     console.warn('TTS error:', err);
     if(msgEl) msgEl.classList.remove('hidden-voice');
@@ -1420,7 +1426,6 @@ function openCanvas(type, title, content){
     canvasBody.appendChild(wrap);
     canvasCopy.style.display='block';
   } else if(type==='calendar'){
-    // Full-bleed calendar view in canvas
     const wrap = document.createElement('div');
     wrap.className = 'canvas-calendar-wrap';
     wrap.innerHTML = content;
@@ -1468,7 +1473,15 @@ function toggleMaximize(){
 }
 
 function copyCanvas(){
-  navigator.clipboard.writeText(canvasRawContent).catch(()=>{});
+  const ta = document.createElement('textarea');
+  ta.value = canvasRawContent;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'absolute';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
   canvasCopy.textContent='Copied!';
   setTimeout(()=>{ canvasCopy.textContent='Copy'; },1800);
 }
@@ -1491,10 +1504,11 @@ function syntaxHighlight(code){
 }
 
 function renderMarkdown(md){
+  const bt = String.fromCharCode(96, 96, 96);
   return md
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/```(\w+)?\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
+    .replace(new RegExp(bt + '(\\w+)?\\n([\\s\\S]*?)' + bt, 'g'),'<pre><code>$2</code></pre>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`\n]+)`/g,'<code>$1</code>')
     .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
     .replace(/^---$/gm,'<hr>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
