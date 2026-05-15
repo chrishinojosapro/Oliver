@@ -512,17 +512,17 @@ let spotifyPollInterval = null;
 let oliverSleepMode = false;
 
 window.addEventListener('load', () => {
-    fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain', { method: 'OPTIONS' }).catch(() => {});
-    fetch('https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
-    console.log("Oliver's engines are warming up...");
+  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
+  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
+  console.log("Oliver's engines are warming up...");
 });
 
 function pollSpotifyStatus() {
-    if (spotifyPollInterval) clearInterval(spotifyPollInterval);
-    silentSpotifyCommand('status');
-    spotifyPollInterval = setInterval(() => {
-        silentSpotifyCommand('status');
-    }, 10000);
+  if (spotifyPollInterval) clearInterval(spotifyPollInterval);
+  silentSpotifyCommand('status');
+  spotifyPollInterval = setInterval(() => {
+      silentSpotifyCommand('status');
+  }, 10000);
 }
 
 (function(){
@@ -571,9 +571,9 @@ function pollSpotifyStatus() {
   })();
 })();
 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbmZpdHlra29ydXRnbmJ4d2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU2NTMsImV4cCI6MjA5MzkyMTY1M30.io5d1OWHrtCqsAeLjqsQm7D5tBEsDLNZ_gMZ_geGcLU';
-const EDGE_FUNCTION_URL = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-brain';
-const XI_URL            = 'https://einfitykkorutgnbxwly.supabase.co/functions/v1/oliver-tts';
+const SUPABASE_ANON_KEY = 'sb_publishable__1GiI-6C-fWmjZKs-ITq8w_t75aBCkZ';
+const EDGE_FUNCTION_URL = 'https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core';
+const XI_URL            = 'https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p6A1w3SnYlRaPhXGHAXTV3BuqgFmNbGc2-EH04Zr0qYUyexv7XeNZl7/exec';
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
@@ -612,17 +612,17 @@ let sentenceTimeout;
 // ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
-    const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    if(clean) oliverMemoryHistory.push(clean);
-    if(oliverMemoryHistory.length > 3) oliverMemoryHistory.shift();
+  const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  if(clean) oliverMemoryHistory.push(clean);
+  if(oliverMemoryHistory.length > 3) oliverMemoryHistory.shift();
 }
 function isEcho(text) {
-    const cleanInput = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    if(!cleanInput || cleanInput.length < 5) return false;
-    for(const mem of oliverMemoryHistory) {
-        if(mem.includes(cleanInput) || cleanInput.includes(mem)) return true;
-    }
-    return false;
+  const cleanInput = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  if(!cleanInput || cleanInput.length < 5) return false;
+  for(const mem of oliverMemoryHistory) {
+      if(mem.includes(cleanInput) || cleanInput.includes(mem)) return true;
+  }
+  return false;
 }
 
 const sessionStart = Date.now();
@@ -641,20 +641,20 @@ const getSessionId = () => {
 };
 
 function getUIHistory() {
-    const messages = document.querySelectorAll('.message');
-    const history = [];
-    messages.forEach(msgEl => {
-        const isUser = msgEl.classList.contains('user');
-        const textEl = msgEl.querySelector('.msg-text') || msgEl.querySelector('.user-card') || msgEl;
-        const text = textEl.textContent.trim();
-        if(text && text !== "I'm listening, Chris. The visual interface is active.") {
-            history.push({
-                role: isUser ? 'user' : 'assistant',
-                content: text.substring(0, 1000)
-            });
-        }
-    });
-    return history.slice(-20);
+  const messages = document.querySelectorAll('.message');
+  const history = [];
+  messages.forEach(msgEl => {
+      const isUser = msgEl.classList.contains('user');
+      const textEl = msgEl.querySelector('.msg-text') || msgEl.querySelector('.user-card') || msgEl;
+      const text = textEl.textContent.trim();
+      if(text && text !== "I'm listening, Chris. The visual interface is active.") {
+          history.push({
+              role: isUser ? 'user' : 'assistant',
+              content: text.substring(0, 1000)
+          });
+      }
+  });
+  return history.slice(-20);
 }
 
 function getAudioCtx(){
@@ -683,21 +683,21 @@ function setOrb(state){
 }
 
 function updateOrbState() {
-    if (oliverSleepMode) {
-        setOrb(null); stopWave();
-        const pip = document.getElementById('main-pip');
-        if(pip) pip.style.background = '#555';
-    } else if (isSpeaking || isPlayingQueue) {
-        setOrb('speaking'); startWave('speaking');
-    } else if (isRecording) {
-        setOrb('listening'); startWave('listening');
-        const pip = document.getElementById('main-pip');
-        if(pip && !spotifyIsPlaying) pip.style.background = 'white';
-    } else if (isThinking || audioQueue.length > 0) {
-        setOrb('thinking'); startWave('thinking');
-    } else {
-        setOrb(null); stopWave();
-    }
+  if (oliverSleepMode) {
+      setOrb(null); stopWave();
+      const pip = document.getElementById('main-pip');
+      if(pip) pip.style.background = '#555';
+  } else if (isSpeaking || isPlayingQueue) {
+      setOrb('speaking'); startWave('speaking');
+  } else if (isRecording) {
+      setOrb('listening'); startWave('listening');
+      const pip = document.getElementById('main-pip');
+      if(pip && !spotifyIsPlaying) pip.style.background = 'white';
+  } else if (isThinking || audioQueue.length > 0) {
+      setOrb('thinking'); startWave('thinking');
+  } else {
+      setOrb(null); stopWave();
+  }
 }
 
 const BAR_COUNT=18;
