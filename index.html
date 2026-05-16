@@ -18,6 +18,7 @@
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
   html { 
+    height: 100%;
     height: -webkit-fill-available; 
     background-color: #040d1a; 
   }
@@ -25,8 +26,8 @@
   body {
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: linear-gradient(to bottom, #010409 0%, #040d1a 100%); color:#fff;
-    min-height: 100vh; 
-    min-height: -webkit-fill-available;
+    height: 100%; 
+    height: -webkit-fill-available;
     display:flex; flex-direction:column;
     overflow:hidden; position:relative;
     padding-top:env(safe-area-inset-top);
@@ -52,7 +53,7 @@
 
   #chat-container {
     position:relative; z-index:10;
-    flex:1; min-height:0;
+    flex: 1 1 0;
     padding:12px 16px;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
     display:flex; flex-direction:column; gap:24px;
@@ -230,20 +231,21 @@
   .cal-events { display: flex; flex-direction: column; padding: 16px 24px 24px; gap: 4px; }
   .cal-event { display: flex; align-items: center; gap: 16px; padding: 12px 0; background: transparent; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.04); }
   .cal-event:last-child { border-bottom: none; padding-bottom: 0; }
-  .cal-event:hover { transform: translateX(4px); }
-  .cal-time { font-size: 0.85em; font-weight: 600; color: #00a8ff; width: 85px; flex-shrink: 0; text-align: right; line-height: 1.4; }
-  .cal-divider { width: 3px; height: 32px; border-radius: 3px; flex-shrink: 0; opacity: 0.9; }
-  .cal-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; justify-content: center; }
-  .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
-  .cal-event-loc { font-size: 0.8em; color: #a0a0a0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .smart-card.email {
+  /* Email Variant */
+  .smart-card.email, .smart-card.inbox {
     background: linear-gradient(135deg, rgba(10, 20, 30, 0.7) 0%, rgba(5, 10, 15, 0.9) 100%);
     border: 1px solid rgba(0, 150, 255, 0.2);
     border-top: 1px solid rgba(0, 150, 255, 0.35);
     padding: 0; margin: 14px 0; overflow: hidden;
     display: flex; flex-direction: column; align-items: stretch;
   }
+  .inbox-item {
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 4px; transition: background 0.2s; cursor: pointer;
+  }
+  .inbox-item:active, .inbox-item:hover { background: rgba(0, 150, 255, 0.05); }
+  .inbox-item:last-child { border-bottom: none; }
+
   .email-header {
     background: linear-gradient(135deg, rgba(0, 150, 255, 0.12) 0%, transparent 100%);
     padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -292,7 +294,7 @@
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
-    padding:8px 14px calc(16px + env(safe-area-inset-bottom));
+    padding:8px 14px max(12px, env(safe-area-inset-bottom));
     background:linear-gradient(to top,rgba(4,13,26,0.98) 60%,transparent);
   }
   #text-input {
@@ -1103,6 +1105,31 @@ function getEmailHTML(tId, sender, subject, snippet) {
     `;
 }
 
+function getInboxHTML(tId, payload) {
+    const emails = payload.split('|||').map(e => e.split('~~~'));
+    const itemsHtml = emails.map(e => {
+        const sender = e[0] || 'Unknown';
+        const subject = e[1] || 'No Subject';
+        const snippet = e[2] || '';
+        return `
+        <div class="inbox-item">
+          <div class="email-sender">From: <strong>${sender}</strong></div>
+          <div class="email-subject">${subject}</div>
+          <div class="email-snippet">${snippet}</div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="smart-card inbox" id="${tId}">
+        <div class="email-header">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Recent Emails
+        </div>
+        ${itemsHtml}
+      </div>
+    `;
+}
+
 let activeSpotifyCardId = null;
 let currentSpotifyTrack = null;
 
@@ -1237,6 +1264,11 @@ function formatMessageText(text) {
   text = text.replace(/<WIDGET:EMAIL:(.*?)\|(.*?)\|(.*?)>/gi, (match, sender, subject, snippet) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getEmailHTML(uId, sender, subject, snippet);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:INBOX:(.*?)>/gi, (match, payload) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getInboxHTML(uId, payload);
       return `\n[[${uId}]]\n`;
   });
   
