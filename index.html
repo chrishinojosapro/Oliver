@@ -583,7 +583,6 @@ async function enablePushNotifications() {
                 keys: subscription.toJSON().keys
             };
             
-            // FIX: Changed .single() to .maybeSingle() to prevent the 406 crash when the user doesn't exist yet
             const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).maybeSingle();
 
             if (existing) {
@@ -595,6 +594,12 @@ async function enablePushNotifications() {
             }
             
             addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
+
+            // --- NEW: FIRE IMMEDIATE TEST NOTIFICATION ---
+            setTimeout(() => {
+                sendLocalPushAlert("Connection Established 🌌", "I am fully linked to your iPhone! You can safely close the app now.");
+            }, 1500);
+
         } else {
             addMessage("I completely understand. I won't send background alerts.", 'oliver');
         }
@@ -604,6 +609,20 @@ async function enablePushNotifications() {
     }
 }
 
+async function sendLocalPushAlert(title, body) {
+    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>',
+                badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>'
+            });
+        } catch (e) {
+            console.error("Local push failed:", e);
+        }
+    }
+}
 
 function pollSpotifyStatus() {
   if (spotifyPollInterval) clearInterval(spotifyPollInterval);
@@ -879,6 +898,7 @@ window.startTimer = function(tId, seconds, label, existingEndTime = null) {
                 delete timerData[tId];
                 removeWidget(tId);
                 speakText(`Chris, your ${label || 'timer'} is done!`, true);
+                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
             }
         } else if (!document.getElementById(tId)) {
             // Even if scrolled out of DOM, keep tracking to alert!
@@ -887,6 +907,7 @@ window.startTimer = function(tId, seconds, label, existingEndTime = null) {
                 delete timerData[tId];
                 removeWidget(tId);
                 speakText(`Chris, your ${label || 'timer'} is done!`, true);
+                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
             }
         }
     }, 1000);
@@ -931,6 +952,7 @@ setInterval(() => {
             alarmData[id].triggered = true;
             saveWidget(id, 'alarm', alarmData[id]);
             speakText(`Chris, it is ${alarmData[id].timeStr}. Your ${alarmData[id].label || 'alarm'} is going off!`, true);
+            sendLocalPushAlert(`Alarm: ${alarmData[id].timeStr}`, `Your ${alarmData[id].label || 'alarm'} is going off!`);
             const c = document.getElementById(id);
             if (c) c.style.borderColor = "#00a8ff";
         }
