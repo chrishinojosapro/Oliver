@@ -1,17 +1,28 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#010409">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Oliver">
+<title>Oliver AI - Aurora</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiT2xpdmVyIEFJIiwic2hvcnRfbmFtZSI6Ik9saXZlciIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwMTA0MDkiLCJ0aGVtZV9jb2xvciI6IiMwMTA0MDkifQ==">
+
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
-  html { 
-    height: -webkit-fill-available; 
-    background-color: #040d1a; 
-  }
+  html { background-color: #010409; height: 100%; }
 
   body {
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: linear-gradient(to bottom, #010409 0%, #040d1a 100%); color:#fff;
-    min-height: 100vh; 
-    min-height: -webkit-fill-available;
+    height:100vh; height:100dvh;
     display:flex; flex-direction:column;
     overflow:hidden; position:relative;
     padding-top:env(safe-area-inset-top);
@@ -20,14 +31,1938 @@
   }
 
   #star-canvas { position:fixed; inset:0; pointer-events:none; z-index:0; }
-<!-- ... existing code ... -->
+
+  header {
+    position:relative; z-index:10;
+    display:flex; justify-content:center; align-items:center;
+    padding:16px 20px 12px; flex-shrink:0;
+  }
+  .header-center { display:flex; align-items:center; gap:8px; }
+  .status-pip {
+    width:7px; height:7px; border-radius:50%;
+    background:white; box-shadow:0 0 8px rgba(0,150,255,0.9);
+    animation:pip 2.5s ease-in-out infinite; transition: background 0.3s;
+  }
+  @keyframes pip { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.4; transform:scale(.7); } }
+  .header-title { font-size:0.85em; color:rgba(255,255,255,0.42); font-weight:500; letter-spacing:0.05em; }
+
+  #chat-container {
+    position:relative; z-index:10;
+    flex:1; min-height:0;
+    padding:12px 16px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; gap:24px;
+    align-items: center;
+    scroll-behavior: smooth;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
+  }
+  #chat-container::-webkit-scrollbar { display:none; }
+
+  @keyframes msg-in { from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+  .hidden-voice { display: none !important; }
+
+  .message { display: flex; flex-direction: column; width: 100%; max-width: 380px; animation:msg-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+  .user-card {
+    padding:24px; border-radius:32px;
+    font-size:1.02em; line-height:1.65; color:rgba(255,255,255,0.95); font-weight:300;
+    background:linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.02) 100%);
+    border:1px solid rgba(255,255,255,0.12); border-top:1px solid rgba(255,255,255,0.22);
+    backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+  }
+
+  .sender-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; margin-left: 6px; }
+  .sender-dot { width:7px; height:7px; border-radius:50%; }
+  .sender-dot.oliver { background:rgba(0,150,255,0.8); box-shadow:0 0 10px rgba(0,150,255,0.6); }
+  .sender-dot.user { background:rgba(0,200,255,0.8); box-shadow:0 0 10px rgba(0,200,255,0.6); }
+  .sender-name { font-size:11px; color:rgba(255,255,255,0.5); font-weight:600; letter-spacing:0.15em; text-transform:uppercase; }
+  
+  .oliver-card {
+    padding:24px; border-radius:32px;
+    background:linear-gradient(135deg, rgba(4, 18, 24, 0.5) 0%, rgba(2, 8, 12, 0.7) 100%);
+    border:1px solid rgba(0,150,255,0.15); border-top:1px solid rgba(0,150,255,0.3);
+    backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+    box-shadow:0 12px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .msg-text { font-size:1.02em; color:rgba(255,255,255,0.95); font-weight:300; line-height:1.65; }
+  .msg-text strong { font-weight:600; color:#fff; }
+  .msg-para { margin-bottom:12px; }
+  .msg-para:last-child { margin-bottom:0; }
+
+  .msg-image {
+    display:block; max-width:240px; max-height:240px;
+    border-radius:14px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.15);
+    object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+
+  .drive-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:8px; padding:4px 12px; border-radius:12px; font-size:0.75em;
+    background:rgba(0,150,255,0.15); border:1px solid rgba(0,150,255,0.3); color:rgba(120,200,255,0.9);
+  }
+  .drive-badge svg { width:12px; height:12px; fill:currentColor; }
+
+  .pill-btn {
+    display:inline-flex; align-items:center; gap:12px;
+    margin-top:12px; padding:12px 16px 12px 12px; border-radius:24px;
+    background:linear-gradient(135deg, rgba(0,200,255,0.15) 0%, rgba(0,150,255,0.05) 100%);
+    border:1px solid rgba(0,150,255,0.3); border-top:1px solid rgba(0,150,255,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    cursor:pointer; transition:all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    -webkit-tap-highlight-color:transparent;
+    width: 100%;
+  }
+  .pill-btn:active { transform:scale(0.96); background:rgba(0,150,255,0.15); }
+  .pill-icon {
+    width:42px; height:42px; border-radius:18px; background:rgba(0,150,255,0.2);
+    display:flex; align-items:center; justify-content:center; color:rgba(0,180,255,1);
+    flex-shrink: 0;
+  }
+  .pill-icon svg { width:20px; height:20px; fill:currentColor; }
+  .pill-info { display:flex; flex-direction:column; gap:4px; padding-right:8px; flex: 1; overflow: hidden; }
+  .pill-title { font-size:1em; font-weight:600; color:white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-type { font-size:0.8em; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.05em; font-weight:500; }
+  .pill-action { 
+    font-size:0.85em; font-weight:700; color:#fff; 
+    background: linear-gradient(135deg, rgba(0,200,255,0.4), rgba(0,150,255,0.3));
+    padding: 8px 16px; border-radius: 99px; 
+    margin-left: auto; border: none; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .smart-card {
+    margin-top: 14px; padding: 20px; border-radius: 32px;
+    background: linear-gradient(135deg, rgba(10, 25, 30, 0.6) 0%, rgba(5, 15, 20, 0.8) 100%);
+    border: 1px solid rgba(0,150,255,0.25); border-top: 1px solid rgba(0,150,255,0.45);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: 100%; max-width: 380px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .smart-card.spotify {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    margin: 14px 0;
+    position: relative; overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .smart-card.spotify:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(0,0,0,0.8); }
+  .smart-card.spotify .sc-art {
+    width: 100%; aspect-ratio: 1 / 1; border-radius: 0;
+    border: none; box-shadow: none;
+    background: #111; object-fit: cover; flex-shrink: 0;
+    transition: opacity 0.3s;
+  }
+  .smart-card.spotify .sc-bottom {
+    padding: 20px 24px 28px; background: #000;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .sc-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .sc-text-col { display: flex; flex-direction: column; gap: 4px; text-align: left; flex: 1; overflow: hidden; }
+  .smart-card.spotify .sc-title { 
+    font-size: 22px; font-weight: 700; color: #fff; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    line-height: 1.2; margin: 0; letter-spacing: -0.5px; width: 100%; text-align: left;
+  }
+  .smart-card.spotify .sc-subtitle { 
+    font-size: 14px; color: #a0a0a0; font-weight: 400;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    line-height: 1.2; margin: 0; width: 100%; text-align: left;
+  }
+  .sc-action-icons { display: flex; gap: 18px; color: #fff; align-items: center; padding-top: 4px; flex-shrink: 0; }
+  .sc-action-icons svg { width: 20px; height: 20px; fill: currentColor; cursor: pointer; transition: transform 0.2s; }
+  .sc-action-icons svg:active { transform: scale(0.85); }
+  
+  .sc-controls-row { display: flex; justify-content: center; align-items: center; width: 100%; gap: 32px; padding: 0 8px; margin-top: 8px; }
+  .sc-ctrl-icon { width: 22px; height: 22px; fill: #fff; cursor: pointer; transition: opacity 0.2s; }
+  .sc-ctrl-icon:active { opacity: 0.5; }
+  .sc-play-btn { width: 64px; height: 64px; background: rgba(0, 150, 255, 0.15); border: 1px solid rgba(0, 150, 255, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s, background 0.2s; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .sc-play-btn:active { transform: scale(0.95); background: rgba(0, 150, 255, 0.25); }
+  .sc-play-btn svg { width: 28px; height: 28px; fill: #00a8ff; margin-left: 3px; } 
+  .sc-play-btn.playing svg { margin-left: 0; }
+
+  /* Time Variant Shared Styles */
+  .smart-card.timer { 
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.1) 0%, rgba(5, 15, 25, 0.8) 100%);
+    border-color: rgba(0, 150, 255, 0.3); border-top-color: rgba(0, 150, 255, 0.5);
+    align-items: center; text-align: center; padding: 32px 24px;
+  }
+  .timer-ring-wrap { position: relative; width: 100px; height: 100px; margin-bottom: 10px; }
+  .timer-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .timer-ring-bg { fill: none; stroke: rgba(0,150,255,0.15); stroke-width: 4; }
+  .timer-ring-fg { fill: none; stroke: #00a8ff; stroke-width: 4; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+  .timer-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .timer-icon svg { width: 28px; height: 28px; fill: #00a8ff; }
+  .timer-digits { font-size: 3.5em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+  .timer-label { font-size: 0.85em; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+  .sc-btn { 
+    margin-top: 16px; width: 56px; height: 56px; border-radius: 50%; 
+    background: rgba(0,150,255,0.15); border: 1px solid rgba(0,150,255,0.3); 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+  }
+  .sc-btn:active { transform: scale(0.9); background: rgba(0,150,255,0.25); }
+  .sc-btn svg { width: 24px; height: 24px; fill: #00a8ff; }
+
+  /* Calendar Variant */
+  .smart-card.calendar { 
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    margin: 14px 0;
+    overflow: hidden;
+  }
+  .cal-header-bg {
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.15) 0%, transparent 100%);
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; }
+  .cal-title { font-weight: 700; font-size: 1.2em; color: white; display: flex; align-items: center; gap: 10px; letter-spacing: -0.2px; }
+  .cal-title svg { width: 22px; height: 22px; fill: #00a8ff; }
+  .cal-date { font-size: 0.85em; color: #a0a0a0; font-weight: 500; }
+  .cal-events { display: flex; flex-direction: column; padding: 16px 24px 24px; gap: 4px; }
+  .cal-event { display: flex; align-items: center; gap: 16px; padding: 12px 0; background: transparent; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .cal-event:last-child { border-bottom: none; padding-bottom: 0; }
+  .cal-event:hover { transform: translateX(4px); }
+  .cal-time { font-size: 0.85em; font-weight: 600; color: #00a8ff; width: 85px; flex-shrink: 0; text-align: right; line-height: 1.4; }
+  .cal-divider { width: 3px; height: 32px; border-radius: 3px; flex-shrink: 0; opacity: 0.9; }
+  .cal-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; justify-content: center; }
+  .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
+  .cal-event-loc { font-size: 0.8em; color: #a0a0a0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Email Variant */
+  .smart-card.email {
+    background: linear-gradient(135deg, rgba(10, 20, 30, 0.7) 0%, rgba(5, 10, 15, 0.9) 100%);
+    border: 1px solid rgba(0, 150, 255, 0.2);
+    border-top: 1px solid rgba(0, 150, 255, 0.35);
+    padding: 0; margin: 14px 0; overflow: hidden;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+  .email-header {
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.12) 0%, transparent 100%);
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: center; gap: 10px; font-weight: 600; color: white;
+  }
+  .email-header svg { width: 20px; height: 20px; fill: #00a8ff; }
+  .email-body { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .email-sender { font-size: 0.85em; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .email-sender strong { color: #00d4ff; text-transform: none; font-size: 1.1em; letter-spacing: 0; font-weight: 500; }
+  .email-subject { font-size: 1.1em; color: white; font-weight: 600; line-height: 1.3; margin-top: 2px; }
+  .email-snippet { font-size: 0.9em; color: #a0a0a0; line-height: 1.5; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .email-actions { display: flex; gap: 12px; padding: 16px 20px 20px; }
+  .email-btn { flex: 1; padding: 10px; border-radius: 12px; text-align: center; font-size: 0.85em; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; cursor: pointer; transition: 0.2s; }
+  .email-btn.primary { background: rgba(0,150,255,0.15); border-color: rgba(0,150,255,0.3); color: #00a8ff; }
+  .email-btn:active { transform: scale(0.96); }
+
+  #img-preview-bar {
+    position:relative; z-index:10; flex-shrink:0;
+    display:none; align-items:center; gap:10px;
+    padding:8px 16px 4px;
+  }
+  #img-preview-bar.visible { display:flex; }
+  #img-preview-wrap { position:relative; display:inline-block; }
+  #img-preview {
+    width:60px; height:60px; border-radius:12px; object-fit:cover;
+    border:1px solid rgba(0,150,255,0.4); box-shadow:0 4px 15px rgba(0,0,0,0.3);
+  }
+  #img-preview-remove {
+    position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:50%;
+    background:rgba(5,15,20,0.95); border:1px solid rgba(0,150,255,0.3);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  #img-preview-remove svg { width:12px; height:12px; fill:rgba(255,255,255,0.8); }
+  #img-preview-info { font-size:0.78em; color:rgba(255,255,255,0.38); line-height:1.4; }
+  #img-preview-name { color:rgba(0,150,255,0.75); font-weight:500; }
+
+  #waveform {
+    position:relative; z-index:10; height:28px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    gap:3px; padding:0 20px; opacity:0; transition:opacity 0.35s; pointer-events:none;
+  }
+  #waveform.visible { opacity:1; }
+  .wave-bar { width:3px; border-radius:2px; background:rgba(0,150,255,0.65); height:4px; }
   #waveform.thinking .wave-bar { background:rgba(0,200,255,0.45); }
 
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
     padding:8px 14px calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top,rgba(4,13,26,0.98) 60%,transparent);
+    background:linear-gradient(to top,rgba(1,4,9,0.95) 60%,transparent);
   }
   #text-input {
-<!-- ... existing code ... -->
+    flex:1; min-width:0;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(0,150,255,0.25);
+    color:white; padding:14px 18px; border-radius:26px;
+    font-size:16px; outline:none; transition:all 0.2s;
+    -webkit-appearance:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  }
+  #text-input:focus { border-color:rgba(0,150,255,0.6); background:rgba(255,255,255,0.1); box-shadow:0 0 15px rgba(0,150,255,0.15); }
+  #text-input::placeholder { color:rgba(255,255,255,0.3); }
+
+  .ctrl-btn {
+    width:48px; height:48px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; touch-action:manipulation;
+    transition:all 0.2s; border:1px solid rgba(0,150,255,0.25);
+    background:rgba(0,150,255,0.08);
+  }
+  .ctrl-btn:active { transform:scale(0.92); }
+  .ctrl-btn svg { width:22px; height:22px; fill:rgba(255,255,255,0.8); transition:fill 0.2s; }
+
+  #send-btn { background:rgba(0,200,255,0.25); border-color:rgba(0,200,255,0.5); }
+  #send-btn:active { background:rgba(0,200,255,0.45); }
+  #send-btn svg { fill:white; }
+
+  #img-btn.has-image { background:rgba(0,150,255,0.25); border-color:rgba(0,150,255,0.6); box-shadow:0 0 15px rgba(0,150,255,0.3); }
+  #img-btn.has-image svg { fill:#fff; }
+  #img-btn.uploading { opacity:0.5; pointer-events:none; }
+
+  #convo-btn.active, #convo-btn.recording { background:rgba(0,150,255,0.18); border-color:rgba(0,150,255,0.50); box-shadow:0 0 14px rgba(0,150,255,0.28); }
+  #convo-btn.active svg { fill:rgba(100,200,255,1); }
+  #convo-btn.recording svg { animation: mic-pulse 1s infinite alternate; }
+  @keyframes mic-pulse { 0% { fill: rgba(100,200,255,1); transform:scale(1); } 100% { fill: white; transform:scale(1.15); } }
+
+  #file-input { display:none; }
+
+  #oliver-canvas {
+    position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
+    background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    opacity:0; pointer-events:none; transition:opacity 0.3s cubic-bezier(0.25,0.8,0.25,1);
+  }
+  #oliver-canvas.open { opacity:1; pointer-events:all; }
+
+  #canvas-panel {
+    width: 100%; height: 100dvh; max-width: 100%;
+    background: rgba(4, 9, 15, 0.95); 
+    backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+    border: none; border-radius: 0; box-shadow: none;
+    display: flex; flex-direction: column; 
+    transform: translateY(100%);
+    transition: all 0.4s cubic-bezier(0.25,0.8,0.25,1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  #oliver-canvas.open #canvas-panel { transform: translateY(0); }
+
+  .ide-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; background: rgba(0,150,255,0.05); border-bottom: 1px solid rgba(0,150,255,0.15);
+    border-radius: 0; user-select: none; flex-shrink: 0;
+  }
+  .ide-left { display: flex; align-items: center; gap: 10px; }
+  .ide-icon { width: 16px; height: 16px; fill: #00d4ff; }
+  .ide-title { font-size: 14px; font-weight: 500; color: #e5e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .ide-cloud { width: 16px; height: 16px; fill: #4c566a; }
+  
+  .ide-center { display: flex; align-items: center; }
+  .ide-tabs { display: flex; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid rgba(0,150,255,0.2); overflow: hidden; }
+  .ide-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; color: #8fbcbb; background: transparent; border: none; cursor: pointer; transition: 0.2s; outline: none; }
+  .ide-tab.active { background: rgba(0,150,255,0.15); color: #fff; }
+  
+  .ide-right { display: flex; align-items: center; gap: 10px; }
+  .ide-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+  .ide-share { background: #0066cc; color: #ffffff; border-color: rgba(0,150,255,0.2); }
+  .ide-share:active { background: #004080; }
+  .ide-share svg { width: 14px; height: 14px; fill: currentColor; }
+  .ide-close { background: transparent; color: #8fbcbb; padding: 6px; }
+  .ide-close:hover { background: rgba(255,255,255,0.1); color: #eceff4; }
+  .ide-close svg { width: 16px; height: 16px; fill: currentColor; }
+
+  #canvas-body-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  
+  /* Aurora Theme Syntax Highlighting (Nord-inspired) */
+  #canvas-code-wrap { flex: 1; overflow: auto; background: transparent; padding: 20px 0; -webkit-overflow-scrolling: touch; }
+  #canvas-code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; line-height: 1.5; color: #d8dee9; white-space: pre; margin: 0; tab-size: 4; counter-reset: line; }
+  .line-row { display: flex; padding: 0 16px; }
+  .line-row:hover { background: rgba(0,150,255,0.05); }
+  .line-num { flex-shrink: 0; width: 40px; color: #4c566a; text-align: right; margin-right: 16px; padding-right: 12px; font-size: 12px; user-select: none; }
+  .line-num::before { counter-increment: line; content: counter(line); }
+  .line-content { white-space: pre; }
+
+  .tok-kw  { color: #b48ead; } 
+  .tok-str { color: #a3be8c; } 
+  .tok-num { color: #b48ead; } 
+  .tok-cmt { color: #4c566a; font-style: italic; } 
+  .tok-fn  { color: #88c0d0; } 
+  .tok-tag { color: #8fbcbb; } 
+
+  /* Preview Area */
+  #canvas-preview-wrap { flex: 1; display: none; background: #fff; }
+  #canvas-preview-wrap.visible { display: flex; }
+  #canvas-iframe { width: 100%; height: 100%; border: none; }
+
+  @media (max-width: 600px) {
+    .ide-header { padding: 10px 8px; }
+    .ide-left { gap: 6px; }
+    .ide-title { font-size: 13px; max-width: 90px; }
+    .ide-cloud { display: none; }
+    .ide-tab { padding: 6px 12px; }
+    .ide-right { gap: 6px; }
+    .hide-mobile { display: none; }
+    .ide-share { padding: 6px 8px; }
+    #canvas-code { font-size: 12px; }
+    .line-num { width: 30px; margin-right: 10px; padding-right: 8px; }
+    .line-row { padding: 0 8px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+
+<div id="oliver-canvas" onclick="if(event.target===this) closeCanvas()">
+  <div id="canvas-panel">
+    
+    <div class="ide-header">
+      <div class="ide-left">
+        <svg class="ide-icon" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+        <span class="ide-title" id="canvas-title-text">Oliver AI</span>
+        <svg class="ide-cloud" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17l5.09-5.09L16.5 10.5 10 17z"/></svg>
+      </div>
+      <div class="ide-center">
+        <div class="ide-tabs" id="ide-tabs-container">
+          <button class="ide-tab active" id="tab-code" onclick="showIdeTab('code')">Code</button>
+          <button class="ide-tab" id="tab-preview" onclick="showIdeTab('preview')">Preview</button>
+        </div>
+      </div>
+      <div class="ide-right">
+        <button class="ide-btn ide-share" onclick="copyCanvas()" id="copy-btn">
+           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg> <span class="hide-mobile">Share</span>
+        </button>
+        <button class="ide-btn ide-close" onclick="closeCanvas()">
+           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+    
+    <div id="canvas-body-wrap">
+      <div id="canvas-code-wrap"><pre id="canvas-code"></pre></div>
+      <div id="canvas-preview-wrap"><iframe id="canvas-iframe" sandbox="allow-scripts allow-popups"></iframe></div>
+    </div>
+    
+  </div>
+</div>
+
+<header>
+  <div class="header-center">
+    <div class="status-pip" id="main-pip"></div>
+    <span class="header-title">Oliver AI</span>
+  </div>
+</header>
+
+<div id="chat-container">
+  <div class="message oliver">
+    <div class="sender-row"><div class="sender-dot oliver"></div><span class="sender-name">Oliver</span></div>
+    <div class="oliver-card"><div class="msg-text"><div class="msg-para">I'm listening, Chris. The visual interface is active.</div></div></div>
+  </div>
+</div>
+
+<div id="img-preview-bar">
+  <div id="img-preview-wrap">
+    <img id="img-preview" src="" alt="preview">
+    <div id="img-preview-remove" onclick="clearImage()">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </div>
+  </div>
+  <div id="img-preview-info">
+    <div id="img-preview-name"></div>
+    <div>tap send to share with Oliver</div>
+  </div>
+</div>
+
+<div id="waveform"></div>
+
+<div class="controls">
+  <input type="text" id="text-input" placeholder="Message Oliver…" onkeydown="checkEnter(event)" autocomplete="off" autocorrect="off" spellcheck="false">
+  <input type="file" id="file-input" accept="image/*" onchange="onImageSelected(event)">
+  <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
+    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+  </button>
+
+  <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
+    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
+  <button class="ctrl-btn" id="convo-btn" onclick="toggleContinuous()" aria-label="Conversation mode">
+    <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"/></svg>
+  </button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// --- PUSH NOTIFICATION SETUP CONFIGURATION ---
+const VAPID_PUBLIC_KEY = 'BCOV5upb6A85AEn9g9wlqiqSsz4TODEnn36TCwBgensl3FCNNOWRhUacyfy-WWoy8Fbag58W-OAhHQk6qstsCtg'; 
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// FRONTEND STATE
+let spotifyIsPlaying = false;
+let spotifyPollInterval = null;
+let oliverSleepMode = false;
+let isHolding = false;
+
+window.addEventListener('load', async () => {
+  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
+  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
+  console.log("Oliver's engines are warming up...");
+  
+  // 1. REGISTER PUSH NOTIFICATION SERVICE WORKER
+  // Block execution if running in a blob URL preview environment
+  const isRealHost = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+  if ('serviceWorker' in navigator && 'PushManager' in window && isRealHost) {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+          console.log("Service Worker Registered.");
+          
+          // Smart Notification Trigger if not already asked
+          if (Notification.permission === 'default') {
+              setTimeout(() => {
+                  const pushCardHtml = `
+                    <div class="smart-card timer" style="text-align: left; padding: 24px; align-items: flex-start; max-width: 320px;">
+                        <div style="font-size: 1.1em; font-weight: 700; color: #fff; margin-bottom: 8px;">Enable Push Alerts</div>
+                        <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 20px; line-height: 1.4;">I can notify you when your timers and alarms finish, even when this app is completely closed.</div>
+                        <button class="pill-action" onclick="enablePushNotifications()" style="margin: 0; width: 100%; text-align: center;">Allow Notifications</button>
+                    </div>`;
+                  addMessage(pushCardHtml, 'oliver', null, null, null, false, true);
+              }, 4000);
+          }
+      }).catch(function(err) {
+          console.error("Service Worker registration failed: ", err);
+      });
+  }
+
+  // RESTORE ACTIVE WIDGETS FROM SUPABASE ON RELOAD
+  let restoreHtml = '';
+  try {
+      const { data: savedWidgets, error } = await supabaseClient.from('widgets').select('*');
+      if (savedWidgets) {
+          for (const w of savedWidgets) {
+              if (w.type === 'timer') {
+                  const t = w.payload;
+                  const remaining = Math.ceil((t.endTime - Date.now()) / 1000);
+                  if (remaining > -60) { 
+                      restoreHtml += getTimerHTML(t.id, t.totalSeconds, t.label);
+                      setTimeout(() => startTimer(t.id, t.totalSeconds, t.label, t.endTime), 100);
+                  } else {
+                      removeWidget(t.id);
+                  }
+              } else if (w.type === 'alarm') {
+                  const a = w.payload;
+                  restoreHtml += getAlarmHTML(a.id, a.timeStr, a.label);
+                  setTimeout(() => { alarmData[a.id] = a; }, 100);
+              } else if (w.type === 'stopwatch') {
+                  const s = w.payload;
+                  restoreHtml += getStopwatchHTML(s.id);
+                  setTimeout(() => {
+                      activeStopwatches[s.id] = { id: s.id, start: s.start, elapsed: s.elapsed, interval: null };
+                      if(s.isRunning) resumeStopwatch(s.id);
+                      else {
+                          const txt = document.getElementById(`${s.id}-txt`);
+                          if(txt) {
+                              const ms = Math.floor((s.elapsed % 1000) / 10).toString().padStart(2, '0');
+                              const sec = Math.floor((s.elapsed / 1000) % 60).toString().padStart(2, '0');
+                              const m = Math.floor((s.elapsed / 60000)).toString().padStart(2, '0');
+                              txt.textContent = `${m}:${sec}.${ms}`;
+                          }
+                      }
+                  }, 100);
+              }
+          }
+      }
+  } catch (e) {
+      console.error("Failed to load widgets from Supabase", e);
+  }
+
+  if(restoreHtml) {
+      setTimeout(() => { addMessage(restoreHtml, 'oliver', null, null, null, false, true); }, 500);
+  }
+});
+
+// PUSH NOTIFICATION HANDLER
+async function enablePushNotifications() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            
+            // Save subscription to Supabase without using onConflict to prevent 400 errors
+            const subData = {
+                endpoint: subscription.endpoint,
+                keys: subscription.toJSON().keys
+            };
+            
+            const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).maybeSingle();
+
+            if (existing) {
+                const { error } = await supabaseClient.from('push_subscriptions').update({ keys: subData.keys }).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient.from('push_subscriptions').insert([subData]);
+                if (error) throw error;
+            }
+            
+            addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
+
+            // --- NEW: FIRE IMMEDIATE TEST NOTIFICATION ---
+            setTimeout(() => {
+                sendLocalPushAlert("Connection Established 🌌", "I am fully linked to your iPhone! You can safely close the app now.");
+            }, 1500);
+
+        } else {
+            addMessage("I completely understand. I won't send background alerts.", 'oliver');
+        }
+    } catch (err) {
+        console.error('Failed to subscribe to push', err);
+        addMessage(`iOS Push Error: "${err.message || err}". Make sure you are launching this from the Home Screen, and that sw.js is uploaded to your server.`, 'oliver');
+    }
+}
+
+async function sendLocalPushAlert(title, body) {
+    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>',
+                badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>'
+            });
+        } catch (e) {
+            console.error("Local push failed:", e);
+        }
+    }
+}
+
+function pollSpotifyStatus() {
+  if (spotifyPollInterval) clearInterval(spotifyPollInterval);
+  silentSpotifyCommand('status');
+  spotifyPollInterval = setInterval(() => {
+      silentSpotifyCommand('status');
+  }, 10000);
+}
+
+(function(){
+  const cv=document.getElementById('star-canvas'),cx=cv.getContext('2d');
+  let W,H;
+  const resize=()=>{ W=cv.width=innerWidth; H=cv.height=innerHeight; };
+  resize(); window.addEventListener('resize',resize);
+  const STARS=Array.from({length:160},()=>({
+    x:Math.random(),y:Math.random(),
+    r:Math.random()*0.9+0.2,a:Math.random()*0.5+0.1,
+    ts:Math.random()*0.015+0.005,to:Math.random()*Math.PI*2,
+  }));
+  const SHOTS=[];
+  const spawn=()=>{
+    const ang=(Math.random()*35+15)*Math.PI/180,spd=Math.random()*5+4;
+    SHOTS.push({x:Math.random()*W,y:Math.random()*H*0.6,
+      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+      len:Math.random()*120+60,life:1,decay:Math.random()*0.012+0.010});
+  };
+  const schedule=()=>{ spawn(); setTimeout(schedule,Math.random()*1600+1200); };
+  schedule();
+  let t=0;
+  (function draw(){
+    cx.clearRect(0,0,W,H); t+=0.016;
+    for(const s of STARS){
+      const a=s.a*(0.6+0.4*Math.sin(t*s.ts*60+s.to));
+      cx.beginPath(); cx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
+      cx.fillStyle=`rgba(255,255,255,${a})`; cx.fill();
+    }
+    for(let i=SHOTS.length-1;i>=0;i--){
+      const s=SHOTS[i],mag=Math.hypot(s.vx,s.vy);
+      const tx=s.x-s.vx*(s.len/mag),ty=s.y-s.vy*(s.len/mag);
+      const g=cx.createLinearGradient(tx,ty,s.x,s.y);
+      g.addColorStop(0,'rgba(255,255,255,0)');
+      g.addColorStop(0.6,`rgba(0,150,255,${s.life*0.5})`);
+      g.addColorStop(1,`rgba(255,255,255,${s.life})`);
+      cx.beginPath(); cx.moveTo(tx,ty); cx.lineTo(s.x,s.y);
+      cx.strokeStyle=g; cx.lineWidth=1.5; cx.stroke();
+      const grd=cx.createRadialGradient(s.x,s.y,0,s.x,s.y,3);
+      grd.addColorStop(0,`rgba(255,255,255,${s.life})`); grd.addColorStop(1,'rgba(255,255,255,0)');
+      cx.beginPath(); cx.arc(s.x,s.y,3,0,Math.PI*2); cx.fillStyle=grd; cx.fill();
+      s.x+=s.vx; s.y+=s.vy; s.life-=s.decay;
+      if(s.life<=0) SHOTS.splice(i,1);
+    }
+    requestAnimationFrame(draw);
+  })();
+})();
+
+const SUPABASE_ANON_KEY = 'sb_publishable__1GiI-6C-fWmjZKs-ITq8w_t75aBCkZ';
+const SUPABASE_URL      = 'https://bufaflxlwojqfwymnabj.supabase.co';
+const supabaseClient    = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/oliver-core`;
+const XI_URL            = `${SUPABASE_URL}/functions/v1/oliver-tts`;
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p6A1w3SnYlRaPhXGHAXTV3BuqgFmNbGc2-EH04Zr0qYUyexv7XeNZl7/exec';
+const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
+
+const convoBtn  = document.getElementById('convo-btn');
+const imgBtn    = document.getElementById('img-btn');
+const waveform  = document.getElementById('waveform');
+const interimEl = { textContent:'' };
+
+let isRecording   = false;
+let isSpeaking    = false;
+let isContinuous  = false;
+let isThinking    = false;
+let recognition   = null;
+let currentAudio  = null;
+let audioCtx      = null;
+let audioUnlocked = false;
+let audioQueue    = [];
+let isPlayingQueue= false;
+let currentPlayingRunId = null;
+
+let pendingImageBase64 = null;
+let pendingImageMime   = null;
+let pendingImageName   = null;
+
+let canvasStore = {};
+let canvasIdCounter = 0;
+
+let uiStore = {};
+let uiId = 0;
+
+window.hasInterrupted = false;
+let isMicStarting = false;
+let sentenceTimeout;
+
+const oliverMemoryHistory = [];
+function addOliverMemory(text) {
+  const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  if(clean) oliverMemoryHistory.push(clean);
+  if(oliverMemoryHistory.length > 3) oliverMemoryHistory.shift();
+}
+function isEcho(text) {
+  const cleanInput = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  if(!cleanInput || cleanInput.length < 5) return false;
+  for(const mem of oliverMemoryHistory) {
+      if(mem.includes(cleanInput) || cleanInput.includes(mem)) return true;
+  }
+  return false;
+}
+
+const sessionStart = Date.now();
+const getSessionId = () => {
+  let sid;
+  try { sid = sessionStorage.getItem('oliver_sid'); } catch(e) {}
+  if(!sid){
+    try {
+      sid = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
+      sessionStorage.setItem('oliver_sid', sid);
+    } catch(e) {
+      sid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+  }
+  return sid;
+};
+
+function getUIHistory() {
+  const messages = document.querySelectorAll('.message');
+  const history = [];
+  messages.forEach(msgEl => {
+      const isUser = msgEl.classList.contains('user');
+      const textEl = msgEl.querySelector('.msg-text') || msgEl.querySelector('.user-card') || msgEl;
+      const text = textEl.textContent.trim();
+      if(text && text !== "I'm listening, Chris. The visual interface is active.") {
+          history.push({
+              role: isUser ? 'user' : 'assistant',
+              content: text.substring(0, 1000)
+          });
+      }
+  });
+  
+  const activeStates = [];
+  for(let id in timerData) {
+      let rem = Math.max(0, Math.ceil((timerData[id].endTime - Date.now())/1000));
+      if(rem > 0) activeStates.push(`Timer "${timerData[id].label}" has ${Math.floor(rem/60)}m ${rem%60}s remaining.`);
+  }
+  for(let id in alarmData) {
+      activeStates.push(`Alarm "${alarmData[id].label}" is currently set for ${alarmData[id].timeStr}.`);
+  }
+  for(let id in activeStopwatches) {
+      const sw = activeStopwatches[id];
+      const elapsed = sw.interval ? sw.elapsed + (Date.now() - sw.start) : sw.elapsed;
+      activeStates.push(`Stopwatch is ${sw.interval ? 'running' : 'paused'} at ${Math.floor(elapsed/1000)} seconds.`);
+  }
+  if(activeStates.length > 0) {
+      history.push({ role: 'system', content: `[CURRENT ACTIVE WIDGETS RUNNING ON USER DEVICE]\n${activeStates.join('\n')}` });
+  }
+  
+  return history.slice(-20);
+}
+
+function getAudioCtx(){
+  if(!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if(AudioContext) audioCtx = new AudioContext();
+  }
+  return audioCtx;
+}
+
+function unlockAudio(){
+  if(audioUnlocked) return;
+  try {
+    const ctx=getAudioCtx();
+    if(!ctx) return;
+    if(ctx.state==='suspended') ctx.resume();
+    const buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+    audioUnlocked=true;
+  } catch(e) { console.warn('Audio contextual unlock failed:', e); }
+}
+
+function updateOrbState() {
+  if (oliverSleepMode) {
+      stopWave();
+      const pip = document.getElementById('main-pip');
+      if(pip) pip.style.background = '#555';
+  } else if (isHolding) {
+      startWave('listening');
+      const pip = document.getElementById('main-pip');
+      if(pip && !spotifyIsPlaying) pip.style.background = '#00a8ff';
+  } else if (isSpeaking || isPlayingQueue) {
+      startWave('speaking');
+  } else if (isRecording) {
+      startWave('listening');
+      const pip = document.getElementById('main-pip');
+      if(pip && !spotifyIsPlaying) pip.style.background = 'white';
+  } else if (isThinking || audioQueue.length > 0) {
+      startWave('thinking');
+  } else {
+      stopWave();
+  }
+}
+
+const BAR_COUNT=18;
+let waveRAF=null;
+for(let i=0;i<BAR_COUNT;i++){
+  const b=document.createElement('div');
+  b.className='wave-bar'; waveform.appendChild(b);
+}
+const bars=waveform.querySelectorAll('.wave-bar');
+
+function startWave(mode){
+  waveform.className='visible'+(mode==='thinking'?' thinking':'');
+  if(waveRAF) cancelAnimationFrame(waveRAF);
+  let t=0;
+  const animate=()=>{
+    t+=0.06;
+    bars.forEach((b,i)=>{
+      let h;
+      if(mode==='listening')     h=4+14*Math.abs(Math.sin(t*1.8+i*0.55+Math.sin(t*0.7+i)*0.4));
+      else if(mode==='thinking') h=3+8*Math.abs(Math.sin(t*0.8+i*0.18));
+      else if(mode==='speaking') h=4+18*Math.abs(Math.sin(t*2.5+i*0.42));
+      else h=4;
+      b.style.height=h+'px';
+    });
+    waveRAF=requestAnimationFrame(animate);
+  };
+  animate();
+}
+function stopWave(){
+  waveform.className='';
+  if(waveRAF){ cancelAnimationFrame(waveRAF); waveRAF=null; }
+  bars.forEach(b=>b.style.height='4px');
+}
+
+// Global Logic for Timers, Alarms, Stopwatches
+let activeTimers = {};
+let timerData = {};
+let alarmData = {};
+let activeStopwatches = {};
+
+async function saveWidget(id, type, payload) {
+    try {
+        await supabaseClient.from('widgets').upsert({ id, type, payload });
+    } catch(e) { console.error('Failed to save widget:', e); }
+}
+
+async function removeWidget(id) {
+    try {
+        await supabaseClient.from('widgets').delete().eq('id', id);
+    } catch(e) { console.error('Failed to delete widget:', e); }
+}
+
+window.startTimer = function(tId, seconds, label, existingEndTime = null) {
+    const endTime = existingEndTime || (Date.now() + seconds * 1000);
+    timerData[tId] = { id: tId, totalSeconds: seconds, endTime, label };
+    saveWidget(tId, 'timer', timerData[tId]);
+
+    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    
+    activeTimers[tId] = setInterval(() => {
+        let remaining = Math.ceil((timerData[tId].endTime - Date.now()) / 1000);
+        if (remaining < 0) remaining = 0;
+
+        const txt = document.getElementById(`${tId}-txt`);
+        const ring = document.getElementById(`${tId}-ring`);
+        
+        if(txt && ring) {
+            txt.textContent = format(remaining);
+            ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
+            if(remaining <= 0) { 
+                clearInterval(activeTimers[tId]); 
+                txt.textContent = "00:00"; 
+                txt.style.color="#00a8ff"; 
+                delete timerData[tId];
+                removeWidget(tId);
+                speakText(`Chris, your ${label || 'timer'} is done!`, true);
+                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
+            }
+        } else if (!document.getElementById(tId)) {
+            // Even if scrolled out of DOM, keep tracking to alert!
+            if(remaining <= 0) { 
+                clearInterval(activeTimers[tId]); 
+                delete timerData[tId];
+                removeWidget(tId);
+                speakText(`Chris, your ${label || 'timer'} is done!`, true);
+                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
+            }
+        }
+    }, 1000);
+}
+window.stopTimer = function(tId) { 
+    clearInterval(activeTimers[tId]); 
+    delete timerData[tId];
+    removeWidget(tId);
+    const c = document.getElementById(tId); 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btn = c.querySelector('.sc-btn');
+        if(btn) btn.remove();
+    } 
+}
+
+window.startAlarm = function(tId, timeStr, label) {
+    alarmData[tId] = { id: tId, timeStr, label };
+    saveWidget(tId, 'alarm', alarmData[tId]);
+}
+window.stopAlarm = function(tId) {
+    delete alarmData[tId];
+    removeWidget(tId);
+    const c = document.getElementById(tId); 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btn = c.querySelector('.sc-btn');
+        if(btn) btn.remove();
+    }
+}
+
+// Global Background Alarm Checker
+setInterval(() => {
+    const now = new Date();
+    let currentStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); 
+    
+    for(let id in alarmData) {
+        const cleanAlarm = alarmData[id].timeStr.replace(/^0/, '').toLowerCase().trim();
+        const cleanCurrent = currentStr.toLowerCase().trim();
+        
+        if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
+            alarmData[id].triggered = true;
+            saveWidget(id, 'alarm', alarmData[id]);
+            speakText(`Chris, it is ${alarmData[id].timeStr}. Your ${alarmData[id].label || 'alarm'} is going off!`, true);
+            sendLocalPushAlert(`Alarm: ${alarmData[id].timeStr}`, `Your ${alarmData[id].label || 'alarm'} is going off!`);
+            const c = document.getElementById(id);
+            if (c) c.style.borderColor = "#00a8ff";
+        }
+    }
+}, 10000);
+
+window.startStopwatch = function(tId) {
+    if(activeStopwatches[tId]) return;
+    activeStopwatches[tId] = { start: Date.now(), elapsed: 0, interval: null };
+    window.resumeStopwatch(tId);
+}
+window.resumeStopwatch = function(tId) {
+    const sw = activeStopwatches[tId];
+    if(!sw || sw.interval) return;
+    sw.start = Date.now() - sw.elapsed;
+    sw.interval = setInterval(() => {
+        sw.elapsed = Date.now() - sw.start;
+        const txt = document.getElementById(`${tId}-txt`);
+        if(txt) {
+            const ms = Math.floor((sw.elapsed % 1000) / 10).toString().padStart(2, '0');
+            const s = Math.floor((sw.elapsed / 1000) % 60).toString().padStart(2, '0');
+            const m = Math.floor((sw.elapsed / 60000)).toString().padStart(2, '0');
+            txt.textContent = `${m}:${s}.${ms}`;
+        }
+    }, 50);
+    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: true });
+}
+window.pauseStopwatch = function(tId) {
+    const sw = activeStopwatches[tId];
+    if(sw) {
+        clearInterval(sw.interval);
+        sw.interval = null;
+    }
+    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: false });
+}
+window.stopStopwatch = function(tId) {
+    pauseStopwatch(tId);
+    delete activeStopwatches[tId];
+    removeWidget(tId);
+    const c = document.getElementById(tId); 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btns = c.querySelectorAll('button');
+        btns.forEach(b => b.remove());
+    }
+}
+
+function getTimerHTML(tId, seconds, label) {
+    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    return `
+      <div class="smart-card timer" id="${tId}">
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" id="${tId}-txt">${format(seconds)}</div>
+          <div class="timer-label">${label || 'Timer'}</div>
+        </div>
+        <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      </div>
+    `;
+}
+
+function getAlarmHTML(tId, timeStr, label) {
+    return `
+      <div class="smart-card timer alarm" id="${tId}">
+        <div class="timer-ring-wrap" style="width:80px; height:80px; margin-bottom: 12px;">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:34px; height:34px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" style="font-size:2.8em;">${timeStr}</div>
+          <div class="timer-label">${label || 'Alarm Set'}</div>
+        </div>
+        <button class="sc-btn" onclick="stopAlarm('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      </div>
+    `;
+}
+
+function getStopwatchHTML(tId) {
+    return `
+      <div class="smart-card timer stopwatch" id="${tId}">
+        <div class="timer-ring-wrap" style="width:70px; height:70px; margin-bottom: 16px;">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="200"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:32px; height:32px;"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" id="${tId}-txt" style="font-size:2.8em; margin-bottom: 8px;">00:00.00</div>
+          <div class="timer-label">Stopwatch</div>
+        </div>
+        <div style="display:flex; gap:16px;">
+          <button class="sc-btn" onclick="pauseStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+          <button class="sc-btn" onclick="resumeStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="sc-btn" onclick="stopStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+      </div>
+    `;
+}
+
+function getEmailHTML(tId, sender, subject, snippet) {
+    return `
+      <div class="smart-card email" id="${tId}">
+        <div class="email-header">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Gmail
+        </div>
+        <div class="email-body">
+          <div class="email-sender">From: <strong>${sender}</strong></div>
+          <div class="email-subject">${subject}</div>
+          <div class="email-snippet">${snippet}</div>
+        </div>
+        <div class="email-actions">
+          <div class="email-btn primary">Reply</div>
+          <div class="email-btn">Archive</div>
+        </div>
+      </div>
+    `;
+}
+
+let activeSpotifyCardId = null;
+let currentSpotifyTrack = null;
+
+function updateOrInjectSpotifyCard(spData) {
+  if(!activeSpotifyCardId || currentSpotifyTrack !== spData.trackName) {
+    activeSpotifyCardId = 'sp_'+Date.now();
+    currentSpotifyTrack = spData.trackName;
+
+    const fallbackArt = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath fill=%22%231DB954%22 d=%22M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z%22/%3E%3C/svg%3E";
+
+    const playIcon = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    const pauseIcon = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+    const html = `
+      <div class="smart-card spotify" id="${activeSpotifyCardId}">
+        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" onerror="this.onerror=null;this.src='${fallbackArt}';" alt="Art" style="${!spData.isPlaying ? 'opacity: 0.8;' : ''}">
+        <div class="sc-bottom">
+          <div class="sc-header-row">
+            <div class="sc-text-col">
+              <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
+              <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
+            </div>
+          </div>
+          <div class="sc-controls-row">
+            <svg class="sc-ctrl-icon" viewBox="0 0 24 24" onclick="silentSpotifyCommand('previous')"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            <div class="sc-play-btn ${spData.isPlaying ? 'playing' : ''}" id="${activeSpotifyCardId}-play" onclick="silentSpotifyCommand('toggle')">
+              ${spData.isPlaying ? pauseIcon : playIcon}
+            </div>
+            <svg class="sc-ctrl-icon" viewBox="0 0 24 24" onclick="silentSpotifyCommand('next')"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </div>
+        </div>
+      </div>
+    `;
+    addMessage(html, 'oliver', null, null, null, false, true);
+  } else {
+    const card = document.getElementById(activeSpotifyCardId);
+    if(card) {
+      const art = document.getElementById(`${activeSpotifyCardId}-art`);
+      const playBtn = document.getElementById(`${activeSpotifyCardId}-play`);
+      const playIcon = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      const pauseIcon = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+      if(spData.isPlaying) { 
+          art.style.opacity = '1'; 
+          if(playBtn) { playBtn.innerHTML = pauseIcon; playBtn.classList.add('playing'); }
+      } else { 
+          art.style.opacity = '0.8'; 
+          if(playBtn) { playBtn.innerHTML = playIcon; playBtn.classList.remove('playing'); }
+      }
+    }
+  }
+}
+
+async function silentSpotifyCommand(action) {
+  await pipeline(`[SPOTIFY_REMOTE]:${action}`, false, null, null, null, true);
+}
+
+function onImageSelected(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    const dataUrl=ev.target.result;
+    pendingImageBase64=dataUrl.split(',')[1];
+    pendingImageMime=file.type||'image/jpeg';
+    pendingImageName=file.name||'image.jpg';
+    document.getElementById('img-preview').src=dataUrl;
+    document.getElementById('img-preview-name').textContent=pendingImageName;
+    document.getElementById('img-preview-bar').classList.add('visible');
+    imgBtn.classList.add('has-image');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(){
+  pendingImageBase64=null; pendingImageMime=null; pendingImageName=null;
+  document.getElementById('img-preview').src='';
+  document.getElementById('img-preview-bar').classList.remove('visible');
+  imgBtn.classList.remove('has-image');
+}
+
+async function uploadImageToDrive(base64,mimeType,filename){
+  const res=await fetch(GOOGLE_SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ secret:GOOGLE_SECRET, tool:'drive_save_image', params:{ base64, mimeType, filename } }),
+  });
+  return await res.json();
+}
+
+function checkEnter(e){ if(e.key==='Enter') sendMessage(); }
+
+async function sendMessage(){
+  unlockAudio();
+  const inp=document.getElementById('text-input');
+  const text=inp.value.trim();
+  if(!text && !pendingImageBase64) return;
+  inp.value='';
+  await pipeline(text||"I've shared an image with you.", false, pendingImageBase64, pendingImageMime, pendingImageName);
+}
+
+const CAL_SVG = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z';
+
+function formatMessageText(text) {
+  text = text.trim();
+  if(!text) return '';
+
+  // INTERCEPT SMART WIDGETS BEFORE HTML ESCAPING
+  text = text.replace(/<WIDGET:TIMER:(\d+):([^>]+)>/gi, (match, secs, label) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getTimerHTML(uId, parseInt(secs), label);
+      setTimeout(() => startTimer(uId, parseInt(secs), label), 100);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:ALARM:((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*(?:AM|PM|am|pm))?):([^>]+)>/gi, (match, timeStr, label) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getAlarmHTML(uId, timeStr, label);
+      setTimeout(() => startAlarm(uId, timeStr, label), 100);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:STOPWATCH>/gi, (match) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getStopwatchHTML(uId);
+      setTimeout(() => {
+           activeStopwatches[uId] = { id: uId, start: Date.now(), elapsed: 0, interval: null };
+           saveWidget(uId, 'stopwatch', activeStopwatches[uId]);
+           startStopwatch(uId);
+      }, 100);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:EMAIL:(.*?)\|(.*?)\|(.*?)>/gi, (match, sender, subject, snippet) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getEmailHTML(uId, sender, subject, snippet);
+      return `\n[[${uId}]]\n`;
+  });
+  
+  let events = [];
+  let cleanLines = [];
+
+  const lines = text.split('\n');
+  const timeSrc = '\\b(?:1[0-2]|0?[1-9]):[0-5][0-9]\\s*(?:am|pm|AM|PM)?\\b|\\b(?:1[0-2]|0?[1-9])\\s*(?:am|pm|AM|PM)\\b|\\b(?:2[0-3]|[01]?[0-9]):[0-5][0-9]\\b';
+  const rangeRe = new RegExp('(' + timeSrc + ')\\s*(?:[-–—]|\\bto\\b)\\s*(' + timeSrc + ')', 'i');
+  const singleRe = new RegExp('(' + timeSrc + ')', 'i');
+  
+  const dateRegex = /^(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day)?\s*,?\s*)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{4})?|^(?:Tomorrow|Today|Yesterday)\b/i;
+
+  for (let line of lines) {
+    let isEvent = false;
+    if (/^(?:-|\*)\s/.test(line)) {
+        let raw = line.replace(/^(?:-|\*)\s*/, '').replace(/\*\*/g, '').trim();
+        let timeDesc = '';
+        let title = raw;
+        
+        let rMatch = raw.match(rangeRe);
+        if (rMatch) {
+            timeDesc = rMatch[0];
+            title = raw.replace(rangeRe, '|||');
+        } else {
+            let sMatch = raw.match(singleRe);
+            if (sMatch) {
+                timeDesc = sMatch[0];
+                title = raw.replace(singleRe, '|||');
+            }
+        }
+        
+        if (timeDesc) {
+            let parts = title.split('|||');
+            let cleanTitleParts = parts.map(p => {
+                let s = p.trim();
+                s = s.replace(/^(?:from|to|at|is|on|:|-|–|—|,)(?:\s+|$)/i, '');
+                s = s.replace(/(?:\s+|^)(?:from|to|at|is|on|:|-|–|—|,)$/i, '');
+                return s.trim();
+            }).filter(p => p.length > 0);
+            
+            let finalTitle = cleanTitleParts.join(' ').trim();
+            
+            let dateStr = '';
+            let dateMatch = finalTitle.match(dateRegex);
+            if (dateMatch) {
+                dateStr = dateMatch[0].trim();
+                finalTitle = finalTitle.substring(dateMatch[0].length).trim();
+                finalTitle = finalTitle.replace(/^(?:from|to|at|is|on|:|-|–|—|,)(?:\s+|$)/i, '').trim();
+            }
+            
+            let loc = '';
+            let locMatch = finalTitle.match(/\(([^)]+)\)$/);
+            if (locMatch) {
+                loc = locMatch[1].trim();
+                finalTitle = finalTitle.replace(/\([^)]+\)$/, '').trim();
+            }
+            
+            let timeHtml = timeDesc.replace(/\s*(?:[-–—]|\bto\b)\s*/gi, '<br>');
+            
+            events.push({ title: finalTitle, time: timeHtml, origTimeDesc: timeDesc, loc, dateStr });
+            isEvent = true;
+        }
+    }
+    if (!isEvent) {
+      cleanLines.push(line);
+    }
+  }
+
+  // Inject the calendar card directly as a smart widget into the UI flow
+  if (events.length > 0) {
+    events.sort((a, b) => {
+      const parseTime = (str) => {
+        if (!str) return 9999;
+        if (str.toLowerCase().includes('all day')) return -1;
+        const match = str.match(/(\d+)(?::(\d+))?\s*(am|pm)?/i);
+        if (!match) return 9999;
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2] || '0', 10);
+        const isPM = match[3] && match[3].toLowerCase() === 'pm';
+        const isAM = match[3] && match[3].toLowerCase() === 'am';
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        return h * 60 + m;
+      };
+      return parseTime(a.origTimeDesc) - parseTime(b.origTimeDesc);
+    });
+
+    const headerDate = events.map(e => e.dateStr).find(d => d) || '';
+    const colors = ['#00a8ff', '#00d4ff', '#9d00ff', '#00a8ff', '#00d4ff'];
+    let eventsHtml = events.map((ev, i) => {
+      return `
+        <div class="cal-event">
+          <div class="cal-time">${ev.time}</div>
+          <div class="cal-divider" style="background:${colors[i % colors.length]}"></div>
+          <div class="cal-details">
+            <div class="cal-event-title">${ev.title}</div>
+            ${ev.loc ? `<div class="cal-event-loc">${ev.loc}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `
+      <div class="smart-card calendar" style="max-width:100%;width:100%;margin-top:8px;margin-bottom:8px;">
+        <div class="cal-header-bg">
+          <div class="cal-header">
+            <div class="cal-title">
+              <svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg>
+              Schedule
+            </div>
+            ${headerDate ? `<div class="cal-date">${headerDate}</div>` : ''}
+          </div>
+        </div>
+        <div class="cal-events">${eventsHtml}</div>
+      </div>
+    `;
+    text = cleanLines.join('\n').trim() + `\n\n[[${uId}]]`;
+  } else {
+    text = cleanLines.join('\n').trim();
+  }
+
+  // Immunize the chat UI by escaping raw HTML brackets
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Format markdown bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  const paragraphs = text.split(/\n{2,}/);
+  let html = paragraphs.map(p => {
+    if(!p.trim()) return '';
+    return `<div class="msg-para">${p.replace(/\n/g, '<br>')}</div>`;
+  }).join('');
+
+  // Safely restore our injected UI interactive elements (post-escape)
+  html = html.replace(/\[\[ui_(\d+)\]\]/g, (match, id) => {
+    return uiStore['ui_' + id] || '';
+  });
+
+  return html;
+}
+
+function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = false, isRawHtml = false){
+  const c=document.getElementById('chat-container');
+  const div=document.createElement('div');
+  div.className='message '+sender;
+  if(isVoice) div.classList.add('hidden-voice');
+
+  if(sender==='oliver'){
+    div.innerHTML=`<div class="sender-row"><div class="sender-dot oliver"></div><span class="sender-name">Oliver</span></div>
+      <div class="oliver-card"><div class="msg-text">${isRawHtml ? text : formatMessageText(text)}</div></div>`;
+  } else {
+    let inner='';
+    if(imageBase64) inner+=`<img class="msg-image" src="data:${imageMime||'image/jpeg'};base64,${imageBase64}" alt="${imageName||'image'}">`;
+    if(text) inner+=`<div class="msg-text">${formatMessageText(text)}</div>`;
+    div.innerHTML=`<div class="sender-row"><div class="sender-dot user"></div><span class="sender-name">You</span></div>
+      <div class="user-card">${inner}</div>`;
+  }
+  c.appendChild(div);
+  setTimeout(() => { c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }); }, 10);
+  return div;
+}
+
+function showDriveBadge(filename){
+  const c=document.getElementById('chat-container');
+  const userMsgs=c.querySelectorAll('.message.user');
+  const last=userMsgs[userMsgs.length-1];
+  if(!last) return;
+  const badge=document.createElement('div');
+  badge.className='drive-badge';
+  badge.innerHTML=`<svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Saved to Drive: ${filename}`;
+  last.appendChild(badge);
+}
+
+function extractCanvasAndMarkdown(text) {
+  let processed = text;
+  let hasCanvas = false;
+  const bt = String.fromCharCode(96, 96, 96);
+  
+  const canvasRe = /<canvas\b([^>]*)>([\s\S]*?)<\/canvas>/gi;
+  processed = processed.replace(canvasRe, (match, attrs, content) => {
+    hasCanvas = true;
+    const id = 'c_' + (++canvasIdCounter);
+    let type = (attrs.match(/type=["']?([^"'\s]+)["']?/i) || [])[1] || 'code';
+    let title = (attrs.match(/title=["']?([^"']+)["']?/i) || [])[1] || 'Web Application';
+    
+    let cleanContent = content.trim();
+    cleanContent = cleanContent.replace(new RegExp('^\\s*' + bt + '.*?\\n', 'i'), '');
+    cleanContent = cleanContent.replace(new RegExp('\\n?\\s*' + bt + '(?:eof)?\\s*$', 'i'), '');
+    
+    canvasStore[id] = { type: type.toLowerCase(), title: title, content: cleanContent };
+    setTimeout(() => { openStoredCanvas(id); }, 500);
+    
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+              <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+              <div class="pill-info"><span class="pill-title">${title}</span><span class="pill-type">${type}</span></div>
+              <div class="pill-action">Open</div>
+            </div>\n`;
+    return `[[${uId}]]`;
+  });
+
+  const mdRe = new RegExp(bt + '([^\\n]*)\\n?([\\s\\S]*?)' + bt + '(?:eof)?', 'gi');
+  processed = processed.replace(mdRe, (match, langInfo, content) => {
+    hasCanvas = true;
+    const id = 'c_' + (++canvasIdCounter);
+    const type = langInfo ? langInfo.split(':')[0].trim() : 'code';
+    const title = langInfo && langInfo.includes(':') ? langInfo.split(':')[1].trim() : (type === 'html' ? 'Web Application' : 'Code Snippet');
+    
+    canvasStore[id] = { type: type || 'code', title: title, content: content.trim() };
+    setTimeout(() => { openStoredCanvas(id); }, 500);
+    
+    const uId = 'ui_' + (++uiId);
+    uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+        <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+        <div class="pill-info"><span class="pill-title">${title}</span><span class="pill-type">${type}</span></div>
+        <div class="pill-action">Open</div>
+      </div>\n`;
+    return `\n[[${uId}]]\n`;
+  });
+
+  if (!hasCanvas && (processed.includes('<style>') || processed.includes('<!DOCTYPE html>') || processed.includes('function ') || processed.includes('class="'))) {
+     if(processed.length > 200 && (processed.match(/<[a-z][\s\S]*>/i) || processed.match(/\{[\s\S]*\}/))) {
+        hasCanvas = true;
+        const id = 'c_' + (++canvasIdCounter);
+        
+        let safeContent = processed.trim();
+        safeContent = safeContent.replace(/^<canvas[^>]*>/gi, '').replace(/<\/canvas>$/gi, '').trim();
+
+        canvasStore[id] = { type: 'code', title: 'Generated Code', content: safeContent };
+        setTimeout(() => { openStoredCanvas(id); }, 500);
+        
+        const uId = 'ui_' + (++uiId);
+        uiStore[uId] = `\n<div class="pill-btn" onclick="openStoredCanvas('${id}')">
+            <div class="pill-icon"><svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></div>
+            <div class="pill-info"><span class="pill-title">Generated Code</span><span class="pill-type">code</span></div>
+            <div class="pill-action">Open</div>
+          </div>\n`;
+        processed = `Here is the code you requested:\n[[${uId}]]`;
+     }
+  }
+
+  return { processed: processed.trim(), hasCanvas };
+}
+
+async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
+  let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
+  let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
+
+  if (textToSend.toLowerCase() === "test spotify") {
+      addMessage(textToSend, 'user', null, null, null, speakReply);
+      setTimeout(() => {
+          updateOrInjectSpotifyCard({
+              trackName: "Runaway",
+              artistName: "Electric Youth",
+              albumArt: "https://i.scdn.co/image/ab67616d00001e029c07ed104e12c145cd42c8d2",
+              isPlaying: true
+          });
+      }, 500);
+      return;
+  }
+
+  if (isThinking && !isSilentCommand) return;
+
+  const runId = Date.now().toString();
+  let userMsgEl = null;
+
+  try {
+    if (!isSilentCommand) {
+      isThinking = true;
+      if (!isHiddenPrompt) {
+        userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
+      }
+      updateOrbState();
+      if (!isHiddenPrompt) {
+        const lowerMsg = textToSend.toLowerCase();
+        if (lowerMsg.match(/^(play|pause|resume|skip|next|previous)/) || lowerMsg.includes("on spotify") || lowerMsg.includes("some music") || lowerMsg.includes("song")) {
+          setTimeout(() => { pollSpotifyStatus(); }, 1000);
+        }
+      }
+    } else {
+      if (!userText.includes("status")) {
+        const pip = document.getElementById('main-pip');
+        if (pip && !oliverSleepMode) pip.style.background = '#1DB954';
+      }
+    }
+
+    const elapsed = Math.floor((Date.now()-sessionStart)/1000);
+    const timeActive = `${Math.floor(elapsed/60)} minute(s) and ${elapsed%60} second(s)`;
+
+    let imageContext='';
+    if(imageBase64){
+      imgBtn.classList.add('uploading');
+      try{
+        const driveResult=await uploadImageToDrive(imageBase64,imageMime||'image/jpeg',imageName||'image.jpg');
+        if(driveResult.success){
+          imageContext=`\n\n[IMAGE UPLOADED TO DRIVE: filename="${driveResult.filename}"]`;
+          showDriveBadge(driveResult.filename);
+        }
+      }catch(err){ console.warn('Drive upload failed:',err); }
+      finally{ imgBtn.classList.remove('uploading'); clearImage(); }
+    }
+
+    const uiHistory = getUIHistory();
+    const currentInterruptedState = window.hasInterrupted;
+    window.hasInterrupted = false;
+
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        message: textToSend + imageContext,
+        sessionDuration: timeActive,
+        sessionId: getSessionId(),
+        inputMode: speakReply ? 'voice' : 'text',
+        voiceEnabled: speakReply,
+        hasImage: !!imageBase64,
+        uiHistory: uiHistory,
+        wasInterrupted: currentInterruptedState
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.spotify_data && data.spotify_data.isPlaying !== undefined) {
+       updateOrInjectSpotifyCard(data.spotify_data);
+       spotifyIsPlaying = data.spotify_data.isPlaying;
+    }
+
+    if (data.error) {
+      console.error("Pipeline Error:", data.error);
+    } else if (data.ignored) {
+      if (userMsgEl) {
+        userMsgEl.style.transition = 'all 0.4s ease';
+        userMsgEl.style.opacity = '0';
+        userMsgEl.style.transform = 'scale(0.95)';
+        setTimeout(() => userMsgEl.remove(), 400);
+      }
+    } else if (data.reply) {
+      let rawText = data.reply || '';
+      let autoFollowUp = false;
+
+      if (rawText.includes("<CONTINUE>")) {
+        autoFollowUp = true;
+        rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
+      } else {
+        const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
+        const lower = rawText.toLowerCase();
+        if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
+          autoFollowUp = true;
+        }
+      }
+
+      const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
+
+      if (!isSilentCommand) {
+        if (processed.trim() !== '') {
+          const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+          if (speakReply && oliverMsgEl) {
+            const hasInteractive = hasCanvas || oliverMsgEl.querySelector('.pill-btn, .smart-card');
+            if (hasInteractive) oliverMsgEl.classList.remove('hidden-voice');
+          }
+          if (speakReply) {
+            audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
+            if (!isPlayingQueue) processAudioQueue();
+          }
+        }
+
+        if (autoFollowUp) {
+          setTimeout(() => {
+            pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
+          }, 1200);
+        }
+      }
+    }
+
+  } catch(err) {
+    console.warn("Pipeline execution error:", err);
+  } finally {
+    if (!isSilentCommand) {
+      isThinking = false;
+      updateOrbState();
+    } else {
+      const pip = document.getElementById('main-pip');
+      if (pip && !oliverSleepMode) pip.style.background = 'white';
+    }
+  }
+}
+
+async function processAudioQueue() {
+  if(audioQueue.length === 0) {
+    isPlayingQueue = false;
+    updateOrbState();
+    if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
+      startListening();
+    }
+    return;
+  }
+  isPlayingQueue = true;
+  const currentItem = audioQueue.shift();
+  currentPlayingRunId = currentItem.runId;
+  await speakText(currentItem.text, currentItem.isFiller, currentItem.msgEl);
+}
+
+function cleanForTTS(text){
+  const bt = String.fromCharCode(96, 96, 96);
+  return text
+    .replace(/<WIDGET[^>]+>/g, '') 
+    .replace(/\[\[ui_\d+\]\]/g, '')
+    .replace(/<canvas[\s\S]*?<\/canvas>/gi, '')
+    .replace(new RegExp(bt + '.*?\\n[\\s\\S]*?' + bt + '(?:eof)?', 'gi'), '')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/\*(.+?)\*/g,'$1')
+    .replace(/#+\s/g,'')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/\n{2,}/g,' ')
+    .replace(/\n/g,' ')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+
+async function speakText(text, isFiller = false, msgEl = null) {
+  const ttsText = cleanForTTS(text);
+  if(!ttsText) {
+    if(msgEl) msgEl.classList.remove('hidden-voice');
+    processAudioQueue();
+    return;
+  }
+
+  isSpeaking = true;
+  addOliverMemory(ttsText);
+  updateOrbState();
+
+  try {
+    const ctx = getAudioCtx();
+    if(ctx && ctx.state === 'suspended') await ctx.resume();
+
+    const res = await fetch(XI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ text: ttsText }),
+    });
+
+    if(!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
+
+    const arrayBuffer = await res.arrayBuffer();
+    if(ctx) {
+      const decoded = await ctx.decodeAudioData(arrayBuffer);
+      await new Promise((resolve) => {
+        const src = ctx.createBufferSource();
+        src.buffer = decoded;
+        src.connect(ctx.destination);
+        src.onended = resolve;
+        src.start(0);
+        currentAudio = src;
+      });
+    }
+  } catch(err) {
+    console.warn('TTS error:', err);
+    if(msgEl) msgEl.classList.remove('hidden-voice');
+  } finally {
+    currentAudio = null;
+    currentPlayingRunId = null;
+    isSpeaking = false;
+    if(audioQueue.length > 0) {
+      processAudioQueue();
+    } else {
+      isPlayingQueue = false;
+      updateOrbState();
+      if (isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
+        startListening();
+      }
+    }
+  }
+}
+
+function toggleContinuous(){
+  unlockAudio();
+  isContinuous=!isContinuous;
+  convoBtn.classList.toggle('active',isContinuous);
+  if(isContinuous){
+    if(!isRecording && !isSpeaking && !isThinking && !oliverSleepMode) startListening();
+  } else {
+    stopWave(); stopRecording(false);
+  }
+}
+
+function startListening(){
+  if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue || oliverSleepMode) return;
+  isMicStarting = true;
+  recognition = buildRecognition();
+  if(!recognition) { 
+    isContinuous = false;
+    document.getElementById('convo-btn').classList.remove('active');
+    isMicStarting = false; 
+    return; 
+  }
+  try{ recognition.start(); }
+  catch(err){ console.warn("Mic start failed:", err); isMicStarting = false; }
+}
+
+function buildRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR) { addMessage("Speech recognition not supported in this browser.", 'oliver'); return null; }
+  const r=new SR();
+  r.continuous=true; r.interimResults=true; r.lang='en-US';
+
+  r.onstart=()=>{
+    isRecording=true; isMicStarting=false;
+    document.getElementById('convo-btn').classList.add('recording');
+    updateOrbState(); interimEl.textContent='';
+  };
+
+  r.onresult=(e)=>{
+    let interim='', final='';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const t=e.results[i][0].transcript;
+      e.results[i].isFinal ? (final+=t) : (interim+=t);
+    }
+    const liveText = (interim || final).toLowerCase().trim();
+
+    if (isHolding) {
+        if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("ready") || liveText.includes("i'm back")) {
+            isHolding = false;
+            interimEl.textContent = '';
+            stopRecording(false);
+            const msgEl = addMessage("I'm here.", "oliver", null, null, null, true);
+            msgEl.classList.remove('hidden-voice');
+            audioQueue.push({ text: "I'm here.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+            if (!isPlayingQueue) processAudioQueue();
+            return;
+        }
+        interimEl.textContent = ''; 
+        return; 
+    }
+
+    if (liveText.match(/^(hold on|hold on a second|hold on a minute|give me a sec|give me a second|give me a minute|wait a sec|wait a second|pause)( oliver)?$/i) || liveText.includes("oliver hold on") || liveText.includes("hold on oliver")) {
+        isHolding = true;
+        interimEl.textContent = '';
+        clearTimeout(sentenceTimeout);
+        
+        if(isPlayingQueue || isSpeaking) {
+            window.hasInterrupted = true;
+            if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+            audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+        }
+
+        stopRecording(false);
+        const msgEl = addMessage("Standing by. Say my name when you're ready.", "oliver", null, null, null, true);
+        msgEl.classList.remove('hidden-voice');
+        audioQueue.push({ text: "Standing by. Say my name when you're ready.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+        if (!isPlayingQueue) processAudioQueue();
+        return;
+    }
+
+    if (isSpeaking || isPlayingQueue) {
+      const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
+      if (!isWakeWord) return;
+    }
+    if(isEcho(liveText)) return;
+
+    if (!oliverSleepMode && (liveText.includes("oliver ignore me") || liveText.includes("ignore me oliver") || liveText.includes("go to sleep oliver"))) {
+      oliverSleepMode = true;
+      interimEl.textContent = '';
+      clearTimeout(sentenceTimeout);
+      updateOrbState();
+      stopRecording(false);
+      const msgEl = addMessage("I'm going to sleep. Tap my microphone button when you need me.", "oliver", null, null, null, true);
+      msgEl.classList.remove('hidden-voice');
+      audioQueue.push({ text: "I'll go to sleep now. Tap my microphone button when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+      if (!isPlayingQueue) processAudioQueue();
+      return;
+    }
+
+    if (liveText.includes("oliver stop") || liveText.includes("stop listening completely")) {
+      stopRecording(false); toggleContinuous(); return;
+    }
+
+    if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
+      if (isPlayingQueue || isSpeaking) {
+        window.hasInterrupted = true;
+        stopRecording(false);
+        if (currentAudio) { try{currentAudio.stop();}catch(e){} currentAudio = null; }
+        audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+        startListening(); return;
+      }
+    }
+
+    if(liveText.length < 3) return;
+    interimEl.textContent = interim || final;
+    clearTimeout(sentenceTimeout);
+    if(liveText.trim()) {
+      sentenceTimeout = setTimeout(() => {
+        if(isRecording && interimEl.textContent.trim() && !oliverSleepMode) {
+          if (interimEl.textContent.trim().length > 2) { stopRecording(true); }
+          else { interimEl.textContent = ''; }
+        }
+      }, 1200);
+    }
+  };
+
+  r.onerror=(e)=>{
+    if(e.error === 'not-allowed') addMessage("Microphone access denied.", 'oliver');
+    isMicStarting = false; stopRecording(false);
+  };
+
+  r.onend=()=>{
+    if(isRecording) stopRecording(false);
+    isMicStarting = false;
+    if(isContinuous && !isRecording && !isThinking && !oliverSleepMode) {
+      setTimeout(startListening, 300);
+    }
+  };
+  return r;
+}
+
+function toggleMic(){
+  unlockAudio();
+  if (oliverSleepMode) { oliverSleepMode = false; updateOrbState(); }
+  if (isHolding) { isHolding = false; updateOrbState(); }
+  if(isRecording){ stopRecording(true); return; }
+  if(isPlayingQueue || isSpeaking || isThinking) {
+    window.hasInterrupted = true;
+    if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+    audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+    updateOrbState();
+  }
+  startListening();
+}
+
+function stopRecording(processCurrent = false){
+  isRecording=false;
+  document.getElementById('convo-btn').classList.remove('recording');
+  clearTimeout(sentenceTimeout);
+  const capturedText = interimEl.textContent.trim();
+  interimEl.textContent='';
+  try{ if(recognition) recognition.stop(); }catch(_){}
+  updateOrbState();
+  if(processCurrent && capturedText && capturedText.length > 2) {
+    pipeline(capturedText, true);
+  }
+}
+
+setInterval(() => {
+  if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking && !oliverSleepMode) {
+    startListening();
+  }
+}, 1500);
+
+const canvasEl    = document.getElementById('oliver-canvas');
+let canvasRawContent='';
+
+function openStoredCanvas(id) {
+  const data = canvasStore[id];
+  if(data) openCanvas(data.type, data.title, data.content);
+}
+
+function showIdeTab(tab) {
+  document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+  document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
+  document.getElementById('canvas-code-wrap').style.display = tab === 'code' ? 'block' : 'none';
+  document.getElementById('canvas-preview-wrap').style.display = tab === 'preview' ? 'flex' : 'none';
+}
+
+function openCanvas(type, title, content){
+  document.getElementById('canvas-title-text').textContent = title || 'Oliver AI Generated Code';
+  canvasRawContent = content;
+
+  document.getElementById('canvas-code').innerHTML = syntaxHighlight(content);
+
+  const isWeb = content.includes('<!DOCTYPE html>') || content.includes('<html') || type === 'html' || type === 'web';
+  if(isWeb) {
+    document.getElementById('canvas-iframe').srcdoc = content;
+    document.getElementById('tab-preview').style.display = 'block';
+    showIdeTab('code');
+  } else {
+    document.getElementById('canvas-iframe').srcdoc = '';
+    document.getElementById('tab-preview').style.display = 'none';
+    showIdeTab('code');
+  }
+
+  canvasEl.classList.add('open');
+}
+
+function closeCanvas(){ canvasEl.classList.remove('open'); }
+
+function copyCanvas(){
+  const ta = document.createElement('textarea');
+  ta.value = canvasRawContent;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'absolute';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  
+  const btn = document.getElementById('copy-btn');
+  btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <span class="hide-mobile">Copied!</span>`;
+  setTimeout(()=>{ 
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg> <span class="hide-mobile">Share</span>`;
+  }, 2000);
+}
+
+function syntaxHighlight(code){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return code.split('\n').map((line)=>{
+    let parsed = esc(line);
+    if(parsed.match(/^\s*(\/\/|#|--|\/\*)/)) {
+      parsed = `<span class="tok-cmt">${parsed}</span>`;
+    } else {
+      parsed = parsed
+        .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|`.*?`)/g,'<span class="tok-str">$1</span>')
+        .replace(/&lt;([a-zA-Z0-9\-]+)(.*?)&gt;/g, '&lt;<span class="tok-tag">$1</span>$2&gt;')
+        .replace(/&lt;\/([a-zA-Z0-9\-]+)&gt;/g, '&lt;/<span class="tok-tag">$1</span>&gt;')
+        .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|new|this|null|undefined|true|false|def|self|print|in|is|not|and|or|type|interface|extends|implements|public|private|static|void|int|string|bool)\b/g,'<span class="tok-kw">$1</span>')
+        .replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'<span class="tok-fn">$1</span>')
+        .replace(/\b(\d+\.?\d*)\b/g,'<span class="tok-num">$1</span>');
+    }
+    return `<div class="line-row"><span class="line-num"></span><span class="line-content">${parsed||' '}</span></div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
