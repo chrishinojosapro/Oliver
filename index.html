@@ -17,12 +17,16 @@
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
-  html { background-color: #010409; height: 100%; }
+  html { 
+    height: -webkit-fill-available; 
+    background-color: #040d1a; 
+  }
 
   body {
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: linear-gradient(to bottom, #010409 0%, #040d1a 100%); color:#fff;
-    height:100vh; height:100dvh;
+    min-height: 100vh; 
+    min-height: -webkit-fill-available;
     display:flex; flex-direction:column;
     overflow:hidden; position:relative;
     padding-top:env(safe-area-inset-top);
@@ -185,7 +189,6 @@
   .sc-play-btn svg { width: 28px; height: 28px; fill: #00a8ff; margin-left: 3px; } 
   .sc-play-btn.playing svg { margin-left: 0; }
 
-  /* Time Variant Shared Styles */
   .smart-card.timer { 
     background: linear-gradient(135deg, rgba(0, 150, 255, 0.1) 0%, rgba(5, 15, 25, 0.8) 100%);
     border-color: rgba(0, 150, 255, 0.3); border-top-color: rgba(0, 150, 255, 0.5);
@@ -207,7 +210,6 @@
   .sc-btn:active { transform: scale(0.9); background: rgba(0,150,255,0.25); }
   .sc-btn svg { width: 24px; height: 24px; fill: #00a8ff; }
 
-  /* Calendar Variant */
   .smart-card.calendar { 
     background: #000000;
     border: 1px solid rgba(255,255,255,0.08);
@@ -235,7 +237,6 @@
   .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
   .cal-event-loc { font-size: 0.8em; color: #a0a0a0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Email Variant */
   .smart-card.email {
     background: linear-gradient(135deg, rgba(10, 20, 30, 0.7) 0%, rgba(5, 10, 15, 0.9) 100%);
     border: 1px solid rgba(0, 150, 255, 0.2);
@@ -292,7 +293,7 @@
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
     padding:8px 14px calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top,rgba(1,4,9,0.95) 60%,transparent);
+    background:linear-gradient(to top,rgba(4,13,26,0.98) 60%,transparent);
   }
   #text-input {
     flex:1; min-width:0;
@@ -589,7 +590,6 @@ window.addEventListener('load', async () => {
   }
 });
 
-// PUSH NOTIFICATION HANDLER
 async function enablePushNotifications() {
     try {
         const permission = await Notification.requestPermission();
@@ -618,7 +618,6 @@ async function enablePushNotifications() {
             
             addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
 
-            // --- NEW: FIRE IMMEDIATE TEST NOTIFICATION ---
             setTimeout(() => {
                 sendLocalPushAlert("Connection Established 🌌", "I am fully linked to your iPhone! You can safely close the app now.");
             }, 1500);
@@ -879,7 +878,6 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
-// Global Logic for Timers, Alarms, Stopwatches
 let activeTimers = {};
 let timerData = {};
 let alarmData = {};
@@ -1308,7 +1306,6 @@ function formatMessageText(text) {
     }
   }
 
-  // Inject the calendar card directly as a smart widget into the UI flow
   if (events.length > 0) {
     events.sort((a, b) => {
       const parseTime = (str) => {
