@@ -26,7 +26,6 @@
     display:flex; flex-direction:column;
     overflow:hidden; position:relative;
     padding-top:env(safe-area-inset-top);
-    padding-bottom:env(safe-area-inset-bottom);
     padding-left:env(safe-area-inset-left);
     padding-right:env(safe-area-inset-right);
   }
@@ -236,6 +235,30 @@
   .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
   .cal-event-loc { font-size: 0.8em; color: #a0a0a0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+  /* Email Variant */
+  .smart-card.email {
+    background: linear-gradient(135deg, rgba(10, 20, 30, 0.7) 0%, rgba(5, 10, 15, 0.9) 100%);
+    border: 1px solid rgba(0, 150, 255, 0.2);
+    border-top: 1px solid rgba(0, 150, 255, 0.35);
+    padding: 0; margin: 14px 0; overflow: hidden;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+  .email-header {
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.12) 0%, transparent 100%);
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: center; gap: 10px; font-weight: 600; color: white;
+  }
+  .email-header svg { width: 20px; height: 20px; fill: #00a8ff; }
+  .email-body { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .email-sender { font-size: 0.85em; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .email-sender strong { color: #00d4ff; text-transform: none; font-size: 1.1em; letter-spacing: 0; font-weight: 500; }
+  .email-subject { font-size: 1.1em; color: white; font-weight: 600; line-height: 1.3; margin-top: 2px; }
+  .email-snippet { font-size: 0.9em; color: #a0a0a0; line-height: 1.5; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .email-actions { display: flex; gap: 12px; padding: 16px 20px 20px; }
+  .email-btn { flex: 1; padding: 10px; border-radius: 12px; text-align: center; font-size: 0.85em; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; cursor: pointer; transition: 0.2s; }
+  .email-btn.primary { background: rgba(0,150,255,0.15); border-color: rgba(0,150,255,0.3); color: #00a8ff; }
+  .email-btn:active { transform: scale(0.96); }
+
   #img-preview-bar {
     position:relative; z-index:10; flex-shrink:0;
     display:none; align-items:center; gap:10px;
@@ -268,7 +291,7 @@
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
-    padding:8px 14px 16px;
+    padding:8px 14px calc(16px + env(safe-area-inset-bottom));
     background:linear-gradient(to top,rgba(1,4,9,0.95) 60%,transparent);
   }
   #text-input {
@@ -1062,6 +1085,26 @@ function getStopwatchHTML(tId) {
     `;
 }
 
+function getEmailHTML(tId, sender, subject, snippet) {
+    return `
+      <div class="smart-card email" id="${tId}">
+        <div class="email-header">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          Gmail
+        </div>
+        <div class="email-body">
+          <div class="email-sender">From: <strong>${sender}</strong></div>
+          <div class="email-subject">${subject}</div>
+          <div class="email-snippet">${snippet}</div>
+        </div>
+        <div class="email-actions">
+          <div class="email-btn primary">Reply</div>
+          <div class="email-btn">Archive</div>
+        </div>
+      </div>
+    `;
+}
+
 let activeSpotifyCardId = null;
 let currentSpotifyTrack = null;
 
@@ -1191,6 +1234,11 @@ function formatMessageText(text) {
            saveWidget(uId, 'stopwatch', activeStopwatches[uId]);
            startStopwatch(uId);
       }, 100);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:EMAIL:(.*?)\|(.*?)\|(.*?)>/gi, (match, sender, subject, snippet) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getEmailHTML(uId, sender, subject, snippet);
       return `\n[[${uId}]]\n`;
   });
   
