@@ -507,6 +507,7 @@
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
 let oliverSleepMode = false;
+let isHolding = false;
 
 window.addEventListener('load', () => {
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
@@ -683,6 +684,10 @@ function updateOrbState() {
       setOrb(null); stopWave();
       const pip = document.getElementById('main-pip');
       if(pip) pip.style.background = '#555';
+  } else if (isHolding) {
+      setOrb('listening'); startWave('listening');
+      const pip = document.getElementById('main-pip');
+      if(pip && !spotifyIsPlaying) pip.style.background = '#ffaa32'; // Orange indicator for Hold Mode
   } else if (isSpeaking || isPlayingQueue) {
       setOrb('speaking'); startWave('speaking');
   } else if (isRecording) {
@@ -1151,6 +1156,14 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
     if (data.error) {
       console.error("Pipeline Error:", data.error);
+    } else if (data.ignored) {
+      // The Silence Protocol: Smoothly delete the user's chat bubble if it was just singing/music!
+      if (userMsgEl) {
+        userMsgEl.style.transition = 'all 0.4s ease';
+        userMsgEl.style.opacity = '0';
+        userMsgEl.style.transform = 'scale(0.95)';
+        setTimeout(() => userMsgEl.remove(), 400);
+      }
     } else if (data.reply) {
       let rawText = data.reply || '';
       let autoFollowUp = false;
@@ -1334,6 +1347,43 @@ function buildRecognition(){
     }
     const liveText = (interim || final).toLowerCase().trim();
 
+    // 1. Handle "Holding" state (Waiting for wake word to resume)
+    if (isHolding) {
+        if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("ready") || liveText.includes("i'm back")) {
+            isHolding = false;
+            interimEl.textContent = '';
+            stopRecording(false);
+            const msgEl = addMessage("I'm here.", "oliver", null, null, null, true);
+            msgEl.classList.remove('hidden-voice');
+            audioQueue.push({ text: "I'm here.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+            if (!isPlayingQueue) processAudioQueue();
+            return;
+        }
+        interimEl.textContent = ''; // Keep UI clear while holding
+        return; 
+    }
+
+    // 2. Trigger "Holding" state
+    if (liveText.match(/^(hold on|hold on a second|hold on a minute|give me a sec|give me a second|give me a minute|wait a sec|wait a second|pause)( oliver)?$/i) || liveText.includes("oliver hold on") || liveText.includes("hold on oliver")) {
+        isHolding = true;
+        interimEl.textContent = '';
+        clearTimeout(sentenceTimeout);
+        
+        // Instantly cut him off if he is currently speaking
+        if(isPlayingQueue || isSpeaking) {
+            window.hasInterrupted = true;
+            if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+            audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+        }
+
+        stopRecording(false);
+        const msgEl = addMessage("Standing by. Say my name when you're ready.", "oliver", null, null, null, true);
+        msgEl.classList.remove('hidden-voice');
+        audioQueue.push({ text: "Standing by. Say my name when you're ready.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+        if (!isPlayingQueue) processAudioQueue();
+        return;
+    }
+
     if (isSpeaking || isPlayingQueue) {
       const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
       if (!isWakeWord) return;
@@ -1398,6 +1448,7 @@ function buildRecognition(){
 function toggleMic(){
   unlockAudio();
   if (oliverSleepMode) { oliverSleepMode = false; updateOrbState(); }
+  if (isHolding) { isHolding = false; updateOrbState(); }
   if(isRecording){ stopRecording(true); return; }
   if(isPlayingQueue || isSpeaking || isThinking) {
     window.hasInterrupted = true;
