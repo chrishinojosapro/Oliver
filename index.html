@@ -583,7 +583,8 @@ async function enablePushNotifications() {
                 keys: subscription.toJSON().keys
             };
             
-            const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).single();
+            // FIX: Changed .single() to .maybeSingle() to prevent the 406 crash when the user doesn't exist yet
+            const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).maybeSingle();
 
             if (existing) {
                 const { error } = await supabaseClient.from('push_subscriptions').update({ keys: subData.keys }).eq('id', existing.id);
