@@ -6,16 +6,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Oliver AI</title>
+<title>Oliver AI - Aurora</title>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
 
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
   body {
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background:#050508; color:#fff;
+    background: linear-gradient(to bottom, #010409 0%, #040d1a 100%); color:#fff;
     height:100vh; height:100dvh;
     display:flex; flex-direction:column;
     overflow:hidden; position:relative;
@@ -27,67 +27,6 @@
 
   #star-canvas { position:fixed; inset:0; pointer-events:none; z-index:0; }
 
-  .orb-scene {
-    position:fixed; top:45%; left:50%;
-    transform:translate(-50%,-50%);
-    width:280px; height:280px;
-    pointer-events:none; z-index:1;
-    opacity:0; animation:orb-enter 2s ease forwards;
-  }
-  @media(max-width:390px){ .orb-scene{ width:240px; height:240px; } }
-  @keyframes orb-enter { to{ opacity:1; } }
-
-  .orb-glow {
-    position:absolute; inset:0; border-radius:50%;
-    background:radial-gradient(ellipse at 40% 35%,
-      rgba(160,120,255,0.18) 0%, rgba(80,120,255,0.12) 40%, transparent 70%);
-    animation:glow-breathe 4s ease-in-out infinite;
-  }
-  @keyframes glow-breathe {
-    0%,100%{ opacity:.6; transform:scale(1); }
-    50%    { opacity:1;  transform:scale(1.08); }
-  }
-  .orb-ring-outer {
-    position:absolute; inset:0; border-radius:50%;
-    border:1px solid rgba(255,255,255,0.28);
-    box-shadow:0 0 40px rgba(255,255,255,0.08),
-               0 0 80px rgba(160,120,255,0.14),
-               0 0 160px rgba(80,120,255,0.10),
-               inset 0 0 50px rgba(255,255,255,0.04);
-    animation:spin-cw 14s linear infinite;
-  }
-  .orb-ring-outer::before { content:''; position:absolute; inset:-12px; border-radius:50%; border:1px solid rgba(255,255,255,0.09); }
-  .orb-ring-outer::after  { content:''; position:absolute; inset:24px;  border-radius:50%; border:1px solid rgba(255,255,255,0.07); }
-  .orb-ring-inner {
-    position:absolute; inset:48px; border-radius:50%;
-    border:1px solid transparent;
-    border-top-color:rgba(140,100,255,0.55);
-    border-right-color:rgba(80,130,255,0.35);
-    border-bottom-color:rgba(140,100,255,0.15);
-    animation:spin-ccw 8s linear infinite;
-  }
-  .orb-core { position:absolute; inset:120px; border-radius:50%; background:radial-gradient(circle,rgba(200,180,255,0.25) 0%,transparent 70%); }
-
-  .orb-scene.thinking .orb-ring-outer { animation:spin-cw 14s linear infinite,think-pulse 0.75s ease-in-out infinite alternate; }
-  @keyframes think-pulse {
-    0%   { border-color:rgba(255,255,255,0.28); box-shadow:0 0 40px rgba(255,255,255,0.08),0 0 80px rgba(160,120,255,0.14),0 0 160px rgba(80,120,255,0.10),inset 0 0 50px rgba(255,255,255,0.04); }
-    100% { border-color:rgba(255,255,255,0.70); box-shadow:0 0 80px rgba(255,255,255,0.65),0 0 160px rgba(160,120,255,0.50),0 0 260px rgba(80,120,255,0.30),inset 0 0 70px rgba(255,255,255,0.15); }
-  }
-  .orb-scene.speaking .orb-ring-outer { animation:spin-cw 14s linear infinite,speak-pulse 0.5s ease-in-out infinite alternate; }
-  .orb-scene.speaking .orb-glow       { animation:speak-glow 0.5s ease-in-out infinite alternate; }
-  @keyframes speak-pulse {
-    0%   { border-color:rgba(120,180,255,0.45); box-shadow:0 0 50px rgba(100,160,255,0.25),0 0 100px rgba(120,100,255,0.30),0 0 180px rgba(80,120,255,0.18),inset 0 0 40px rgba(100,160,255,0.08); }
-    100% { border-color:rgba(180,140,255,0.80); box-shadow:0 0 100px rgba(100,160,255,0.60),0 0 180px rgba(140,100,255,0.55),0 0 280px rgba(80,120,255,0.35),inset 0 0 80px rgba(140,100,255,0.18); }
-  }
-  @keyframes speak-glow { 0%{ opacity:.7; transform:scale(1.0); } 100%{ opacity:1; transform:scale(1.18); } }
-  .orb-scene.listening .orb-ring-outer { animation:spin-cw 14s linear infinite,listen-pulse 1.2s ease-in-out infinite alternate; }
-  @keyframes listen-pulse {
-    0%   { border-color:rgba(255,255,255,0.28); box-shadow:0 0 40px rgba(255,255,255,0.08),0 0 90px rgba(200,120,255,0.20); }
-    100% { border-color:rgba(220,180,255,0.55); box-shadow:0 0 70px rgba(200,160,255,0.40),0 0 160px rgba(160,100,255,0.35); }
-  }
-  @keyframes spin-cw  { to{ transform:rotate(360deg);  } }
-  @keyframes spin-ccw { to{ transform:rotate(-360deg); } }
-
   header {
     position:relative; z-index:10;
     display:flex; justify-content:center; align-items:center;
@@ -96,7 +35,7 @@
   .header-center { display:flex; align-items:center; gap:8px; }
   .status-pip {
     width:7px; height:7px; border-radius:50%;
-    background:white; box-shadow:0 0 8px rgba(255,255,255,0.9);
+    background:white; box-shadow:0 0 8px rgba(0,150,255,0.9);
     animation:pip 2.5s ease-in-out infinite; transition: background 0.3s;
   }
   @keyframes pip { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.4; transform:scale(.7); } }
@@ -107,7 +46,8 @@
     flex:1; min-height:0;
     padding:12px 16px;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
-    display:flex; flex-direction:column; gap:14px;
+    display:flex; flex-direction:column; gap:24px;
+    align-items: center;
     scroll-behavior: smooth;
     mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
@@ -115,28 +55,31 @@
   #chat-container::-webkit-scrollbar { display:none; }
 
   @keyframes msg-in { from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
-
   .hidden-voice { display: none !important; }
 
-  .message { display: flex; flex-direction: column; max-width: 90%; animation:msg-in 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
-  .message.user { align-self:flex-end; align-items: flex-end; }
-  .message.oliver { align-self:flex-start; align-items: flex-start; }
+  .message { display: flex; flex-direction: column; width: 100%; max-width: 380px; animation:msg-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
   .user-card {
-    padding:11px 16px; border-radius:20px 20px 5px 20px;
-    font-size:0.93em; line-height:1.55; color:rgba(255,255,255,0.9);
-    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
-    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    padding:24px; border-radius:32px;
+    font-size:1.02em; line-height:1.65; color:rgba(255,255,255,0.95); font-weight:300;
+    background:linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.02) 100%);
+    border:1px solid rgba(255,255,255,0.12); border-top:1px solid rgba(255,255,255,0.22);
+    backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
   }
 
-  .sender-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; margin-left: 4px; }
-  .sender-dot { width:5px; height:5px; border-radius:50%; background:rgba(160,120,255,0.7); box-shadow:0 0 6px rgba(140,100,255,0.6); }
-  .sender-name { font-size:10px; color:rgba(255,255,255,0.4); font-weight:600; letter-spacing:0.12em; text-transform:uppercase; }
+  .sender-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; margin-left: 6px; }
+  .sender-dot { width:7px; height:7px; border-radius:50%; }
+  .sender-dot.oliver { background:rgba(0,150,255,0.8); box-shadow:0 0 10px rgba(0,150,255,0.6); }
+  .sender-dot.user { background:rgba(0,200,255,0.8); box-shadow:0 0 10px rgba(0,200,255,0.6); }
+  .sender-name { font-size:11px; color:rgba(255,255,255,0.5); font-weight:600; letter-spacing:0.15em; text-transform:uppercase; }
+  
   .oliver-card {
-    padding:14px 18px; border-radius:5px 20px 20px 20px;
-    background:rgba(20, 15, 35, 0.65); border:1px solid rgba(160,120,255,0.25);
-    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-    box-shadow:0 8px 32px rgba(0,0,0,0.3);
+    padding:24px; border-radius:32px;
+    background:linear-gradient(135deg, rgba(4, 18, 24, 0.5) 0%, rgba(2, 8, 12, 0.7) 100%);
+    border:1px solid rgba(0,150,255,0.15); border-top:1px solid rgba(0,150,255,0.3);
+    backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+    box-shadow:0 12px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
   }
   .msg-text { font-size:1.02em; color:rgba(255,255,255,0.95); font-weight:300; line-height:1.65; }
   .msg-text strong { font-weight:600; color:#fff; }
@@ -152,110 +95,130 @@
   .drive-badge {
     display:inline-flex; align-items:center; gap:6px;
     margin-top:8px; padding:4px 12px; border-radius:12px; font-size:0.75em;
-    background:rgba(30,180,90,0.15); border:1px solid rgba(30,180,90,0.3); color:rgba(120,240,150,0.9);
+    background:rgba(0,150,255,0.15); border:1px solid rgba(0,150,255,0.3); color:rgba(120,200,255,0.9);
   }
   .drive-badge svg { width:12px; height:12px; fill:currentColor; }
 
   .pill-btn {
     display:inline-flex; align-items:center; gap:12px;
-    margin-top:10px; padding:8px 12px 8px 8px; border-radius:99px;
-    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-    cursor:pointer; transition:all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    margin-top:12px; padding:12px 16px 12px 12px; border-radius:24px;
+    background:linear-gradient(135deg, rgba(0,200,255,0.15) 0%, rgba(0,150,255,0.05) 100%);
+    border:1px solid rgba(0,150,255,0.3); border-top:1px solid rgba(0,150,255,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    cursor:pointer; transition:all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     -webkit-tap-highlight-color:transparent;
-    width: 100%; max-width: 300px;
+    width: 100%;
   }
-  .pill-btn:active { transform:scale(0.96); background:rgba(255,255,255,0.1); }
+  .pill-btn:active { transform:scale(0.96); background:rgba(0,150,255,0.15); }
   .pill-icon {
-    width:32px; height:32px; border-radius:50%; background:rgba(140,100,255,0.2);
-    display:flex; align-items:center; justify-content:center; color:rgba(200,170,255,1);
+    width:42px; height:42px; border-radius:18px; background:rgba(0,150,255,0.2);
+    display:flex; align-items:center; justify-content:center; color:rgba(0,180,255,1);
     flex-shrink: 0;
   }
-  .pill-icon svg { width:16px; height:16px; fill:currentColor; }
-  .pill-info { display:flex; flex-direction:column; gap:2px; padding-right:8px; flex: 1; overflow: hidden; }
-  .pill-title { font-size:0.9em; font-weight:500; color:white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pill-type { font-size:0.75em; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.05em; }
+  .pill-icon svg { width:20px; height:20px; fill:currentColor; }
+  .pill-info { display:flex; flex-direction:column; gap:4px; padding-right:8px; flex: 1; overflow: hidden; }
+  .pill-title { font-size:1em; font-weight:600; color:white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-type { font-size:0.8em; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.05em; font-weight:500; }
   .pill-action { 
     font-size:0.85em; font-weight:700; color:#fff; 
-    background: rgba(160,120,255,0.3);
-    padding: 6px 14px; border-radius: 99px; 
+    background: linear-gradient(135deg, rgba(0,200,255,0.4), rgba(0,150,255,0.3));
+    padding: 8px 16px; border-radius: 99px; 
     margin-left: auto; border: none; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
 
   .smart-card {
-    margin-top: 10px; padding: 10px 14px; border-radius: 16px;
-    background: rgba(10, 10, 15, 0.5); border: 1px solid rgba(255,255,255,0.1);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    display: flex; align-items: center; gap: 12px; width: fit-content; min-width: 240px; max-width: 320px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    margin-top: 14px; padding: 20px; border-radius: 32px;
+    background: linear-gradient(135deg, rgba(10, 25, 30, 0.6) 0%, rgba(5, 15, 20, 0.8) 100%);
+    border: 1px solid rgba(0,150,255,0.25); border-top: 1px solid rgba(0,150,255,0.45);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: 100%; max-width: 380px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
   .smart-card.spotify {
-    background: #0b0c10;
-    border: 2px solid #25272d;
-    padding: 10px 14px;
-    border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    margin: 10px 0;
-    width: 100%;
-    max-width: 320px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    position: relative;
-    cursor: pointer;
-    transition: transform 0.2s;
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    margin: 14px 0;
+    position: relative; overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
-  .smart-card.spotify:active { transform: scale(0.98); }
+  .smart-card.spotify:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(0,0,0,0.8); }
   .smart-card.spotify .sc-art {
-    width: 72px; height: 72px; border-radius: 8px;
-    border: 2px solid #355883;
-    background: #222;
-    object-fit: cover; flex-shrink: 0;
+    width: 100%; aspect-ratio: 1 / 1; border-radius: 0;
+    border: none; box-shadow: none;
+    background: #111; object-fit: cover; flex-shrink: 0;
     transition: opacity 0.3s;
   }
-  .smart-card.spotify .sc-info { 
-    display: block; 
-    padding-right: 0; 
-    flex: 1; overflow: hidden;
+  .smart-card.spotify .sc-bottom {
+    padding: 20px 24px 28px; background: #000;
+    display: flex; flex-direction: column; gap: 24px;
   }
+  .sc-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .sc-text-col { display: flex; flex-direction: column; gap: 4px; text-align: left; flex: 1; overflow: hidden; }
   .smart-card.spotify .sc-title { 
-    display: block;
-    font-size: 16px; font-weight: 600; color: #fff; 
+    font-size: 22px; font-weight: 700; color: #fff; 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-    line-height: 1.1; margin: 0; letter-spacing: -0.2px;
+    line-height: 1.2; margin: 0; letter-spacing: -0.5px; width: 100%; text-align: left;
   }
   .smart-card.spotify .sc-subtitle { 
-    display: block;
-    font-size: 14px; color: #a0a2a8; font-weight: 500;
+    font-size: 14px; color: #a0a0a0; font-weight: 400;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-    line-height: 1.1; margin: 3px 0 0 0; letter-spacing: -0.1px;
+    line-height: 1.2; margin: 0; width: 100%; text-align: left;
   }
+  .sc-action-icons { display: flex; gap: 18px; color: #fff; align-items: center; padding-top: 4px; flex-shrink: 0; }
+  .sc-action-icons svg { width: 20px; height: 20px; fill: currentColor; cursor: pointer; transition: transform 0.2s; }
+  .sc-action-icons svg:active { transform: scale(0.85); }
+  
+  .sc-controls-row { display: flex; justify-content: center; align-items: center; width: 100%; gap: 32px; padding: 0 8px; margin-top: 8px; }
+  .sc-ctrl-icon { width: 22px; height: 22px; fill: #fff; cursor: pointer; transition: opacity 0.2s; }
+  .sc-ctrl-icon:active { opacity: 0.5; }
+  .sc-play-btn { width: 64px; height: 64px; background: rgba(0, 150, 255, 0.15); border: 1px solid rgba(0, 150, 255, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s, background 0.2s; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .sc-play-btn:active { transform: scale(0.95); background: rgba(0, 150, 255, 0.25); }
+  .sc-play-btn svg { width: 28px; height: 28px; fill: #00a8ff; margin-left: 3px; } 
+  .sc-play-btn.playing svg { margin-left: 0; }
 
   /* Timer Variant */
-  .smart-card.timer { border-color: rgba(255, 170, 50, 0.3); background: rgba(40, 25, 10, 0.6); justify-content: space-between; max-width: 320px; }
-  .timer-left { display: flex; align-items: center; gap: 14px; }
-  .timer-ring-wrap { position: relative; width: 44px; height: 44px; }
+  .smart-card.timer { 
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.1) 0%, rgba(5, 15, 25, 0.8) 100%);
+    border-color: rgba(0, 150, 255, 0.3); border-top-color: rgba(0, 150, 255, 0.5);
+    align-items: center; text-align: center; padding: 32px 24px;
+  }
+  .timer-ring-wrap { position: relative; width: 100px; height: 100px; margin-bottom: 10px; }
   .timer-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .timer-ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 4; }
-  .timer-ring-fg { fill: none; stroke: #ffaa32; stroke-width: 4; stroke-dasharray: 113; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+  .timer-ring-bg { fill: none; stroke: rgba(0,150,255,0.15); stroke-width: 4; }
+  .timer-ring-fg { fill: none; stroke: #00a8ff; stroke-width: 4; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
   .timer-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .timer-icon svg { width: 18px; height: 18px; fill: #ffaa32; }
-  .timer-digits { font-size: 1.4em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; }
-  .timer-label { font-size: 0.75em; color: #ffaa32; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .timer-icon svg { width: 28px; height: 28px; fill: #00a8ff; }
+  .timer-digits { font-size: 3.5em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+  .timer-label { font-size: 0.85em; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+  .sc-btn { 
+    margin-top: 16px; width: 48px; height: 48px; border-radius: 50%; 
+    background: rgba(0,150,255,0.15); border: 1px solid rgba(0,150,255,0.3); 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+  }
+  .sc-btn:active { transform: scale(0.9); }
+  .sc-btn svg { width: 20px; height: 20px; fill: #00a8ff; }
 
   /* Calendar Variant */
-  .smart-card.calendar { border-color: rgba(140, 100, 255, 0.25); background: rgba(20, 15, 35, 0.5); flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; width: 100%; max-width: 360px; }
-  .cal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
-  .cal-title { font-weight: 600; font-size: 0.9em; color: white; display: flex; align-items: center; gap: 6px; }
-  .cal-title svg { width: 14px; height: 14px; fill: #8c64ff; }
-  .cal-events { display: flex; flex-direction: column; gap: 4px; }
-  .cal-event { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.02); transition: 0.2s; }
-  .cal-event:hover { background: rgba(255,255,255,0.06); }
-  .cal-time { font-size: 0.75em; font-weight: 600; color: rgba(200, 170, 255, 0.9); width: 75px; flex-shrink: 0; text-align: right; line-height: 1.3; }
-  .cal-divider { width: 2px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+  .smart-card.calendar { 
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.1) 0%, rgba(10, 20, 30, 0.8) 100%);
+    border-color: rgba(0, 200, 255, 0.3); border-top-color: rgba(0, 200, 255, 0.5);
+    padding: 24px;
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,150,255,0.15); padding-bottom: 12px; margin-bottom: 12px; }
+  .cal-title { font-weight: 600; font-size: 1.1em; color: white; display: flex; align-items: center; gap: 8px; }
+  .cal-title svg { width: 18px; height: 18px; fill: #00a8ff; }
+  .cal-events { display: flex; flex-direction: column; gap: 10px; }
+  .cal-event { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
+  .cal-event:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); transform: translateX(2px); }
+  .cal-time { font-size: 0.85em; font-weight: 600; color: rgba(0, 200, 255, 0.9); width: 80px; flex-shrink: 0; text-align: right; line-height: 1.3; }
+  .cal-divider { width: 3px; height: 32px; border-radius: 3px; flex-shrink: 0; }
   .cal-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; justify-content: center; }
-  .cal-event-title { font-size: 0.9em; font-weight: 500; color: white; line-height: 1.2; }
-  .cal-event-loc { font-size: 0.75em; color: rgba(255,255,255,0.5); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
+  .cal-event-loc { font-size: 0.8em; color: rgba(255,255,255,0.5); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   #img-preview-bar {
     position:relative; z-index:10; flex-shrink:0;
@@ -266,83 +229,79 @@
   #img-preview-wrap { position:relative; display:inline-block; }
   #img-preview {
     width:60px; height:60px; border-radius:12px; object-fit:cover;
-    border:1px solid rgba(160,120,255,0.4); box-shadow:0 4px 15px rgba(0,0,0,0.3);
+    border:1px solid rgba(0,150,255,0.4); box-shadow:0 4px 15px rgba(0,0,0,0.3);
   }
   #img-preview-remove {
     position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:50%;
-    background:rgba(20,15,30,0.95); border:1px solid rgba(255,255,255,0.3);
+    background:rgba(5,15,20,0.95); border:1px solid rgba(0,150,255,0.3);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   #img-preview-remove svg { width:12px; height:12px; fill:rgba(255,255,255,0.8); }
   #img-preview-info { font-size:0.78em; color:rgba(255,255,255,0.38); line-height:1.4; }
-  #img-preview-name { color:rgba(200,170,255,0.75); font-weight:500; }
+  #img-preview-name { color:rgba(0,150,255,0.75); font-weight:500; }
 
   #waveform {
-    position:relative; z-index:10;
-    height:28px; flex-shrink:0;
+    position:relative; z-index:10; height:28px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
-    gap:3px; padding:0 20px;
-    opacity:0; transition:opacity 0.35s; pointer-events:none;
+    gap:3px; padding:0 20px; opacity:0; transition:opacity 0.35s; pointer-events:none;
   }
   #waveform.visible { opacity:1; }
-  .wave-bar { width:3px; border-radius:2px; background:rgba(200,160,255,0.55); height:4px; }
-  #waveform.thinking .wave-bar { background:rgba(255,255,255,0.35); }
+  .wave-bar { width:3px; border-radius:2px; background:rgba(0,150,255,0.65); height:4px; }
+  #waveform.thinking .wave-bar { background:rgba(0,200,255,0.45); }
 
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
     padding:8px 14px 16px;
-    background:linear-gradient(to top,rgba(5,5,8,0.95) 60%,transparent);
+    background:linear-gradient(to top,rgba(1,4,9,0.95) 60%,transparent);
   }
   #text-input {
     flex:1; min-width:0;
-    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.06); border:1px solid rgba(0,150,255,0.25);
     color:white; padding:14px 18px; border-radius:26px;
     font-size:16px; outline:none; transition:all 0.2s;
     -webkit-appearance:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   }
-  #text-input:focus { border-color:rgba(160,120,255,0.5); background:rgba(255,255,255,0.12); box-shadow:0 0 15px rgba(140,100,255,0.15); }
+  #text-input:focus { border-color:rgba(0,150,255,0.6); background:rgba(255,255,255,0.1); box-shadow:0 0 15px rgba(0,150,255,0.15); }
   #text-input::placeholder { color:rgba(255,255,255,0.3); }
 
   .ctrl-btn {
     width:48px; height:48px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer; flex-shrink:0; touch-action:manipulation;
-    transition:all 0.2s; border:1px solid rgba(255,255,255,0.15);
-    background:rgba(255,255,255,0.08);
+    transition:all 0.2s; border:1px solid rgba(0,150,255,0.25);
+    background:rgba(0,150,255,0.08);
   }
   .ctrl-btn:active { transform:scale(0.92); }
   .ctrl-btn svg { width:22px; height:22px; fill:rgba(255,255,255,0.8); transition:fill 0.2s; }
 
-  #send-btn { background:rgba(120,90,220,0.25); border-color:rgba(160,120,255,0.4); }
-  #send-btn:active { background:rgba(140,100,255,0.45); }
+  #send-btn { background:rgba(0,200,255,0.25); border-color:rgba(0,200,255,0.5); }
+  #send-btn:active { background:rgba(0,200,255,0.45); }
   #send-btn svg { fill:white; }
 
-  #img-btn.has-image { background:rgba(140,100,255,0.25); border-color:rgba(160,120,255,0.6); box-shadow:0 0 15px rgba(140,100,255,0.3); }
+  #img-btn.has-image { background:rgba(0,150,255,0.25); border-color:rgba(0,150,255,0.6); box-shadow:0 0 15px rgba(0,150,255,0.3); }
   #img-btn.has-image svg { fill:#fff; }
   #img-btn.uploading { opacity:0.5; pointer-events:none; }
 
-  #convo-btn.active, #convo-btn.recording { background:rgba(100,180,255,0.18); border-color:rgba(120,180,255,0.50); box-shadow:0 0 14px rgba(100,160,255,0.28); }
-  #convo-btn.active svg { fill:rgba(160,210,255,1); }
+  #convo-btn.active, #convo-btn.recording { background:rgba(0,150,255,0.18); border-color:rgba(0,150,255,0.50); box-shadow:0 0 14px rgba(0,150,255,0.28); }
+  #convo-btn.active svg { fill:rgba(100,200,255,1); }
   #convo-btn.recording svg { animation: mic-pulse 1s infinite alternate; }
-  @keyframes mic-pulse { 0% { fill: rgba(160,210,255,1); transform:scale(1); } 100% { fill: white; transform:scale(1.15); } }
+  @keyframes mic-pulse { 0% { fill: rgba(100,200,255,1); transform:scale(1); } 100% { fill: white; transform:scale(1.15); } }
 
   #file-input { display:none; }
 
   #oliver-canvas {
     position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
-    background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     opacity:0; pointer-events:none; transition:opacity 0.3s cubic-bezier(0.25,0.8,0.25,1);
   }
   #oliver-canvas.open { opacity:1; pointer-events:all; }
 
   #canvas-panel {
     width: 100%; height: 100dvh; max-width: 100%;
-    background: rgba(10, 10, 15, 0.85); 
+    background: rgba(4, 9, 15, 0.95); 
     backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
-    border: none;
-    border-radius: 0; 
-    box-shadow: none;
+    border: none; border-radius: 0; box-shadow: none;
     display: flex; flex-direction: column; 
     transform: translateY(100%);
     transition: all 0.4s cubic-bezier(0.25,0.8,0.25,1);
@@ -352,53 +311,51 @@
 
   .ide-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 20px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 20px; background: rgba(0,150,255,0.05); border-bottom: 1px solid rgba(0,150,255,0.15);
     border-radius: 0; user-select: none; flex-shrink: 0;
   }
   .ide-left { display: flex; align-items: center; gap: 10px; }
-  .ide-icon { width: 16px; height: 16px; fill: #8b949e; }
-  .ide-title { font-size: 14px; font-weight: 500; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-  .ide-cloud { width: 16px; height: 16px; fill: #8b949e; }
+  .ide-icon { width: 16px; height: 16px; fill: #00d4ff; }
+  .ide-title { font-size: 14px; font-weight: 500; color: #e5e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .ide-cloud { width: 16px; height: 16px; fill: #4c566a; }
   
   .ide-center { display: flex; align-items: center; }
-  .ide-tabs { display: flex; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
-  .ide-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; color: #8b949e; background: transparent; border: none; cursor: pointer; transition: 0.2s; outline: none; }
-  .ide-tab.active { background: rgba(255,255,255,0.15); color: #fff; }
+  .ide-tabs { display: flex; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid rgba(0,150,255,0.2); overflow: hidden; }
+  .ide-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; color: #8fbcbb; background: transparent; border: none; cursor: pointer; transition: 0.2s; outline: none; }
+  .ide-tab.active { background: rgba(0,150,255,0.15); color: #fff; }
   
   .ide-right { display: flex; align-items: center; gap: 10px; }
   .ide-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
-  .ide-share { background: #1f6feb; color: #ffffff; border-color: rgba(240,246,252,0.1); }
-  .ide-share:active { background: #1158c7; }
+  .ide-share { background: #0066cc; color: #ffffff; border-color: rgba(0,150,255,0.2); }
+  .ide-share:active { background: #004080; }
   .ide-share svg { width: 14px; height: 14px; fill: currentColor; }
-  .ide-close { background: transparent; color: #8b949e; padding: 6px; }
-  .ide-close:hover { background: #21262d; color: #c9d1d9; }
+  .ide-close { background: transparent; color: #8fbcbb; padding: 6px; }
+  .ide-close:hover { background: rgba(255,255,255,0.1); color: #eceff4; }
   .ide-close svg { width: 16px; height: 16px; fill: currentColor; }
 
   #canvas-body-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
   
-  /* Code Area */
+  /* Aurora Theme Syntax Highlighting (Nord-inspired) */
   #canvas-code-wrap { flex: 1; overflow: auto; background: transparent; padding: 20px 0; -webkit-overflow-scrolling: touch; }
-  #canvas-code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; line-height: 1.5; color: #c9d1d9; white-space: pre; margin: 0; tab-size: 4; counter-reset: line; }
+  #canvas-code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; line-height: 1.5; color: #d8dee9; white-space: pre; margin: 0; tab-size: 4; counter-reset: line; }
   .line-row { display: flex; padding: 0 16px; }
-  .line-row:hover { background: rgba(255,255,255,0.04); }
-  .line-num { flex-shrink: 0; width: 40px; color: #484f58; text-align: right; margin-right: 16px; padding-right: 12px; font-size: 12px; user-select: none; }
+  .line-row:hover { background: rgba(0,150,255,0.05); }
+  .line-num { flex-shrink: 0; width: 40px; color: #4c566a; text-align: right; margin-right: 16px; padding-right: 12px; font-size: 12px; user-select: none; }
   .line-num::before { counter-increment: line; content: counter(line); }
   .line-content { white-space: pre; }
 
-  /* Syntax Highlighting */
-  .tok-kw  { color: #ff7b72; }
-  .tok-str { color: #a5d6ff; }
-  .tok-num { color: #79c0ff; }
-  .tok-cmt { color: #8b949e; font-style: italic; }
-  .tok-fn  { color: #d2a8ff; }
-  .tok-tag { color: #7ee787; }
+  .tok-kw  { color: #b48ead; } /* Purple */
+  .tok-str { color: #a3be8c; } /* Green */
+  .tok-num { color: #b48ead; } /* Purple */
+  .tok-cmt { color: #4c566a; font-style: italic; } /* Muted Grey-Blue */
+  .tok-fn  { color: #88c0d0; } /* Cyan */
+  .tok-tag { color: #8fbcbb; } /* Teal */
 
   /* Preview Area */
   #canvas-preview-wrap { flex: 1; display: none; background: #fff; }
   #canvas-preview-wrap.visible { display: flex; }
   #canvas-iframe { width: 100%; height: 100%; border: none; }
 
-  /* Mobile Responsiveness for Canvas */
   @media (max-width: 600px) {
     .ide-header { padding: 10px 8px; }
     .ide-left { gap: 6px; }
@@ -417,13 +374,6 @@
 <body>
 
 <canvas id="star-canvas"></canvas>
-
-<div id="ai-orb" class="orb-scene">
-  <div class="orb-glow"></div>
-  <div class="orb-ring-outer"></div>
-  <div class="orb-ring-inner"></div>
-  <div class="orb-core"></div>
-</div>
 
 <div id="oliver-canvas" onclick="if(event.target===this) closeCanvas()">
   <div id="canvas-panel">
@@ -467,7 +417,7 @@
 
 <div id="chat-container">
   <div class="message oliver">
-    <div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
+    <div class="sender-row"><div class="sender-dot oliver"></div><span class="sender-name">Oliver</span></div>
     <div class="oliver-card"><div class="msg-text"><div class="msg-para">I'm listening, Chris. The visual interface is active.</div></div></div>
   </div>
 </div>
@@ -555,7 +505,7 @@ function pollSpotifyStatus() {
       const tx=s.x-s.vx*(s.len/mag),ty=s.y-s.vy*(s.len/mag);
       const g=cx.createLinearGradient(tx,ty,s.x,s.y);
       g.addColorStop(0,'rgba(255,255,255,0)');
-      g.addColorStop(0.6,`rgba(200,170,255,${s.life*0.5})`);
+      g.addColorStop(0.6,`rgba(0,150,255,${s.life*0.5})`);
       g.addColorStop(1,`rgba(255,255,255,${s.life})`);
       cx.beginPath(); cx.moveTo(tx,ty); cx.lineTo(s.x,s.y);
       cx.strokeStyle=g; cx.lineWidth=1.5; cx.stroke();
@@ -575,7 +525,6 @@ const XI_URL            = 'https://bufaflxlwojqfwymnabj.supabase.co/functions/v1
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p6A1w3SnYlRaPhXGHAXTV3BuqgFmNbGc2-EH04Zr0qYUyexv7XeNZl7/exec';
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
-const orb       = document.getElementById('ai-orb');
 const convoBtn  = document.getElementById('convo-btn');
 const imgBtn    = document.getElementById('img-btn');
 const waveform  = document.getElementById('waveform');
@@ -674,30 +623,25 @@ function unlockAudio(){
   } catch(e) { console.warn('Audio contextual unlock failed:', e); }
 }
 
-function setOrb(state){
-  orb.classList.remove('thinking','speaking','listening');
-  if(state) orb.classList.add(state);
-}
-
 function updateOrbState() {
   if (oliverSleepMode) {
-      setOrb(null); stopWave();
+      stopWave();
       const pip = document.getElementById('main-pip');
       if(pip) pip.style.background = '#555';
   } else if (isHolding) {
-      setOrb('listening'); startWave('listening');
+      startWave('listening');
       const pip = document.getElementById('main-pip');
-      if(pip && !spotifyIsPlaying) pip.style.background = '#ffaa32'; // Orange indicator for Hold Mode
+      if(pip && !spotifyIsPlaying) pip.style.background = '#00a8ff'; // Aurora blue for Hold Mode
   } else if (isSpeaking || isPlayingQueue) {
-      setOrb('speaking'); startWave('speaking');
+      startWave('speaking');
   } else if (isRecording) {
-      setOrb('listening'); startWave('listening');
+      startWave('listening');
       const pip = document.getElementById('main-pip');
       if(pip && !spotifyIsPlaying) pip.style.background = 'white';
   } else if (isThinking || audioQueue.length > 0) {
-      setOrb('thinking'); startWave('thinking');
+      startWave('thinking');
   } else {
-      setOrb(null); stopWave();
+      stopWave();
   }
 }
 
@@ -741,18 +685,16 @@ function injectTimerCard(seconds) {
 
   const html = `
     <div class="smart-card timer" id="${tId}">
-      <div class="timer-left">
-        <div class="timer-ring-wrap">
-          <svg class="timer-ring-svg" viewBox="0 0 100 100">
-            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
-          </svg>
-          <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
-        </div>
-        <div>
-          <div class="timer-label">Timer Active</div>
-          <div class="timer-digits" id="${tId}-txt">${format(remaining)}</div>
-        </div>
+      <div class="timer-ring-wrap">
+        <svg class="timer-ring-svg" viewBox="0 0 100 100">
+          <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+          <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
+        </svg>
+        <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+      </div>
+      <div>
+        <div class="timer-digits" id="${tId}-txt">${format(remaining)}</div>
+        <div class="timer-label">Timer Active</div>
       </div>
       <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
@@ -766,7 +708,7 @@ function injectTimerCard(seconds) {
     if(txt && ring) {
       txt.textContent = format(remaining);
       ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
-      if(remaining <= 0) { stopTimer(tId); txt.textContent = "00:00"; txt.style.color="#ffaa32"; }
+      if(remaining <= 0) { stopTimer(tId); txt.textContent = "00:00"; txt.style.color="#00a8ff"; }
     } else { clearInterval(activeTimers[tId]); }
   }, 1000);
 }
@@ -782,12 +724,26 @@ function updateOrInjectSpotifyCard(spData) {
 
     const fallbackArt = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath fill=%22%231DB954%22 d=%22M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .2-2.8-1.7-6.4-2.1-10.6-1.1-.4.1-.8-.2-.9-.5-.1-.4.2-.8.5-.9 4.6-1 8.5-.6 11.6 1.3.4.2.5.7.4 1zm1.4-3.3c-.3.4-.8.6-1.3.3-3.2-2-8.2-2.6-11.9-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.3-1.3 9.6-.6 13.3 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.4 8.8 8.2 5.2 9.3c-.6.2-1.2-.2-1.4-.8-.2-.6.2-1.2.8-1.4 4.3-1.3 11.3-1 15.7 1.6.5.3.7 1 .4 1.5-.2.6-1 .8-1.6.4z%22/%3E%3C/svg%3E";
 
+    const playIcon = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    const pauseIcon = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
     const html = `
-      <div class="smart-card spotify" id="${activeSpotifyCardId}" onclick="silentSpotifyCommand('toggle')">
-        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" onerror="this.onerror=null;this.src='${fallbackArt}';" alt="Art" style="${!spData.isPlaying ? 'opacity: 0.6;' : ''}">
-        <div class="sc-info">
-          <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
-          <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
+      <div class="smart-card spotify" id="${activeSpotifyCardId}">
+        <img class="sc-art" id="${activeSpotifyCardId}-art" src="${spData.albumArt || fallbackArt}" onerror="this.onerror=null;this.src='${fallbackArt}';" alt="Art" style="${!spData.isPlaying ? 'opacity: 0.8;' : ''}">
+        <div class="sc-bottom">
+          <div class="sc-header-row">
+            <div class="sc-text-col">
+              <div class="sc-title" id="${activeSpotifyCardId}-title">${spData.trackName||'Spotify'}</div>
+              <div class="sc-subtitle" id="${activeSpotifyCardId}-artist">${spData.artistName||'Connecting...'}</div>
+            </div>
+          </div>
+          <div class="sc-controls-row">
+            <svg class="sc-ctrl-icon" viewBox="0 0 24 24" onclick="silentSpotifyCommand('previous')"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            <div class="sc-play-btn ${spData.isPlaying ? 'playing' : ''}" id="${activeSpotifyCardId}-play" onclick="silentSpotifyCommand('toggle')">
+              ${spData.isPlaying ? pauseIcon : playIcon}
+            </div>
+            <svg class="sc-ctrl-icon" viewBox="0 0 24 24" onclick="silentSpotifyCommand('next')"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </div>
         </div>
       </div>
     `;
@@ -796,8 +752,17 @@ function updateOrInjectSpotifyCard(spData) {
     const card = document.getElementById(activeSpotifyCardId);
     if(card) {
       const art = document.getElementById(`${activeSpotifyCardId}-art`);
-      if(spData.isPlaying) { art.style.opacity = '1'; }
-      else { art.style.opacity = '0.6'; }
+      const playBtn = document.getElementById(`${activeSpotifyCardId}-play`);
+      const playIcon = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      const pauseIcon = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+      if(spData.isPlaying) { 
+          art.style.opacity = '1'; 
+          if(playBtn) { playBtn.innerHTML = pauseIcon; playBtn.classList.add('playing'); }
+      } else { 
+          art.style.opacity = '0.8'; 
+          if(playBtn) { playBtn.innerHTML = playIcon; playBtn.classList.remove('playing'); }
+      }
     }
   }
 }
@@ -881,7 +846,7 @@ function formatMessageText(text) {
     }
   }
 
-  // Inject the calendar card directly as a smart widget into the UI flow
+    // Inject the calendar card directly as a smart widget into the UI flow
   if (events.length > 0) {
     events.sort((a, b) => {
       const parseTime = (str) => {
@@ -899,7 +864,7 @@ function formatMessageText(text) {
       return parseTime(a.time) - parseTime(b.time);
     });
 
-    const colors = ['#ff7b72', '#79c0ff', '#a5d6ff', '#7ee787', '#d2a8ff'];
+    const colors = ['#00a8ff', '#00d4ff', '#9d00ff', '#00a8ff', '#00d4ff'];
     let eventsHtml = events.map((ev, i) => {
       return `
         <div class="cal-event">
@@ -957,14 +922,14 @@ function addMessage(text, sender, imageBase64, imageMime, imageName, isVoice = f
   if(isVoice) div.classList.add('hidden-voice');
 
   if(sender==='oliver'){
-    // isRawHtml flag entirely bypasses the formatMessageText escaper for safe internal widgets like Spotify
-    div.innerHTML=`<div class="sender-row"><div class="sender-dot"></div><span class="sender-name">Oliver</span></div>
+    div.innerHTML=`<div class="sender-row"><div class="sender-dot oliver"></div><span class="sender-name">Oliver</span></div>
       <div class="oliver-card"><div class="msg-text">${isRawHtml ? text : formatMessageText(text)}</div></div>`;
   } else {
     let inner='';
     if(imageBase64) inner+=`<img class="msg-image" src="data:${imageMime||'image/jpeg'};base64,${imageBase64}" alt="${imageName||'image'}">`;
-    if(text) inner+=`<div>${formatMessageText(text)}</div>`;
-    div.innerHTML=`<div class="user-card">${inner}</div>`;
+    if(text) inner+=`<div class="msg-text">${formatMessageText(text)}</div>`;
+    div.innerHTML=`<div class="sender-row"><div class="sender-dot user"></div><span class="sender-name">You</span></div>
+      <div class="user-card">${inner}</div>`;
   }
   c.appendChild(div);
   setTimeout(() => { c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }); }, 10);
@@ -987,7 +952,6 @@ function extractCanvasAndMarkdown(text) {
   let hasCanvas = false;
   const bt = String.fromCharCode(96, 96, 96);
   
-  // Extract <canvas> blocks reliably regardless of attribute order
   const canvasRe = /<canvas\b([^>]*)>([\s\S]*?)<\/canvas>/gi;
   processed = processed.replace(canvasRe, (match, attrs, content) => {
     hasCanvas = true;
@@ -1011,7 +975,6 @@ function extractCanvasAndMarkdown(text) {
     return `[[${uId}]]`;
   });
 
-  // Extract proper Markdown codeblocks
   const mdRe = new RegExp(bt + '([^\\n]*)\\n?([\\s\\S]*?)' + bt + '(?:eof)?', 'gi');
   processed = processed.replace(mdRe, (match, langInfo, content) => {
     hasCanvas = true;
@@ -1031,14 +994,11 @@ function extractCanvasAndMarkdown(text) {
     return `\n[[${uId}]]\n`;
   });
 
-  // Auto-catcher: If code leaked without backticks, intercept it securely!
   if (!hasCanvas && (processed.includes('<style>') || processed.includes('<!DOCTYPE html>') || processed.includes('function ') || processed.includes('class="'))) {
      if(processed.length > 200 && (processed.match(/<[a-z][\s\S]*>/i) || processed.match(/\{[\s\S]*\}/))) {
         hasCanvas = true;
         const id = 'c_' + (++canvasIdCounter);
         
-        // Critical fix: If the raw HTML was sent inside an unparsed <canvas> tag, forcefully strip the tag
-        // so it doesn't break the IDE preview rendering engine!
         let safeContent = processed.trim();
         safeContent = safeContent.replace(/^<canvas[^>]*>/gi, '').replace(/<\/canvas>$/gi, '').trim();
 
@@ -1071,7 +1031,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
   let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
 
-  // Intercept the test command
   if (textToSend.toLowerCase() === "test spotify") {
       addMessage(textToSend, 'user', null, null, null, speakReply);
       setTimeout(() => {
@@ -1148,7 +1107,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
     const data = await res.json();
 
-    // SPOTIFY FIX INJECTED HERE
     if (data.spotify_data && data.spotify_data.isPlaying !== undefined) {
        updateOrInjectSpotifyCard(data.spotify_data);
        spotifyIsPlaying = data.spotify_data.isPlaying;
@@ -1157,7 +1115,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     if (data.error) {
       console.error("Pipeline Error:", data.error);
     } else if (data.ignored) {
-      // The Silence Protocol: Smoothly delete the user's chat bubble if it was just singing/music!
       if (userMsgEl) {
         userMsgEl.style.transition = 'all 0.4s ease';
         userMsgEl.style.opacity = '0';
@@ -1347,7 +1304,6 @@ function buildRecognition(){
     }
     const liveText = (interim || final).toLowerCase().trim();
 
-    // 1. Handle "Holding" state (Waiting for wake word to resume)
     if (isHolding) {
         if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("ready") || liveText.includes("i'm back")) {
             isHolding = false;
@@ -1359,17 +1315,15 @@ function buildRecognition(){
             if (!isPlayingQueue) processAudioQueue();
             return;
         }
-        interimEl.textContent = ''; // Keep UI clear while holding
+        interimEl.textContent = ''; 
         return; 
     }
 
-    // 2. Trigger "Holding" state
     if (liveText.match(/^(hold on|hold on a second|hold on a minute|give me a sec|give me a second|give me a minute|wait a sec|wait a second|pause)( oliver)?$/i) || liveText.includes("oliver hold on") || liveText.includes("hold on oliver")) {
         isHolding = true;
         interimEl.textContent = '';
         clearTimeout(sentenceTimeout);
         
-        // Instantly cut him off if he is currently speaking
         if(isPlayingQueue || isSpeaking) {
             window.hasInterrupted = true;
             if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
@@ -1497,15 +1451,13 @@ function openCanvas(type, title, content){
   document.getElementById('canvas-title-text').textContent = title || 'Oliver AI Generated Code';
   canvasRawContent = content;
 
-  // Set the Code Tab content with beautiful IDE Syntax highlighting
   document.getElementById('canvas-code').innerHTML = syntaxHighlight(content);
 
-  // Set up the preview tab if it's a web document
   const isWeb = content.includes('<!DOCTYPE html>') || content.includes('<html') || type === 'html' || type === 'web';
   if(isWeb) {
     document.getElementById('canvas-iframe').srcdoc = content;
     document.getElementById('tab-preview').style.display = 'block';
-    showIdeTab('code'); // Start on code by default
+    showIdeTab('code');
   } else {
     document.getElementById('canvas-iframe').srcdoc = '';
     document.getElementById('tab-preview').style.display = 'none';
