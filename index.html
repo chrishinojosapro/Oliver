@@ -3,15 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#010409">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Oliver">
 <title>Oliver AI - Aurora</title>
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Oliver AI","short_name":"Oliver","display":"standalone","background_color":"#010409","theme_color":"#010409"}'>
 
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+  html { background-color: #010409; height: 100%; }
 
   body {
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -180,7 +186,7 @@
   .sc-play-btn svg { width: 28px; height: 28px; fill: #00a8ff; margin-left: 3px; } 
   .sc-play-btn.playing svg { margin-left: 0; }
 
-  /* Timer Variant */
+  /* Time Variant Shared Styles */
   .smart-card.timer { 
     background: linear-gradient(135deg, rgba(0, 150, 255, 0.1) 0%, rgba(5, 15, 25, 0.8) 100%);
     border-color: rgba(0, 150, 255, 0.3); border-top-color: rgba(0, 150, 255, 0.5);
@@ -195,30 +201,40 @@
   .timer-digits { font-size: 3.5em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
   .timer-label { font-size: 0.85em; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
   .sc-btn { 
-    margin-top: 16px; width: 48px; height: 48px; border-radius: 50%; 
+    margin-top: 16px; width: 56px; height: 56px; border-radius: 50%; 
     background: rgba(0,150,255,0.15); border: 1px solid rgba(0,150,255,0.3); 
     display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
   }
-  .sc-btn:active { transform: scale(0.9); }
-  .sc-btn svg { width: 20px; height: 20px; fill: #00a8ff; }
+  .sc-btn:active { transform: scale(0.9); background: rgba(0,150,255,0.25); }
+  .sc-btn svg { width: 24px; height: 24px; fill: #00a8ff; }
 
   /* Calendar Variant */
   .smart-card.calendar { 
-    background: linear-gradient(135deg, rgba(0, 200, 255, 0.1) 0%, rgba(10, 20, 30, 0.8) 100%);
-    border-color: rgba(0, 200, 255, 0.3); border-top-color: rgba(0, 200, 255, 0.5);
-    padding: 24px;
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    margin: 14px 0;
+    overflow: hidden;
   }
-  .cal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,150,255,0.15); padding-bottom: 12px; margin-bottom: 12px; }
-  .cal-title { font-weight: 600; font-size: 1.1em; color: white; display: flex; align-items: center; gap: 8px; }
-  .cal-title svg { width: 18px; height: 18px; fill: #00a8ff; }
-  .cal-events { display: flex; flex-direction: column; gap: 10px; }
-  .cal-event { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
-  .cal-event:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); transform: translateX(2px); }
-  .cal-time { font-size: 0.85em; font-weight: 600; color: rgba(0, 200, 255, 0.9); width: 80px; flex-shrink: 0; text-align: right; line-height: 1.3; }
-  .cal-divider { width: 3px; height: 32px; border-radius: 3px; flex-shrink: 0; }
+  .cal-header-bg {
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.15) 0%, transparent 100%);
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; }
+  .cal-title { font-weight: 700; font-size: 1.2em; color: white; display: flex; align-items: center; gap: 10px; letter-spacing: -0.2px; }
+  .cal-title svg { width: 22px; height: 22px; fill: #00a8ff; }
+  .cal-date { font-size: 0.85em; color: #a0a0a0; font-weight: 500; }
+  .cal-events { display: flex; flex-direction: column; padding: 16px 24px 24px; gap: 4px; }
+  .cal-event { display: flex; align-items: center; gap: 16px; padding: 12px 0; background: transparent; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .cal-event:last-child { border-bottom: none; padding-bottom: 0; }
+  .cal-event:hover { transform: translateX(4px); }
+  .cal-time { font-size: 0.85em; font-weight: 600; color: #00a8ff; width: 85px; flex-shrink: 0; text-align: right; line-height: 1.4; }
+  .cal-divider { width: 3px; height: 32px; border-radius: 3px; flex-shrink: 0; opacity: 0.9; }
   .cal-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; justify-content: center; }
   .cal-event-title { font-size: 1em; font-weight: 600; color: white; line-height: 1.2; }
-  .cal-event-loc { font-size: 0.8em; color: rgba(255,255,255,0.5); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event-loc { font-size: 0.8em; color: #a0a0a0; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   #img-preview-bar {
     position:relative; z-index:10; flex-shrink:0;
@@ -344,12 +360,12 @@
   .line-num::before { counter-increment: line; content: counter(line); }
   .line-content { white-space: pre; }
 
-  .tok-kw  { color: #b48ead; } /* Purple */
-  .tok-str { color: #a3be8c; } /* Green */
-  .tok-num { color: #b48ead; } /* Purple */
-  .tok-cmt { color: #4c566a; font-style: italic; } /* Muted Grey-Blue */
-  .tok-fn  { color: #88c0d0; } /* Cyan */
-  .tok-tag { color: #8fbcbb; } /* Teal */
+  .tok-kw  { color: #b48ead; } 
+  .tok-str { color: #a3be8c; } 
+  .tok-num { color: #b48ead; } 
+  .tok-cmt { color: #4c566a; font-style: italic; } 
+  .tok-fn  { color: #88c0d0; } 
+  .tok-tag { color: #8fbcbb; } 
 
   /* Preview Area */
   #canvas-preview-wrap { flex: 1; display: none; background: #fff; }
@@ -631,7 +647,7 @@ function updateOrbState() {
   } else if (isHolding) {
       startWave('listening');
       const pip = document.getElementById('main-pip');
-      if(pip && !spotifyIsPlaying) pip.style.background = '#00a8ff'; // Aurora blue for Hold Mode
+      if(pip && !spotifyIsPlaying) pip.style.background = '#00a8ff';
   } else if (isSpeaking || isPlayingQueue) {
       startWave('speaking');
   } else if (isRecording) {
@@ -677,42 +693,122 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
+// Global Logic for Timers, Alarms, Stopwatches
 const activeTimers = {};
-function injectTimerCard(seconds) {
-  const tId = 'timer_'+Date.now();
-  let remaining = seconds;
-  const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-
-  const html = `
-    <div class="smart-card timer" id="${tId}">
-      <div class="timer-ring-wrap">
-        <svg class="timer-ring-svg" viewBox="0 0 100 100">
-          <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-          <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
-        </svg>
-        <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
-      </div>
-      <div>
-        <div class="timer-digits" id="${tId}-txt">${format(remaining)}</div>
-        <div class="timer-label">Timer Active</div>
-      </div>
-      <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
-    </div>
-  `;
-  addMessage(html, 'oliver', null, null, null, false, true);
-
-  activeTimers[tId] = setInterval(() => {
-    remaining--;
-    const txt = document.getElementById(`${tId}-txt`);
-    const ring = document.getElementById(`${tId}-ring`);
-    if(txt && ring) {
-      txt.textContent = format(remaining);
-      ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
-      if(remaining <= 0) { stopTimer(tId); txt.textContent = "00:00"; txt.style.color="#00a8ff"; }
-    } else { clearInterval(activeTimers[tId]); }
-  }, 1000);
+window.startTimer = function(tId, seconds) {
+    let remaining = seconds;
+    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    activeTimers[tId] = setInterval(() => {
+        remaining--;
+        const txt = document.getElementById(`${tId}-txt`);
+        const ring = document.getElementById(`${tId}-ring`);
+        if(txt && ring) {
+            txt.textContent = format(remaining);
+            ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
+            if(remaining <= 0) { 
+                clearInterval(activeTimers[tId]); 
+                txt.textContent = "00:00"; 
+                txt.style.color="#00a8ff"; 
+            }
+        } else { clearInterval(activeTimers[tId]); }
+    }, 1000);
 }
-window.stopTimer = function(tId) { clearInterval(activeTimers[tId]); const c = document.getElementById(tId); if(c) c.style.opacity="0.5"; }
+window.stopTimer = function(tId) { 
+    clearInterval(activeTimers[tId]); 
+    const c = document.getElementById(tId); 
+    if(c) c.style.opacity="0.5"; 
+}
+
+const activeStopwatches = {};
+window.startStopwatch = function(tId) {
+    if(activeStopwatches[tId]) return;
+    activeStopwatches[tId] = { start: Date.now(), elapsed: 0, interval: null };
+    window.resumeStopwatch(tId);
+}
+window.resumeStopwatch = function(tId) {
+    const sw = activeStopwatches[tId];
+    if(!sw || sw.interval) return;
+    sw.start = Date.now() - sw.elapsed;
+    sw.interval = setInterval(() => {
+        sw.elapsed = Date.now() - sw.start;
+        const txt = document.getElementById(`${tId}-txt`);
+        if(txt) {
+            const ms = Math.floor((sw.elapsed % 1000) / 10).toString().padStart(2, '0');
+            const s = Math.floor((sw.elapsed / 1000) % 60).toString().padStart(2, '0');
+            const m = Math.floor((sw.elapsed / 60000)).toString().padStart(2, '0');
+            txt.textContent = `${m}:${s}.${ms}`;
+        } else {
+            clearInterval(sw.interval);
+        }
+    }, 50);
+}
+window.pauseStopwatch = function(tId) {
+    const sw = activeStopwatches[tId];
+    if(sw) {
+        clearInterval(sw.interval);
+        sw.interval = null;
+    }
+}
+
+function getTimerHTML(tId, seconds, label) {
+    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    return `
+      <div class="smart-card timer" id="${tId}">
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" id="${tId}-txt">${format(seconds)}</div>
+          <div class="timer-label">${label || 'Timer'}</div>
+        </div>
+        <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      </div>
+    `;
+}
+
+function getAlarmHTML(tId, timeStr, label) {
+    return `
+      <div class="smart-card timer alarm" id="${tId}">
+        <div class="timer-ring-wrap" style="width:80px; height:80px; margin-bottom: 12px;">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:34px; height:34px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" style="font-size:2.8em;">${timeStr}</div>
+          <div class="timer-label">${label || 'Alarm Set'}</div>
+        </div>
+      </div>
+    `;
+}
+
+function getStopwatchHTML(tId) {
+    return `
+      <div class="smart-card timer stopwatch" id="${tId}">
+        <div class="timer-ring-wrap" style="width:70px; height:70px; margin-bottom: 16px;">
+          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
+            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="200"></circle>
+          </svg>
+          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:32px; height:32px;"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        </div>
+        <div>
+          <div class="timer-digits" id="${tId}-txt" style="font-size:2.8em; margin-bottom: 8px;">00:00.00</div>
+          <div class="timer-label">Stopwatch</div>
+        </div>
+        <div style="display:flex; gap:16px;">
+          <button class="sc-btn" onclick="pauseStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+          <button class="sc-btn" onclick="resumeStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+      </div>
+    `;
+}
 
 let activeSpotifyCardId = null;
 let currentSpotifyTrack = null;
@@ -821,35 +917,97 @@ const CAL_SVG = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2
 function formatMessageText(text) {
   text = text.trim();
   if(!text) return '';
+
+  // INTERCEPT SMART WIDGETS BEFORE HTML ESCAPING
+  text = text.replace(/<WIDGET:TIMER:(\d+):([^>]+)>/gi, (match, secs, label) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getTimerHTML(uId, parseInt(secs), label);
+      setTimeout(() => startTimer(uId, parseInt(secs)), 100);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:ALARM:((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*(?:AM|PM|am|pm))?):([^>]+)>/gi, (match, timeStr, label) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getAlarmHTML(uId, timeStr, label);
+      return `\n[[${uId}]]\n`;
+  });
+  text = text.replace(/<WIDGET:STOPWATCH>/gi, (match) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getStopwatchHTML(uId);
+      setTimeout(() => startStopwatch(uId), 100);
+      return `\n[[${uId}]]\n`;
+  });
   
   let events = [];
   let cleanLines = [];
 
   const lines = text.split('\n');
+  const timeSrc = '\\b(?:1[0-2]|0?[1-9]):[0-5][0-9]\\s*(?:am|pm|AM|PM)?\\b|\\b(?:1[0-2]|0?[1-9])\\s*(?:am|pm|AM|PM)\\b|\\b(?:2[0-3]|[01]?[0-9]):[0-5][0-9]\\b';
+  const rangeRe = new RegExp('(' + timeSrc + ')\\s*(?:[-–—]|\\bto\\b)\\s*(' + timeSrc + ')', 'i');
+  const singleRe = new RegExp('(' + timeSrc + ')', 'i');
+  
+  const dateRegex = /^(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day)?\s*,?\s*)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{4})?|^(?:Tomorrow|Today|Yesterday)\b/i;
+
   for (let line of lines) {
-    const eventMatch = line.match(/^(?:-|\*)\s*(?:\*\*)?(.+?)(?:\*\*)?\s*(?:—|-|–|:)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*)$/i) ||
-                       line.match(/^(?:-|\*)\s*(.*(?:AM|PM|am|pm|all day|\d:\d).*?)\s*(?:—|-|–|:)\s*(?:\*\*)?(.+?)(?:\*\*)?$/i);
-    if(eventMatch) {
-      let timeDesc, title;
-      if (/(AM|PM|am|pm|all day|\d:\d)/.test(eventMatch[1])) {
-        timeDesc = eventMatch[1].trim(); title = eventMatch[2].trim();
-      } else {
-        title = eventMatch[1].trim(); timeDesc = eventMatch[2].trim();
-      }
-      title = title.replace(/\*\*/g, '').trim();
-      let time = timeDesc, loc = '';
-      const locMatch = timeDesc.match(/(.*?)\s*\((.*?)\)$/);
-      if (locMatch) { time = locMatch[1].trim(); loc = locMatch[2].trim(); }
-      events.push({ title, time, loc });
-    } else {
+    let isEvent = false;
+    if (/^(?:-|\*)\s/.test(line)) {
+        let raw = line.replace(/^(?:-|\*)\s*/, '').replace(/\*\*/g, '').trim();
+        let timeDesc = '';
+        let title = raw;
+        
+        let rMatch = raw.match(rangeRe);
+        if (rMatch) {
+            timeDesc = rMatch[0];
+            title = raw.replace(rangeRe, '|||');
+        } else {
+            let sMatch = raw.match(singleRe);
+            if (sMatch) {
+                timeDesc = sMatch[0];
+                title = raw.replace(singleRe, '|||');
+            }
+        }
+        
+        if (timeDesc) {
+            let parts = title.split('|||');
+            let cleanTitleParts = parts.map(p => {
+                let s = p.trim();
+                s = s.replace(/^(?:from|to|at|is|on|:|-|–|—|,)(?:\s+|$)/i, '');
+                s = s.replace(/(?:\s+|^)(?:from|to|at|is|on|:|-|–|—|,)$/i, '');
+                return s.trim();
+            }).filter(p => p.length > 0);
+            
+            let finalTitle = cleanTitleParts.join(' ').trim();
+            
+            let dateStr = '';
+            let dateMatch = finalTitle.match(dateRegex);
+            if (dateMatch) {
+                dateStr = dateMatch[0].trim();
+                finalTitle = finalTitle.substring(dateMatch[0].length).trim();
+                finalTitle = finalTitle.replace(/^(?:from|to|at|is|on|:|-|–|—|,)(?:\s+|$)/i, '').trim();
+            }
+            
+            let loc = '';
+            let locMatch = finalTitle.match(/\(([^)]+)\)$/);
+            if (locMatch) {
+                loc = locMatch[1].trim();
+                finalTitle = finalTitle.replace(/\([^)]+\)$/, '').trim();
+            }
+            
+            let timeHtml = timeDesc.replace(/\s*(?:[-–—]|\bto\b)\s*/gi, '<br>');
+            
+            events.push({ title: finalTitle, time: timeHtml, origTimeDesc: timeDesc, loc, dateStr });
+            isEvent = true;
+        }
+    }
+    if (!isEvent) {
       cleanLines.push(line);
     }
   }
 
-    // Inject the calendar card directly as a smart widget into the UI flow
+  // Inject the calendar card directly as a smart widget into the UI flow
   if (events.length > 0) {
     events.sort((a, b) => {
       const parseTime = (str) => {
+        if (!str) return 9999;
         if (str.toLowerCase().includes('all day')) return -1;
         const match = str.match(/(\d+)(?::(\d+))?\s*(am|pm)?/i);
         if (!match) return 9999;
@@ -861,9 +1019,10 @@ function formatMessageText(text) {
         if (isAM && h === 12) h = 0;
         return h * 60 + m;
       };
-      return parseTime(a.time) - parseTime(b.time);
+      return parseTime(a.origTimeDesc) - parseTime(b.origTimeDesc);
     });
 
+    const headerDate = events.map(e => e.dateStr).find(d => d) || '';
     const colors = ['#00a8ff', '#00d4ff', '#9d00ff', '#00a8ff', '#00d4ff'];
     let eventsHtml = events.map((ev, i) => {
       return `
@@ -881,10 +1040,13 @@ function formatMessageText(text) {
     const uId = 'ui_' + (++uiId);
     uiStore[uId] = `
       <div class="smart-card calendar" style="max-width:100%;width:100%;margin-top:8px;margin-bottom:8px;">
-        <div class="cal-header">
-          <div class="cal-title">
-            <svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg>
-            Schedule
+        <div class="cal-header-bg">
+          <div class="cal-header">
+            <div class="cal-title">
+              <svg viewBox="0 0 24 24"><path d="${CAL_SVG}"/></svg>
+              Schedule
+            </div>
+            ${headerDate ? `<div class="cal-date">${headerDate}</div>` : ''}
           </div>
         </div>
         <div class="cal-events">${eventsHtml}</div>
@@ -1018,15 +1180,6 @@ function extractCanvasAndMarkdown(text) {
   return { processed: processed.trim(), hasCanvas };
 }
 
-function checkLocalIntercepts(text) {
-  const tMatch = text.match(/timer for (\d+) (minute|minutes|second|seconds)/i);
-  if(tMatch) {
-    const val = parseInt(tMatch[1]);
-    const secs = tMatch[2].toLowerCase().startsWith('min') ? val * 60 : val;
-    setTimeout(() => injectTimerCard(secs), 1000);
-  }
-}
-
 async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=null, imageName=null, isSilentCommand=false){
   let isHiddenPrompt = userText.startsWith("[HIDDEN_PROMPT]:");
   let textToSend = isHiddenPrompt ? userText.replace("[HIDDEN_PROMPT]:", "").trim() : userText;
@@ -1053,7 +1206,6 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     if (!isSilentCommand) {
       isThinking = true;
       if (!isHiddenPrompt) {
-        checkLocalIntercepts(textToSend);
         userMsgEl = addMessage(textToSend, 'user', imageBase64, imageMime, imageName, speakReply);
       }
       updateOrbState();
@@ -1190,6 +1342,7 @@ async function processAudioQueue() {
 function cleanForTTS(text){
   const bt = String.fromCharCode(96, 96, 96);
   return text
+    .replace(/<WIDGET[^>]+>/g, '') // Strips widget tags before they are spoken!
     .replace(/\[\[ui_\d+\]\]/g, '')
     .replace(/<canvas[\s\S]*?<\/canvas>/gi, '')
     .replace(new RegExp(bt + '.*?\\n[\\s\\S]*?' + bt + '(?:eof)?', 'gi'), '')
