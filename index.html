@@ -591,7 +591,8 @@ async function enablePushNotifications() {
         }
     } catch (err) {
         console.error('Failed to subscribe to push', err);
-        addMessage("There was an issue linking to the iOS Push service. Make sure this app is saved to your Home Screen.", 'oliver');
+        // INJECTED ERROR OUTPUT SO WE CAN SEE EXACTLY WHAT APPLE IS REJECTING
+        addMessage(`iOS Push Error: "${err.message || err}". Make sure you are launching this from the Home Screen, and that sw.js is uploaded to your server.`, 'oliver');
     }
 }
 
