@@ -1,62 +1,69 @@
 // sw.js - Oliver's Background Push Interceptor
 
-self.addEventListener('install', (event) => {
-    // Force the waiting service worker to become the active service worker.
-    self.skipWaiting();
+self.addEventListener('install', (e) => {
+    // Force the waiting service worker to become the active service worker immediately
+    e.waitUntil(self.skipWaiting());
     console.log('Oliver Service Worker Installed');
 });
 
-self.addEventListener('activate', (event) => {
-    // Tell the active service worker to take control of the page immediately.
-    event.waitUntil(self.clients.claim());
+self.addEventListener('activate', (e) => {
+    // Tell the active service worker to take control of the page immediately
+    e.waitUntil(self.clients.claim());
     console.log('Oliver Service Worker Activated');
 });
 
 // This is the critical event that listens for my backend pings when the app is closed
-self.addEventListener('push', function(event) {
+self.addEventListener('push', (e) => {
     console.log('Push received in background context');
     
+    // iOS REQUIRES showing a notification from every push event.
+    // Always show immediately — never skip or defer.
     let data = {};
-    if (event.data) {
-        try {
-            data = event.data.json();
-        } catch (e) {
-            data = { title: 'Oliver', body: event.data.text() };
+    if (e.data) {
+        try { 
+            data = e.data.json(); 
+        } catch (err) { 
+            data = { title: 'Oliver', body: e.data.text() };
         }
     }
 
-    const title = data.title || 'Oliver';
-    const options = {
-        body: data.body || 'New message from Oliver.',
-        icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>',
-        badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>',
-        requireInteraction: true, // Keeps the notification on screen until you dismiss it
-        vibrate: [200, 100, 200]
-    };
+    const notifTitle = data.title || 'Oliver';
+    const notifBody = data.body || 'New message from Oliver.';
+    const notifIcon = data.icon || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>';
+    const notifBadge = data.badge || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>';
+    const notifTag = data.tag || 'oliver-notif-' + Date.now();
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    // The promise chain MUST be passed directly to e.waitUntil for iOS
+    const promiseChain = self.registration.showNotification(notifTitle, {
+        body: notifBody,
+        icon: notifIcon,
+        badge: notifBadge,
+        tag: notifTag,
+        vibrate: [200, 100, 200],
+        requireInteraction: true,
+        renotify: true
+    });
+
+    e.waitUntil(promiseChain);
 });
 
 // When you tap the push notification on your lock screen, this opens the app
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
+self.addEventListener('notificationclick', (e) => {
+    e.notification.close();
     
-    // The exact URL where your web app is hosted
     const targetUrl = 'https://chrishinojosapro.github.io/Oliver/';
 
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            // Check if the app is already open in the background. If so, focus it.
-            for (let i = 0; i < clientList.length; i++) {
-                let client = clientList[i];
-                if (client.url.includes('/Oliver/') && 'focus' in client) {
-                    return client.focus();
+    e.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+            // Try to find an existing window to focus safely using .includes
+            for (const client of clients) {
+                if (client.url && client.url.includes('/Oliver/')) {
+                    client.focus();
+                    return;
                 }
             }
-            // If the app is completely closed, open a new window directly to your GitHub Pages URL
-            if (clients.openWindow) {
-                return clients.openWindow(targetUrl);
-            }
+            // If no window is found, open a new one
+            return self.clients.openWindow(targetUrl);
         })
     );
 });
