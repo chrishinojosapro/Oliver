@@ -1,11 +1,13 @@
 // sw.js - Oliver's Background Push Interceptor
 
 self.addEventListener('install', (event) => {
+    // Force the waiting service worker to become the active service worker.
     self.skipWaiting();
     console.log('Oliver Service Worker Installed');
 });
 
 self.addEventListener('activate', (event) => {
+    // Tell the active service worker to take control of the page immediately.
     event.waitUntil(self.clients.claim());
     console.log('Oliver Service Worker Activated');
 });
@@ -39,19 +41,22 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     
-    // Check if the app is already open in the background, if so, focus it. Otherwise, open a new window.
+    // The exact URL where your web app is hosted
+    const targetUrl = 'https://chrishinojosapro.github.io/Oliver/';
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            if (clientList.length > 0) {
-                let client = clientList[0];
-                for (let i = 0; i < clientList.length; i++) {
-                    if (clientList[i].focused) {
-                        client = clientList[i];
-                    }
+            // Check if the app is already open in the background. If so, focus it.
+            for (let i = 0; i < clientList.length; i++) {
+                let client = clientList[i];
+                if (client.url.includes('/Oliver/') && 'focus' in client) {
+                    return client.focus();
                 }
-                return client.focus();
             }
-            return clients.openWindow('/');
+            // If the app is completely closed, open a new window directly to your GitHub Pages URL
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
         })
     );
 });
