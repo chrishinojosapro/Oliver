@@ -468,18 +468,133 @@
   </button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// --- PUSH NOTIFICATION SETUP CONFIGURATION ---
+const VAPID_PUBLIC_KEY = 'BCOV5upb6A85AEn9g9wlqiqSsz4TODEnn36TCwBgensl3FCNNOWRhUacyfy-WWoy8Fbag58W-OAhHQk6qstsCtg'; 
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // FRONTEND STATE
 let spotifyIsPlaying = false;
 let spotifyPollInterval = null;
 let oliverSleepMode = false;
 let isHolding = false;
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
   console.log("Oliver's engines are warming up...");
+  
+  // 1. REGISTER PUSH NOTIFICATION SERVICE WORKER
+  // Only attempt to register the service worker if the app is hosted on an actual server (http/https)
+  // This prevents the "valid relative script URL" error when previewing in blob environments
+  if ('serviceWorker' in navigator && 'PushManager' in window && window.location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+          console.log("Service Worker Registered.");
+          
+          // Smart Notification Trigger if not already asked
+          if (Notification.permission === 'default') {
+              setTimeout(() => {
+                  const pushCardHtml = `
+                    <div class="smart-card timer" style="text-align: left; padding: 24px; align-items: flex-start; max-width: 320px;">
+                        <div style="font-size: 1.1em; font-weight: 700; color: #fff; margin-bottom: 8px;">Enable Push Alerts</div>
+                        <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 20px; line-height: 1.4;">I can notify you when your timers and alarms finish, even when this app is completely closed.</div>
+                        <button class="pill-action" onclick="enablePushNotifications()" style="margin: 0; width: 100%; text-align: center;">Allow Notifications</button>
+                    </div>`;
+                  addMessage(pushCardHtml, 'oliver', null, null, null, false, true);
+              }, 4000);
+          }
+      }).catch(function(err) {
+          console.error("Service Worker registration failed: ", err);
+      });
+  }
+
+  // RESTORE ACTIVE WIDGETS FROM SUPABASE ON RELOAD
+  let restoreHtml = '';
+  try {
+      const { data: savedWidgets, error } = await supabaseClient.from('widgets').select('*');
+      if (savedWidgets) {
+          for (const w of savedWidgets) {
+              if (w.type === 'timer') {
+                  const t = w.payload;
+                  const remaining = Math.ceil((t.endTime - Date.now()) / 1000);
+                  if (remaining > -60) { 
+                      restoreHtml += getTimerHTML(t.id, t.totalSeconds, t.label);
+                      setTimeout(() => startTimer(t.id, t.totalSeconds, t.label, t.endTime), 100);
+                  } else {
+                      removeWidget(t.id);
+                  }
+              } else if (w.type === 'alarm') {
+                  const a = w.payload;
+                  restoreHtml += getAlarmHTML(a.id, a.timeStr, a.label);
+                  setTimeout(() => { alarmData[a.id] = a; }, 100);
+              } else if (w.type === 'stopwatch') {
+                  const s = w.payload;
+                  restoreHtml += getStopwatchHTML(s.id);
+                  setTimeout(() => {
+                      activeStopwatches[s.id] = { id: s.id, start: s.start, elapsed: s.elapsed, interval: null };
+                      if(s.isRunning) resumeStopwatch(s.id);
+                      else {
+                          const txt = document.getElementById(`${s.id}-txt`);
+                          if(txt) {
+                              const ms = Math.floor((s.elapsed % 1000) / 10).toString().padStart(2, '0');
+                              const sec = Math.floor((s.elapsed / 1000) % 60).toString().padStart(2, '0');
+                              const m = Math.floor((s.elapsed / 60000)).toString().padStart(2, '0');
+                              txt.textContent = `${m}:${sec}.${ms}`;
+                          }
+                      }
+                  }, 100);
+              }
+          }
+      }
+  } catch (e) {
+      console.error("Failed to load widgets from Supabase", e);
+  }
+
+  if(restoreHtml) {
+      setTimeout(() => { addMessage(restoreHtml, 'oliver', null, null, null, false, true); }, 500);
+  }
 });
+
+// PUSH NOTIFICATION HANDLER
+async function enablePushNotifications() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            
+            // Save subscription to Supabase
+            const { error } = await supabaseClient.from('push_subscriptions').upsert({
+                endpoint: subscription.endpoint,
+                keys: subscription.toJSON().keys
+            }, { onConflict: 'endpoint' });
+
+            if(error) throw error;
+            
+            addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
+        } else {
+            addMessage("I completely understand. I won't send background alerts.", 'oliver');
+        }
+    } catch (err) {
+        console.error('Failed to subscribe to push', err);
+        addMessage("There was an issue linking to the iOS Push service. Make sure this app is saved to your Home Screen.", 'oliver');
+    }
+}
+
 
 function pollSpotifyStatus() {
   if (spotifyPollInterval) clearInterval(spotifyPollInterval);
@@ -536,8 +651,10 @@ function pollSpotifyStatus() {
 })();
 
 const SUPABASE_ANON_KEY = 'sb_publishable__1GiI-6C-fWmjZKs-ITq8w_t75aBCkZ';
-const EDGE_FUNCTION_URL = 'https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core';
-const XI_URL            = 'https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts';
+const SUPABASE_URL      = 'https://bufaflxlwojqfwymnabj.supabase.co';
+const supabaseClient    = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/oliver-core`;
+const XI_URL            = `${SUPABASE_URL}/functions/v1/oliver-tts`;
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p6A1w3SnYlRaPhXGHAXTV3BuqgFmNbGc2-EH04Zr0qYUyexv7XeNZl7/exec';
 const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
 
@@ -616,6 +733,24 @@ function getUIHistory() {
           });
       }
   });
+  
+  const activeStates = [];
+  for(let id in timerData) {
+      let rem = Math.max(0, Math.ceil((timerData[id].endTime - Date.now())/1000));
+      if(rem > 0) activeStates.push(`Timer "${timerData[id].label}" has ${Math.floor(rem/60)}m ${rem%60}s remaining.`);
+  }
+  for(let id in alarmData) {
+      activeStates.push(`Alarm "${alarmData[id].label}" is currently set for ${alarmData[id].timeStr}.`);
+  }
+  for(let id in activeStopwatches) {
+      const sw = activeStopwatches[id];
+      const elapsed = sw.interval ? sw.elapsed + (Date.now() - sw.start) : sw.elapsed;
+      activeStates.push(`Stopwatch is ${sw.interval ? 'running' : 'paused'} at ${Math.floor(elapsed/1000)} seconds.`);
+  }
+  if(activeStates.length > 0) {
+      history.push({ role: 'system', content: `[CURRENT ACTIVE WIDGETS RUNNING ON USER DEVICE]\n${activeStates.join('\n')}` });
+  }
+  
   return history.slice(-20);
 }
 
@@ -694,14 +829,37 @@ function stopWave(){
 }
 
 // Global Logic for Timers, Alarms, Stopwatches
-const activeTimers = {};
-window.startTimer = function(tId, seconds) {
-    let remaining = seconds;
+let activeTimers = {};
+let timerData = {};
+let alarmData = {};
+let activeStopwatches = {};
+
+async function saveWidget(id, type, payload) {
+    try {
+        await supabaseClient.from('widgets').upsert({ id, type, payload });
+    } catch(e) { console.error('Failed to save widget:', e); }
+}
+
+async function removeWidget(id) {
+    try {
+        await supabaseClient.from('widgets').delete().eq('id', id);
+    } catch(e) { console.error('Failed to delete widget:', e); }
+}
+
+window.startTimer = function(tId, seconds, label, existingEndTime = null) {
+    const endTime = existingEndTime || (Date.now() + seconds * 1000);
+    timerData[tId] = { id: tId, totalSeconds: seconds, endTime, label };
+    saveWidget(tId, 'timer', timerData[tId]);
+
     const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    
     activeTimers[tId] = setInterval(() => {
-        remaining--;
+        let remaining = Math.ceil((timerData[tId].endTime - Date.now()) / 1000);
+        if (remaining < 0) remaining = 0;
+
         const txt = document.getElementById(`${tId}-txt`);
         const ring = document.getElementById(`${tId}-ring`);
+        
         if(txt && ring) {
             txt.textContent = format(remaining);
             ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
@@ -709,17 +867,67 @@ window.startTimer = function(tId, seconds) {
                 clearInterval(activeTimers[tId]); 
                 txt.textContent = "00:00"; 
                 txt.style.color="#00a8ff"; 
+                delete timerData[tId];
+                removeWidget(tId);
+                speakText(`Chris, your ${label || 'timer'} is done!`, true);
             }
-        } else { clearInterval(activeTimers[tId]); }
+        } else if (!document.getElementById(tId)) {
+            // Even if scrolled out of DOM, keep tracking to alert!
+            if(remaining <= 0) { 
+                clearInterval(activeTimers[tId]); 
+                delete timerData[tId];
+                removeWidget(tId);
+                speakText(`Chris, your ${label || 'timer'} is done!`, true);
+            }
+        }
     }, 1000);
 }
 window.stopTimer = function(tId) { 
     clearInterval(activeTimers[tId]); 
+    delete timerData[tId];
+    removeWidget(tId);
     const c = document.getElementById(tId); 
-    if(c) c.style.opacity="0.5"; 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btn = c.querySelector('.sc-btn');
+        if(btn) btn.remove();
+    } 
 }
 
-const activeStopwatches = {};
+window.startAlarm = function(tId, timeStr, label) {
+    alarmData[tId] = { id: tId, timeStr, label };
+    saveWidget(tId, 'alarm', alarmData[tId]);
+}
+window.stopAlarm = function(tId) {
+    delete alarmData[tId];
+    removeWidget(tId);
+    const c = document.getElementById(tId); 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btn = c.querySelector('.sc-btn');
+        if(btn) btn.remove();
+    }
+}
+
+// Global Background Alarm Checker
+setInterval(() => {
+    const now = new Date();
+    let currentStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); 
+    
+    for(let id in alarmData) {
+        const cleanAlarm = alarmData[id].timeStr.replace(/^0/, '').toLowerCase().trim();
+        const cleanCurrent = currentStr.toLowerCase().trim();
+        
+        if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
+            alarmData[id].triggered = true;
+            saveWidget(id, 'alarm', alarmData[id]);
+            speakText(`Chris, it is ${alarmData[id].timeStr}. Your ${alarmData[id].label || 'alarm'} is going off!`, true);
+            const c = document.getElementById(id);
+            if (c) c.style.borderColor = "#00a8ff";
+        }
+    }
+}, 10000);
+
 window.startStopwatch = function(tId) {
     if(activeStopwatches[tId]) return;
     activeStopwatches[tId] = { start: Date.now(), elapsed: 0, interval: null };
@@ -737,16 +945,27 @@ window.resumeStopwatch = function(tId) {
             const s = Math.floor((sw.elapsed / 1000) % 60).toString().padStart(2, '0');
             const m = Math.floor((sw.elapsed / 60000)).toString().padStart(2, '0');
             txt.textContent = `${m}:${s}.${ms}`;
-        } else {
-            clearInterval(sw.interval);
         }
     }, 50);
+    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: true });
 }
 window.pauseStopwatch = function(tId) {
     const sw = activeStopwatches[tId];
     if(sw) {
         clearInterval(sw.interval);
         sw.interval = null;
+    }
+    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: false });
+}
+window.stopStopwatch = function(tId) {
+    pauseStopwatch(tId);
+    delete activeStopwatches[tId];
+    removeWidget(tId);
+    const c = document.getElementById(tId); 
+    if(c) {
+        c.style.opacity="0.5"; 
+        const btns = c.querySelectorAll('button');
+        btns.forEach(b => b.remove());
     }
 }
 
@@ -784,6 +1003,7 @@ function getAlarmHTML(tId, timeStr, label) {
           <div class="timer-digits" style="font-size:2.8em;">${timeStr}</div>
           <div class="timer-label">${label || 'Alarm Set'}</div>
         </div>
+        <button class="sc-btn" onclick="stopAlarm('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
       </div>
     `;
 }
@@ -805,6 +1025,7 @@ function getStopwatchHTML(tId) {
         <div style="display:flex; gap:16px;">
           <button class="sc-btn" onclick="pauseStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
           <button class="sc-btn" onclick="resumeStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="sc-btn" onclick="stopStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
         </div>
       </div>
     `;
@@ -922,18 +1143,23 @@ function formatMessageText(text) {
   text = text.replace(/<WIDGET:TIMER:(\d+):([^>]+)>/gi, (match, secs, label) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getTimerHTML(uId, parseInt(secs), label);
-      setTimeout(() => startTimer(uId, parseInt(secs)), 100);
+      setTimeout(() => startTimer(uId, parseInt(secs), label), 100);
       return `\n[[${uId}]]\n`;
   });
   text = text.replace(/<WIDGET:ALARM:((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*(?:AM|PM|am|pm))?):([^>]+)>/gi, (match, timeStr, label) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getAlarmHTML(uId, timeStr, label);
+      setTimeout(() => startAlarm(uId, timeStr, label), 100);
       return `\n[[${uId}]]\n`;
   });
   text = text.replace(/<WIDGET:STOPWATCH>/gi, (match) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getStopwatchHTML(uId);
-      setTimeout(() => startStopwatch(uId), 100);
+      setTimeout(() => {
+           activeStopwatches[uId] = { id: uId, start: Date.now(), elapsed: 0, interval: null };
+           saveWidget(uId, 'stopwatch', activeStopwatches[uId]);
+           startStopwatch(uId);
+      }, 100);
       return `\n[[${uId}]]\n`;
   });
   
@@ -1342,7 +1568,7 @@ async function processAudioQueue() {
 function cleanForTTS(text){
   const bt = String.fromCharCode(96, 96, 96);
   return text
-    .replace(/<WIDGET[^>]+>/g, '') // Strips widget tags before they are spoken!
+    .replace(/<WIDGET[^>]+>/g, '') 
     .replace(/\[\[ui_\d+\]\]/g, '')
     .replace(/<canvas[\s\S]*?<\/canvas>/gi, '')
     .replace(new RegExp(bt + '.*?\\n[\\s\\S]*?' + bt + '(?:eof)?', 'gi'), '')
