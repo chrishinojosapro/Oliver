@@ -12,7 +12,7 @@
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Oliver AI","short_name":"Oliver","display":"standalone","background_color":"#010409","theme_color":"#010409"}'>
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiT2xpdmVyIEFJIiwic2hvcnRfbmFtZSI6Ik9saXZlciIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwMTA0MDkiLCJ0aGVtZV9jb2xvciI6IiMwMTA0MDkifQ==">
 
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -418,7 +418,7 @@
     
     <div id="canvas-body-wrap">
       <div id="canvas-code-wrap"><pre id="canvas-code"></pre></div>
-      <div id="canvas-preview-wrap"><iframe id="canvas-iframe" sandbox="allow-scripts allow-same-origin"></iframe></div>
+      <div id="canvas-preview-wrap"><iframe id="canvas-iframe" sandbox="allow-scripts allow-popups"></iframe></div>
     </div>
     
   </div>
@@ -496,9 +496,9 @@ window.addEventListener('load', async () => {
   console.log("Oliver's engines are warming up...");
   
   // 1. REGISTER PUSH NOTIFICATION SERVICE WORKER
-  // Only attempt to register the service worker if the app is hosted on an actual server (http/https)
-  // This prevents the "valid relative script URL" error when previewing in blob environments
-  if ('serviceWorker' in navigator && 'PushManager' in window && window.location.protocol.startsWith('http')) {
+  // Block execution if running in a blob URL preview environment
+  const isRealHost = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+  if ('serviceWorker' in navigator && 'PushManager' in window && isRealHost) {
       navigator.serviceWorker.register('./sw.js').then(function(reg) {
           console.log("Service Worker Registered.");
           
@@ -577,13 +577,21 @@ async function enablePushNotifications() {
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
             
-            // Save subscription to Supabase
-            const { error } = await supabaseClient.from('push_subscriptions').upsert({
+            // Save subscription to Supabase without using onConflict to prevent 400 errors
+            const subData = {
                 endpoint: subscription.endpoint,
                 keys: subscription.toJSON().keys
-            }, { onConflict: 'endpoint' });
+            };
+            
+            const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).single();
 
-            if(error) throw error;
+            if (existing) {
+                const { error } = await supabaseClient.from('push_subscriptions').update({ keys: subData.keys }).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient.from('push_subscriptions').insert([subData]);
+                if (error) throw error;
+            }
             
             addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
         } else {
@@ -591,7 +599,6 @@ async function enablePushNotifications() {
         }
     } catch (err) {
         console.error('Failed to subscribe to push', err);
-        // INJECTED ERROR OUTPUT SO WE CAN SEE EXACTLY WHAT APPLE IS REJECTING
         addMessage(`iOS Push Error: "${err.message || err}". Make sure you are launching this from the Home Screen, and that sw.js is uploaded to your server.`, 'oliver');
     }
 }
