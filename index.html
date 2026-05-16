@@ -181,7 +181,6 @@
     margin-left: auto; border: none; flex-shrink: 0;
   }
 
-  /* SMART CARDS (SPOTIFY, TIMER, CALENDAR) */
   .smart-card {
     margin-top: 10px; padding: 10px 14px; border-radius: 16px;
     background: rgba(10, 10, 15, 0.5); border: 1px solid rgba(255,255,255,0.1);
@@ -190,7 +189,6 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
 
-  /* COMPACT Spotify Widget */
   .smart-card.spotify {
     background: #0b0c10;
     border: 2px solid #25272d;
@@ -331,7 +329,6 @@
 
   #file-input { display:none; }
 
-  /* OVERHAULED CANVAS IDE UI */
   #oliver-canvas {
     position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center;
     background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
@@ -609,7 +606,6 @@ window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
 
-// ANTI-ECHO ENGINE
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
   const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
@@ -732,8 +728,6 @@ function stopWave(){
   bars.forEach(b=>b.style.height='4px');
 }
 
-// INLINE SMART CARDS LOGIC
-
 const activeTimers = {};
 function injectTimerCard(seconds) {
   const tId = 'timer_'+Date.now();
@@ -852,7 +846,6 @@ async function sendMessage(){
   await pipeline(text||"I've shared an image with you.", false, pendingImageBase64, pendingImageMime, pendingImageName);
 }
 
-// CAL SVG path shared constant
 const CAL_SVG = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z';
 
 function formatMessageText(text) {
@@ -1150,10 +1143,16 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
     const data = await res.json();
 
+    // SPOTIFY FIX INJECTED HERE
+    if (data.spotify_data && data.spotify_data.isPlaying !== undefined) {
+       updateOrInjectSpotifyCard(data.spotify_data);
+       spotifyIsPlaying = data.spotify_data.isPlaying;
+    }
+
     if (data.error) {
       console.error("Pipeline Error:", data.error);
     } else if (data.reply) {
-      let rawText = data.reply;
+      let rawText = data.reply || '';
       let autoFollowUp = false;
 
       if (rawText.includes("<CONTINUE>")) {
