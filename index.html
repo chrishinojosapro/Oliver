@@ -1148,84 +1148,48 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       }),
     });
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    const data = await res.json();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    if (data.error) {
+      console.error("Pipeline Error:", data.error);
+    } else if (data.reply) {
+      let rawText = data.reply;
+      let autoFollowUp = false;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const data = JSON.parse(line);
-
-        if (data.type === 'ignore') {
-          if (userMsgEl) {
-            userMsgEl.style.transition = 'all 0.4s ease';
-            userMsgEl.style.opacity = '0';
-            userMsgEl.style.transform = 'scale(0.95)';
-            setTimeout(() => userMsgEl.remove(), 400);
-          }
+      if (rawText.includes("<CONTINUE>")) {
+        autoFollowUp = true;
+        rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
+      } else {
+        const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
+        const lower = rawText.toLowerCase();
+        if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
+          autoFollowUp = true;
         }
-        else if (data.type === 'spotify_update') {
-          if (data.data) {
-            updateOrInjectSpotifyCard(data.data);
-            spotifyIsPlaying = data.data.isPlaying;
+      }
+
+      const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
+
+      if (!isSilentCommand) {
+        if (processed.trim() !== '') {
+          const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
+          if (speakReply && oliverMsgEl) {
+            const hasInteractive = hasCanvas || oliverMsgEl.querySelector('.pill-btn, .smart-card');
+            if (hasInteractive) oliverMsgEl.classList.remove('hidden-voice');
           }
-        }
-        else if (data.type === 'filler') {
-          if (speakReply && !isSilentCommand) {
-            audioQueue.push({ text: data.text, runId: runId, isFiller: true });
+          if (speakReply) {
+            audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
             if (!isPlayingQueue) processAudioQueue();
           }
         }
-        else if (data.type === 'final') {
-          let rawText = data.text || '';
-          let autoFollowUp = false;
 
-          if (rawText.includes("<CONTINUE>")) {
-            autoFollowUp = true;
-            rawText = rawText.replace(/<CONTINUE>/gi, '').trim();
-          } else {
-            const followUpRegex = /(let me try again|let me look|let me check|give me a sec|one sec|one moment|hang on|hold on|let me pull that up|let me see|let's see|i'll check|let me figure|bear with me|just a sec|just a moment)[\s.?!]*$/i;
-            const lower = rawText.toLowerCase();
-            if (followUpRegex.test(lower) || (lower.match(/let me try again|let me look|let me check|hang on|hold on|let me see|let's see|i'll check/i) && lower.length < 150)) {
-              autoFollowUp = true;
-            }
-          }
-
-          const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
-
-          if (!isSilentCommand) {
-            if (processed.trim() !== '') {
-              const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
-              if (speakReply && oliverMsgEl) {
-                const hasInteractive = hasCanvas || oliverMsgEl.querySelector('.pill-btn, .smart-card');
-                if (hasInteractive) oliverMsgEl.classList.remove('hidden-voice');
-              }
-              if (speakReply) {
-                audioQueue.push({ text: processed, runId: runId, isFiller: false, msgEl: oliverMsgEl });
-                if (!isPlayingQueue) processAudioQueue();
-              }
-            }
-
-            if (autoFollowUp) {
-              setTimeout(() => {
-                pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
-              }, 1200);
-            }
-          }
-        }
-        else if (data.type === 'error') {
-          console.error("Pipeline Error:", data.text);
+        if (autoFollowUp) {
+          setTimeout(() => {
+            pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
+          }, 1200);
         }
       }
     }
+
   } catch(err) {
     console.warn("Pipeline execution error:", err);
   } finally {
