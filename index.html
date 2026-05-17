@@ -863,7 +863,6 @@ function snoozeRinging() {
   const msg = 'Snoozed — I\'ll get you again at ' + newTimeStr + '.';
   addMessage(msg, 'oliver');
   speakText(msg, false, null);
-  pushAllDevices('💤 Snoozed', 'Alarm snoozed until ' + newTimeStr);
 }
 
 // Listen for service worker messages (push notification action buttons)
@@ -1069,7 +1068,6 @@ window.startTimer = function(tId, seconds, label, existingEndTime = null) {
                 timerEl.classList.remove('hidden-voice');
                 try { const ctx = getAudioCtx(); if(ctx && ctx.state==='suspended') ctx.resume(); } catch(e) {}
                 speakText(timerDoneMsg, false, null);
-                pushAllDevices('⏱️ Timer Done', (label || 'Timer') + ' is finished!', false);
             }
         } else if (!document.getElementById(tId)) {
             if(remaining <= 0) { 
@@ -1143,7 +1141,6 @@ setInterval(() => {
             speakText(alarmMsg, false, null);
 
             sendLocalPushAlert('⏰ ' + alarmLabel, 'It\'s ' + alarmTime + ' — ' + alarmLabel + '!', true);
-            pushAllDevices('⏰ ' + alarmLabel, 'It\'s ' + alarmTime + ' — ' + alarmLabel + '!', true);
 
             // Flash the widget border
             const c = document.getElementById(id);
