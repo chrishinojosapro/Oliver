@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#010409">
+<meta name="theme-color" content="#040d1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -292,8 +292,9 @@
   .controls {
     position:relative; z-index:10; flex-shrink:0;
     display:flex; align-items:center; gap:9px;
-    padding: 12px 14px calc(16px + env(safe-area-inset-bottom)) 14px;
-    background:linear-gradient(to top, #040d1a 75%, transparent);
+    padding: 12px 14px 14px 14px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    background:linear-gradient(to top, #040d1a 85%, transparent);
   }
   #text-input {
     flex:1; min-width:0;
@@ -338,7 +339,7 @@
   #oliver-canvas.open { opacity:1; pointer-events:all; }
 
   #canvas-panel {
-    width: 100%; height: 100dvh; max-width: 100%;
+    width: 100%; height: 100%; max-width: 100%;
     background: rgba(4, 9, 15, 0.95); 
     backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
     border: none; border-radius: 0; box-shadow: none;
@@ -424,677 +425,40 @@
         <span class="ide-title" id="canvas-title-text">Oliver AI</span>
         <svg class="ide-cloud" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17l5.09-5.09L16.5 10.5 10 17z"/></svg>
       </div>
-      <div class="ide-center">
-        <div class="ide-tabs" id="ide-tabs-container">
-          <button class="ide-tab active" id="tab-code" onclick="showIdeTab('code')">Code</button>
-          <button class="ide-tab" id="tab-preview" onclick="showIdeTab('preview')">Preview</button>
-        </div>
-      </div>
-      <div class="ide-right">
-        <button class="ide-btn ide-share" onclick="copyCanvas()" id="copy-btn">
-           <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg> <span class="hide-mobile">Share</span>
-        </button>
-        <button class="ide-btn ide-close" onclick="closeCanvas()">
-           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </div>
-    </div>
-    
-    <div id="canvas-body-wrap">
-      <div id="canvas-code-wrap"><pre id="canvas-code"></pre></div>
-      <div id="canvas-preview-wrap"><iframe id="canvas-iframe" sandbox="allow-scripts allow-popups"></iframe></div>
-    </div>
-    
-  </div>
-</div>
-
-<header>
-  <div class="header-center">
-    <div class="status-pip" id="main-pip"></div>
-    <span class="header-title">Oliver AI</span>
-  </div>
-</header>
-
-<div id="chat-container">
-  <div class="message oliver">
-    <div class="sender-row"><div class="sender-dot oliver"></div><span class="sender-name">Oliver</span></div>
-    <div class="oliver-card"><div class="msg-text"><div class="msg-para">I'm listening, Chris. The visual interface is active.</div></div></div>
-  </div>
-</div>
-
-<div id="img-preview-bar">
-  <div id="img-preview-wrap">
-    <img id="img-preview" src="" alt="preview">
-    <div id="img-preview-remove" onclick="clearImage()">
-      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-    </div>
-  </div>
-  <div id="img-preview-info">
-    <div id="img-preview-name"></div>
-    <div>tap send to share with Oliver</div>
-  </div>
-</div>
-
-<div id="waveform"></div>
-
-<div class="controls">
-  <input type="text" id="text-input" placeholder="Message Oliver…" onkeydown="checkEnter(event)" autocomplete="off" autocorrect="off" spellcheck="false">
-  <input type="file" id="file-input" accept="image/*" onchange="onImageSelected(event)">
-  <button class="ctrl-btn" id="img-btn" onclick="document.getElementById('file-input').click()" aria-label="Upload image">
-    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-  </button>
-
-  <button class="ctrl-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
-    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-  </button>
-  <button class="ctrl-btn" id="convo-btn" onclick="toggleContinuous()" aria-label="Conversation mode">
-    <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"/></svg>
-  </button>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// --- PUSH NOTIFICATION SETUP CONFIGURATION ---
-const VAPID_PUBLIC_KEY = 'BCOV5upb6A85AEn9g9wlqiqSsz4TODEnn36TCwBgensl3FCNNOWRhUacyfy-WWoy8Fbag58W-OAhHQk6qstsCtg'; 
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+  `;
 }
 
-// FRONTEND STATE
-let spotifyIsPlaying = false;
-let spotifyPollInterval = null;
-let oliverSleepMode = false;
-let isHolding = false;
-
-window.addEventListener('load', async () => {
-  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
-  fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
-  console.log("Oliver's engines are warming up...");
-  
-  // 1. REGISTER PUSH NOTIFICATION SERVICE WORKER
-  const isRealHost = window.location.protocol === 'https:' || window.location.protocol === 'http:';
-  if ('serviceWorker' in navigator && 'PushManager' in window && isRealHost) {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
-          console.log("Service Worker Registered.");
-          
-          if (Notification.permission === 'default') {
-              setTimeout(() => {
-                  const pushCardHtml = `
-                    <div class="smart-card timer" style="text-align: left; padding: 24px; align-items: flex-start; max-width: 320px;">
-                        <div style="font-size: 1.1em; font-weight: 700; color: #fff; margin-bottom: 8px;">Enable Push Alerts</div>
-                        <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 20px; line-height: 1.4;">I can notify you when your timers and alarms finish, even when this app is completely closed.</div>
-                        <button class="pill-action" onclick="enablePushNotifications()" style="margin: 0; width: 100%; text-align: center;">Allow Notifications</button>
-                    </div>`;
-                  addMessage(pushCardHtml, 'oliver', null, null, null, false, true);
-              }, 4000);
-          }
-      }).catch(function(err) {
-          console.error("Service Worker registration failed: ", err);
-      });
-  }
-
-  // RESTORE ACTIVE WIDGETS FROM SUPABASE ON RELOAD
-  let restoreHtml = '';
-  try {
-      const { data: savedWidgets, error } = await supabaseClient.from('widgets').select('*');
-      if (savedWidgets) {
-          for (const w of savedWidgets) {
-              if (w.type === 'timer') {
-                  const t = w.payload;
-                  const remaining = Math.ceil((t.endTime - Date.now()) / 1000);
-                  if (remaining > -60) { 
-                      restoreHtml += getTimerHTML(t.id, t.totalSeconds, t.label);
-                      setTimeout(() => startTimer(t.id, t.totalSeconds, t.label, t.endTime), 100);
-                  } else {
-                      removeWidget(t.id);
-                  }
-              } else if (w.type === 'alarm') {
-                  const a = w.payload;
-                  restoreHtml += getAlarmHTML(a.id, a.timeStr, a.label);
-                  setTimeout(() => { alarmData[a.id] = a; }, 100);
-              } else if (w.type === 'stopwatch') {
-                  const s = w.payload;
-                  restoreHtml += getStopwatchHTML(s.id);
-                  setTimeout(() => {
-                      activeStopwatches[s.id] = { id: s.id, start: s.start, elapsed: s.elapsed, interval: null };
-                      if(s.isRunning) resumeStopwatch(s.id);
-                      else {
-                          const txt = document.getElementById(`${s.id}-txt`);
-                          if(txt) {
-                              const ms = Math.floor((s.elapsed % 1000) / 10).toString().padStart(2, '0');
-                              const sec = Math.floor((s.elapsed / 1000) % 60).toString().padStart(2, '0');
-                              const m = Math.floor((s.elapsed / 60000)).toString().padStart(2, '0');
-                              txt.textContent = `${m}:${sec}.${ms}`;
-                          }
-                      }
-                  }, 100);
-              }
-          }
-      }
-  } catch (e) {
-      console.error("Failed to load widgets from Supabase", e);
-  }
-
-  if(restoreHtml) {
-      setTimeout(() => { addMessage(restoreHtml, 'oliver', null, null, null, false, true); }, 500);
-  }
-});
-
-async function enablePushNotifications() {
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-            
-            const subData = {
-                endpoint: subscription.endpoint,
-                keys: subscription.toJSON().keys
-            };
-            
-            const { data: existing } = await supabaseClient.from('push_subscriptions').select('id').eq('endpoint', subData.endpoint).maybeSingle();
-
-            if (existing) {
-                const { error } = await supabaseClient.from('push_subscriptions').update({ keys: subData.keys }).eq('id', existing.id);
-                if (error) throw error;
-            } else {
-                const { error } = await supabaseClient.from('push_subscriptions').insert([subData]);
-                if (error) throw error;
-            }
-            
-            addMessage("Push notifications are enabled! I'll alert you seamlessly in the background.", 'oliver');
-
-            setTimeout(() => {
-                sendLocalPushAlert("Connection Established 🌌", "I am fully linked to your iPhone! You can safely close the app now.");
-            }, 1500);
-
-        } else {
-            addMessage("I completely understand. I won't send background alerts.", 'oliver');
-        }
-    } catch (err) {
-        console.error('Failed to subscribe to push', err);
-        addMessage(`iOS Push Error: "${err.message || err}". Make sure you are launching this from the Home Screen, and that sw.js is uploaded to your server.`, 'oliver');
-    }
-}
-
-async function sendLocalPushAlert(title, body) {
-    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            reg.showNotification(title, {
-                body: body,
-                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>',
-                badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>'
-            });
-        } catch (e) {
-            console.error("Local push failed:", e);
-        }
-    }
-}
-
-function pollSpotifyStatus() {
-  if (spotifyPollInterval) clearInterval(spotifyPollInterval);
-  silentSpotifyCommand('status');
-  spotifyPollInterval = setInterval(() => {
-      silentSpotifyCommand('status');
-  }, 10000);
-}
-
-(function(){
-  const cv=document.getElementById('star-canvas'),cx=cv.getContext('2d');
-  let W,H;
-  const resize=()=>{ W=cv.width=innerWidth; H=cv.height=innerHeight; };
-  resize(); window.addEventListener('resize',resize);
-  const STARS=Array.from({length:160},()=>({
-    x:Math.random(),y:Math.random(),
-    r:Math.random()*0.9+0.2,a:Math.random()*0.5+0.1,
-    ts:Math.random()*0.015+0.005,to:Math.random()*Math.PI*2,
-  }));
-  const SHOTS=[];
-  const spawn=()=>{
-    const ang=(Math.random()*35+15)*Math.PI/180,spd=Math.random()*5+4;
-    SHOTS.push({x:Math.random()*W,y:Math.random()*H*0.6,
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
-      len:Math.random()*120+60,life:1,decay:Math.random()*0.012+0.010});
-  };
-  const schedule=()=>{ spawn(); setTimeout(schedule,Math.random()*1600+1200); };
-  schedule();
-  let t=0;
-  (function draw(){
-    cx.clearRect(0,0,W,H); t+=0.016;
-    for(const s of STARS){
-      const a=s.a*(0.6+0.4*Math.sin(t*s.ts*60+s.to));
-      cx.beginPath(); cx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
-      cx.fillStyle=`rgba(255,255,255,${a})`; cx.fill();
-    }
-    for(let i=SHOTS.length-1;i>=0;i--){
-      const s=SHOTS[i],mag=Math.hypot(s.vx,s.vy);
-      const tx=s.x-s.vx*(s.len/mag),ty=s.y-s.vy*(s.len/mag);
-      const g=cx.createLinearGradient(tx,ty,s.x,s.y);
-      g.addColorStop(0,'rgba(255,255,255,0)');
-      g.addColorStop(0.6,`rgba(0,150,255,${s.life*0.5})`);
-      g.addColorStop(1,`rgba(255,255,255,${s.life})`);
-      cx.beginPath(); cx.moveTo(tx,ty); cx.lineTo(s.x,s.y);
-      cx.strokeStyle=g; cx.lineWidth=1.5; cx.stroke();
-      const grd=cx.createRadialGradient(s.x,s.y,0,s.x,s.y,3);
-      grd.addColorStop(0,`rgba(255,255,255,${s.life})`); grd.addColorStop(1,'rgba(255,255,255,0)');
-      cx.beginPath(); cx.arc(s.x,s.y,3,0,Math.PI*2); cx.fillStyle=grd; cx.fill();
-      s.x+=s.vx; s.y+=s.vy; s.life-=s.decay;
-      if(s.life<=0) SHOTS.splice(i,1);
-    }
-    requestAnimationFrame(draw);
-  })();
-})();
-
-const SUPABASE_ANON_KEY = 'sb_publishable__1GiI-6C-fWmjZKs-ITq8w_t75aBCkZ';
-const SUPABASE_URL      = 'https://bufaflxlwojqfwymnabj.supabase.co';
-const supabaseClient    = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/oliver-core`;
-const XI_URL            = `${SUPABASE_URL}/functions/v1/oliver-tts`;
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzViOSD9mUk1p6A1w3SnYlRaPhXGHAXTV3BuqgFmNbGc2-EH04Zr0qYUyexv7XeNZl7/exec';
-const GOOGLE_SECRET     = 'x7Kp2mQnR9vLwYjT4aBcDeFgHiJkNoPq';
-
-const convoBtn  = document.getElementById('convo-btn');
-const imgBtn    = document.getElementById('img-btn');
-const waveform  = document.getElementById('waveform');
-const interimEl = { textContent:'' };
-
-let isRecording   = false;
-let isSpeaking    = false;
-let isContinuous  = false;
-let isThinking    = false;
-let recognition   = null;
-let currentAudio  = null;
-let audioCtx      = null;
-let audioUnlocked = false;
-let audioQueue    = [];
-let isPlayingQueue= false;
-let currentPlayingRunId = null;
-
-let pendingImageBase64 = null;
-let pendingImageMime   = null;
-let pendingImageName   = null;
-
-let canvasStore = {};
-let canvasIdCounter = 0;
-
-let uiStore = {};
-let uiId = 0;
-
-window.hasInterrupted = false;
-let isMicStarting = false;
-let sentenceTimeout;
-
-const oliverMemoryHistory = [];
-function addOliverMemory(text) {
-  const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-  if(clean) oliverMemoryHistory.push(clean);
-  if(oliverMemoryHistory.length > 3) oliverMemoryHistory.shift();
-}
-function isEcho(text) {
-  const cleanInput = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-  if(!cleanInput || cleanInput.length < 5) return false;
-  for(const mem of oliverMemoryHistory) {
-      if(mem.includes(cleanInput) || cleanInput.includes(mem)) return true;
-  }
-  return false;
-}
-
-const sessionStart = Date.now();
-const getSessionId = () => {
-  let sid;
-  try { sid = sessionStorage.getItem('oliver_sid'); } catch(e) {}
-  if(!sid){
-    try {
-      sid = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
-      sessionStorage.setItem('oliver_sid', sid);
+function getInboxHTML(tId, payload) {
+    let emails = [];
+    try { 
+        emails = JSON.parse(payload); 
     } catch(e) {
-      sid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        let parts = payload.split('||');
+        emails = parts.map(p => {
+            let pSplit = p.split('|');
+            return { sender: pSplit[0], subject: pSplit[1], snippet: pSplit[2] };
+        });
     }
-  }
-  return sid;
-};
-
-function getUIHistory() {
-  const messages = document.querySelectorAll('.message');
-  const history = [];
-  messages.forEach(msgEl => {
-      const isUser = msgEl.classList.contains('user');
-      const textEl = msgEl.querySelector('.msg-text') || msgEl.querySelector('.user-card') || msgEl;
-      const text = textEl.textContent.trim();
-      if(text && text !== "I'm listening, Chris. The visual interface is active.") {
-          history.push({
-              role: isUser ? 'user' : 'assistant',
-              content: text.substring(0, 1000)
-          });
-      }
-  });
-  
-  const activeStates = [];
-  for(let id in timerData) {
-      let rem = Math.max(0, Math.ceil((timerData[id].endTime - Date.now())/1000));
-      if(rem > 0) activeStates.push(`Timer "${timerData[id].label}" has ${Math.floor(rem/60)}m ${rem%60}s remaining.`);
-  }
-  for(let id in alarmData) {
-      activeStates.push(`Alarm "${alarmData[id].label}" is currently set for ${alarmData[id].timeStr}.`);
-  }
-  for(let id in activeStopwatches) {
-      const sw = activeStopwatches[id];
-      const elapsed = sw.interval ? sw.elapsed + (Date.now() - sw.start) : sw.elapsed;
-      activeStates.push(`Stopwatch is ${sw.interval ? 'running' : 'paused'} at ${Math.floor(elapsed/1000)} seconds.`);
-  }
-  if(activeStates.length > 0) {
-      history.push({ role: 'system', content: `[CURRENT ACTIVE WIDGETS RUNNING ON USER DEVICE]\n${activeStates.join('\n')}` });
-  }
-  
-  return history.slice(-20);
-}
-
-function getAudioCtx(){
-  if(!audioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if(AudioContext) audioCtx = new AudioContext();
-  }
-  return audioCtx;
-}
-
-function unlockAudio(){
-  if(audioUnlocked) return;
-  try {
-    const ctx=getAudioCtx();
-    if(!ctx) return;
-    if(ctx.state==='suspended') ctx.resume();
-    const buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();
-    src.buffer=buf; src.connect(ctx.destination); src.start(0);
-    audioUnlocked=true;
-  } catch(e) { console.warn('Audio contextual unlock failed:', e); }
-}
-
-function updateOrbState() {
-  if (oliverSleepMode) {
-      stopWave();
-      const pip = document.getElementById('main-pip');
-      if(pip) pip.style.background = '#555';
-  } else if (isHolding) {
-      startWave('listening');
-      const pip = document.getElementById('main-pip');
-      if(pip && !spotifyIsPlaying) pip.style.background = '#00a8ff';
-  } else if (isSpeaking || isPlayingQueue) {
-      startWave('speaking');
-  } else if (isRecording) {
-      startWave('listening');
-      const pip = document.getElementById('main-pip');
-      if(pip && !spotifyIsPlaying) pip.style.background = 'white';
-  } else if (isThinking || audioQueue.length > 0) {
-      startWave('thinking');
-  } else {
-      stopWave();
-  }
-}
-
-const BAR_COUNT=18;
-let waveRAF=null;
-for(let i=0;i<BAR_COUNT;i++){
-  const b=document.createElement('div');
-  b.className='wave-bar'; waveform.appendChild(b);
-}
-const bars=waveform.querySelectorAll('.wave-bar');
-
-function startWave(mode){
-  waveform.className='visible'+(mode==='thinking'?' thinking':'');
-  if(waveRAF) cancelAnimationFrame(waveRAF);
-  let t=0;
-  const animate=()=>{
-    t+=0.06;
-    bars.forEach((b,i)=>{
-      let h;
-      if(mode==='listening')     h=4+14*Math.abs(Math.sin(t*1.8+i*0.55+Math.sin(t*0.7+i)*0.4));
-      else if(mode==='thinking') h=3+8*Math.abs(Math.sin(t*0.8+i*0.18));
-      else if(mode==='speaking') h=4+18*Math.abs(Math.sin(t*2.5+i*0.42));
-      else h=4;
-      b.style.height=h+'px';
-    });
-    waveRAF=requestAnimationFrame(animate);
-  };
-  animate();
-}
-function stopWave(){
-  waveform.className='';
-  if(waveRAF){ cancelAnimationFrame(waveRAF); waveRAF=null; }
-  bars.forEach(b=>b.style.height='4px');
-}
-
-// Global Logic for Timers, Alarms, Stopwatches
-let activeTimers = {};
-let timerData = {};
-let alarmData = {};
-let activeStopwatches = {};
-
-async function saveWidget(id, type, payload) {
-    try {
-        await supabaseClient.from('widgets').upsert({ id, type, payload });
-    } catch(e) { console.error('Failed to save widget:', e); }
-}
-
-async function removeWidget(id) {
-    try {
-        await supabaseClient.from('widgets').delete().eq('id', id);
-    } catch(e) { console.error('Failed to delete widget:', e); }
-}
-
-window.startTimer = function(tId, seconds, label, existingEndTime = null) {
-    const endTime = existingEndTime || (Date.now() + seconds * 1000);
-    timerData[tId] = { id: tId, totalSeconds: seconds, endTime, label };
-    saveWidget(tId, 'timer', timerData[tId]);
-
-    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
     
-    activeTimers[tId] = setInterval(() => {
-        let remaining = Math.ceil((timerData[tId].endTime - Date.now()) / 1000);
-        if (remaining < 0) remaining = 0;
-
-        const txt = document.getElementById(`${tId}-txt`);
-        const ring = document.getElementById(`${tId}-ring`);
-        
-        if(txt && ring) {
-            txt.textContent = format(remaining);
-            ring.style.strokeDashoffset = 283 - (283 * (remaining/seconds));
-            if(remaining <= 0) { 
-                clearInterval(activeTimers[tId]); 
-                txt.textContent = "00:00"; 
-                txt.style.color="#00a8ff"; 
-                delete timerData[tId];
-                removeWidget(tId);
-                speakText(`Chris, your ${label || 'timer'} is done!`, true);
-                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
-            }
-        } else if (!document.getElementById(tId)) {
-            // Even if scrolled out of DOM, keep tracking to alert!
-            if(remaining <= 0) { 
-                clearInterval(activeTimers[tId]); 
-                delete timerData[tId];
-                removeWidget(tId);
-                speakText(`Chris, your ${label || 'timer'} is done!`, true);
-                sendLocalPushAlert(`Timer Complete`, `Your ${label || 'timer'} is done!`);
-            }
-        }
-    }, 1000);
-}
-window.stopTimer = function(tId) { 
-    clearInterval(activeTimers[tId]); 
-    delete timerData[tId];
-    removeWidget(tId);
-    const c = document.getElementById(tId); 
-    if(c) {
-        c.style.opacity="0.5"; 
-        const btn = c.querySelector('.sc-btn');
-        if(btn) btn.remove();
-    } 
-}
-
-window.startAlarm = function(tId, timeStr, label) {
-    alarmData[tId] = { id: tId, timeStr, label };
-    saveWidget(tId, 'alarm', alarmData[tId]);
-}
-window.stopAlarm = function(tId) {
-    delete alarmData[tId];
-    removeWidget(tId);
-    const c = document.getElementById(tId); 
-    if(c) {
-        c.style.opacity="0.5"; 
-        const btn = c.querySelector('.sc-btn');
-        if(btn) btn.remove();
-    }
-}
-
-setInterval(() => {
-    const now = new Date();
-    let currentStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); 
-    
-    for(let id in alarmData) {
-        const cleanAlarm = alarmData[id].timeStr.replace(/^0/, '').toLowerCase().trim();
-        const cleanCurrent = currentStr.toLowerCase().trim();
-        
-        if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
-            alarmData[id].triggered = true;
-            saveWidget(id, 'alarm', alarmData[id]);
-            speakText(`Chris, it is ${alarmData[id].timeStr}. Your ${alarmData[id].label || 'alarm'} is going off!`, true);
-            sendLocalPushAlert(`Alarm: ${alarmData[id].timeStr}`, `Your ${alarmData[id].label || 'alarm'} is going off!`);
-            const c = document.getElementById(id);
-            if (c) c.style.borderColor = "#00a8ff";
-        }
-    }
-}, 10000);
-
-window.startStopwatch = function(tId) {
-    if(activeStopwatches[tId]) return;
-    activeStopwatches[tId] = { start: Date.now(), elapsed: 0, interval: null };
-    window.resumeStopwatch(tId);
-}
-window.resumeStopwatch = function(tId) {
-    const sw = activeStopwatches[tId];
-    if(!sw || sw.interval) return;
-    sw.start = Date.now() - sw.elapsed;
-    sw.interval = setInterval(() => {
-        sw.elapsed = Date.now() - sw.start;
-        const txt = document.getElementById(`${tId}-txt`);
-        if(txt) {
-            const ms = Math.floor((sw.elapsed % 1000) / 10).toString().padStart(2, '0');
-            const s = Math.floor((sw.elapsed / 1000) % 60).toString().padStart(2, '0');
-            const m = Math.floor((sw.elapsed / 60000)).toString().padStart(2, '0');
-            txt.textContent = `${m}:${s}.${ms}`;
-        }
-    }, 50);
-    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: true });
-}
-window.pauseStopwatch = function(tId) {
-    const sw = activeStopwatches[tId];
-    if(sw) {
-        clearInterval(sw.interval);
-        sw.interval = null;
-    }
-    saveWidget(tId, 'stopwatch', { id: tId, start: sw.start, elapsed: sw.elapsed, isRunning: false });
-}
-window.stopStopwatch = function(tId) {
-    pauseStopwatch(tId);
-    delete activeStopwatches[tId];
-    removeWidget(tId);
-    const c = document.getElementById(tId); 
-    if(c) {
-        c.style.opacity="0.5"; 
-        const btns = c.querySelectorAll('button');
-        btns.forEach(b => b.remove());
-    }
-}
-
-function getTimerHTML(tId, seconds, label) {
-    const format = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-    return `
-      <div class="smart-card timer" id="${tId}">
-        <div class="timer-ring-wrap">
-          <svg class="timer-ring-svg" viewBox="0 0 100 100">
-            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0" id="${tId}-ring"></circle>
-          </svg>
-          <div class="timer-icon"><svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
-        </div>
-        <div>
-          <div class="timer-digits" id="${tId}-txt">${format(seconds)}</div>
-          <div class="timer-label">${label || 'Timer'}</div>
-        </div>
-        <button class="sc-btn" onclick="stopTimer('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    let itemsHtml = emails.map((em, i) => `
+      <div style="display:flex; flex-direction:column; gap:4px; padding: 12px 0; border-bottom: ${i === emails.length-1 ? 'none' : '1px solid rgba(255,255,255,0.05)'}">
+        <div class="email-sender">From: <strong>${em.sender || 'Unknown'}</strong></div>
+        <div class="email-subject">${em.subject || 'No Subject'}</div>
+        <div class="email-snippet" style="-webkit-line-clamp: 2;">${em.snippet || ''}</div>
       </div>
-    `;
-}
+    `).join('');
 
-function getAlarmHTML(tId, timeStr, label) {
-    return `
-      <div class="smart-card timer alarm" id="${tId}">
-        <div class="timer-ring-wrap" style="width:80px; height:80px; margin-bottom: 12px;">
-          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
-            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="0"></circle>
-          </svg>
-          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:34px; height:34px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
-        </div>
-        <div>
-          <div class="timer-digits" style="font-size:2.8em;">${timeStr}</div>
-          <div class="timer-label">${label || 'Alarm Set'}</div>
-        </div>
-        <button class="sc-btn" onclick="stopAlarm('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
-      </div>
-    `;
-}
-
-function getStopwatchHTML(tId) {
-    return `
-      <div class="smart-card timer stopwatch" id="${tId}">
-        <div class="timer-ring-wrap" style="width:70px; height:70px; margin-bottom: 16px;">
-          <svg class="timer-ring-svg" viewBox="0 0 100 100" style="transform:none;">
-            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-ring-fg" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="200"></circle>
-          </svg>
-          <div class="timer-icon"><svg viewBox="0 0 24 24" style="width:32px; height:32px;"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9a8.994 8.994 0 0 0 7.03-14.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
-        </div>
-        <div>
-          <div class="timer-digits" id="${tId}-txt" style="font-size:2.8em; margin-bottom: 8px;">00:00.00</div>
-          <div class="timer-label">Stopwatch</div>
-        </div>
-        <div style="display:flex; gap:16px;">
-          <button class="sc-btn" onclick="pauseStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
-          <button class="sc-btn" onclick="resumeStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="sc-btn" onclick="stopStopwatch('${tId}')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
-        </div>
-      </div>
-    `;
-}
-
-function getEmailHTML(tId, sender, subject, snippet) {
     return `
       <div class="smart-card email" id="${tId}">
         <div class="email-header">
           <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-          Gmail
+          Recent Emails
         </div>
-        <div class="email-body">
-          <div class="email-sender">From: <strong>${sender}</strong></div>
-          <div class="email-subject">${subject}</div>
-          <div class="email-snippet">${snippet}</div>
+        <div class="email-body" style="padding: 0 20px;">
+          ${itemsHtml}
         </div>
         <div class="email-actions">
-          <div class="email-btn primary">Reply</div>
-          <div class="email-btn">Archive</div>
+          <div class="email-btn primary">Open Inbox</div>
         </div>
       </div>
     `;
@@ -1236,6 +600,12 @@ function formatMessageText(text) {
       return `\n[[${uId}]]\n`;
   });
   
+  text = text.replace(/<WIDGET:INBOX:(.*?)>/gi, (match, payload) => {
+      const uId = 'ui_' + (++uiId);
+      uiStore[uId] = getInboxHTML(uId, payload);
+      return `\n[[${uId}]]\n`;
+  });
+
   let events = [];
   let cleanLines = [];
 
@@ -1249,6 +619,13 @@ function formatMessageText(text) {
   for (let line of lines) {
     let isEvent = false;
     if (/^(?:-|\*)\s/.test(line)) {
+        // Prevent bulleted email lists from being hijacked by the calendar parser
+        const lower = line.toLowerCase();
+        if (lower.includes('from:') || lower.includes('subject:') || lower.includes('sender:')) {
+            cleanLines.push(line);
+            continue;
+        }
+
         let raw = line.replace(/^(?:-|\*)\s*/, '').replace(/\*\*/g, '').trim();
         let timeDesc = '';
         let title = raw;
