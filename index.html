@@ -999,7 +999,9 @@ setInterval(() => {
         if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
             alarmData[id].triggered = true;
             saveWidget(id, 'alarm', alarmData[id]);
-            speakText('Chris, it is ' + alarmData[id].timeStr + '. Your ' + (alarmData[id].label || 'alarm') + ' is going off!', true);
+            const alarmMsg = 'Chris, it is ' + alarmData[id].timeStr + '. Your ' + (alarmData[id].label || 'alarm') + ' is going off!';
+            speakText(alarmMsg, true);
+            sendLocalPushAlert('⏰ ' + (alarmData[id].label || 'Alarm'), 'It\'s ' + alarmData[id].timeStr + ' — your alarm is going off!');
             const c = document.getElementById(id);
             if (c) c.style.borderColor = "#00a8ff";
         }
@@ -1262,10 +1264,10 @@ function formatMessageText(text) {
       setTimeout(() => startTimer(uId, parseInt(secs), label), 100);
       return '\n[[' + uId + ']]\n';
   });
-  text = text.replace(/<WIDGET:ALARM:((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*(?:AM|PM|am|pm))?):([^>]+)>/gi, (match, timeStr, label) => {
+  text = text.replace(/<WIDGET:ALARM:([^:>]+):([^>]+)>/gi, (match, timeStr, label) => {
       const uId = 'ui_' + (++uiId);
-      uiStore[uId] = getAlarmHTML(uId, timeStr, label);
-      setTimeout(() => startAlarm(uId, timeStr, label), 100);
+      uiStore[uId] = getAlarmHTML(uId, timeStr.trim(), label.trim());
+      setTimeout(() => startAlarm(uId, timeStr.trim(), label.trim()), 100);
       return '\n[[' + uId + ']]\n';
   });
   text = text.replace(/<WIDGET:STOPWATCH>/gi, (match) => {
@@ -1294,6 +1296,9 @@ function formatMessageText(text) {
 
   let events = [];
   let cleanLines = [];
+  // Don't try to parse calendar events from email responses
+  const isEmailContext = text.includes('<WIDGET:EMAIL:') || text.includes('<WIDGET:INBOX:') ||
+    /\b(inbox|unread email|new email|your email|from:)\b/i.test(text);
 
   const lines = text.split('\n');
   const timeSrc = '\\b(?:1[0-2]|0?[1-9]):[0-5][0-9]\\s*(?:am|pm|AM|PM)?\\b|\\b(?:1[0-2]|0?[1-9])\\s*(?:am|pm|AM|PM)\\b|\\b(?:2[0-3]|[01]?[0-9]):[0-5][0-9]\\b';
@@ -1302,11 +1307,15 @@ function formatMessageText(text) {
   
   const dateRegex = /^(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day)?\s*,?\s*)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{4})?|^(?:Tomorrow|Today|Yesterday)\b/i;
 
+  if (!isEmailContext) {
   for (let line of lines) {
     let isEvent = false;
     if (/^(?:-|\*)\s/.test(line)) {
         const lower = line.toLowerCase();
-        if (lower.includes('from:') || lower.includes('subject:') || lower.includes('sender:')) {
+        // Guard: skip lines that look like email content or are inside an email context
+        if (lower.includes('from:') || lower.includes('subject:') || lower.includes('sender:') ||
+            lower.includes('re:') || lower.includes('inbox') || lower.includes('unread') ||
+            lower.includes('email') || lower.includes('gmail') || lower.includes('mail from')) {
             cleanLines.push(line);
             continue;
         }
@@ -1363,6 +1372,7 @@ function formatMessageText(text) {
       cleanLines.push(line);
     }
   }
+  } // end !isEmailContext
 
   if (events.length > 0) {
     setTimeout(() => toolSound.play(), 100);
@@ -1555,7 +1565,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   if (isThinking && !isSilentCommand) return;
 
   const runId = Date.now().toString();
-  const myGen = ++pipelineGen;
+  const myGen = isSilentCommand ? pipelineGen : ++pipelineGen;
   let userMsgEl = null;
 
   try {
