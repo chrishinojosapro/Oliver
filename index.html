@@ -527,6 +527,11 @@ let ringingIsTimer = false;
 let alarmChimeInterval = null;
 
 window.addEventListener('load', async () => {
+  fetch(EDGE_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+    body: JSON.stringify({ action: 'boot_sync' })
+  }).catch(() => {});
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
   console.log("Oliver's engines are warming up...");
@@ -640,7 +645,7 @@ async function enablePushNotifications() {
 }
 
 async function sendLocalPushAlert(title, body, isAlarm = false) {
-    // Fire local notification on this device
+    // Fire local notification on THIS device only
     if ('serviceWorker' in navigator && Notification.permission === 'granted') {
         try {
             const reg = await navigator.serviceWorker.ready;
@@ -660,8 +665,8 @@ async function sendLocalPushAlert(title, body, isAlarm = false) {
             console.error("Local push failed:", e);
         }
     }
-    // Also push to ALL subscribed devices via backend
-    pushAllDevices(title, body, isAlarm);
+    // NOTE: pushAllDevices is called separately by the alarm/timer handlers
+    // Do NOT call it here — that causes double pushes
 }
 
 async function pushAllDevices(title, body, isAlarm = false) {
@@ -1083,7 +1088,7 @@ window.stopTimer = function(tId) {
 }
 
 window.startAlarm = function(tId, timeStr, label) {
-    alarmData[tId] = { id: tId, timeStr, label };
+    alarmData[tId] = { id: tId, timeStr, label, createdAt: Date.now() };
     saveWidget(tId, 'alarm', alarmData[tId]);
 }
 window.stopAlarm = function(tId) {
@@ -1104,8 +1109,9 @@ setInterval(() => {
     for(let id in alarmData) {
         const cleanAlarm = alarmData[id].timeStr.replace(/^0/, '').toLowerCase().trim();
         const cleanCurrent = currentStr.toLowerCase().trim();
-        
-        if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
+        const ageMs = Date.now() - (alarmData[id].createdAt || 0);
+
+        if(cleanAlarm === cleanCurrent && !alarmData[id].triggered && ageMs > 65000) {
             alarmData[id].triggered = true;
             saveWidget(id, 'alarm', alarmData[id]);
             const alarmLabel = alarmData[id].label || 'Alarm';
