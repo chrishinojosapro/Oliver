@@ -519,6 +519,13 @@ let spotifyPollInterval = null;
 let oliverSleepMode = false;
 let isHolding = false;
 
+// Active alarm/timer ringing state
+let ringingId = null;
+let ringingLabel = null;
+let ringingTimeStr = null;
+let ringingIsTimer = false;
+let alarmChimeInterval = null;
+
 window.addEventListener('load', async () => {
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-core', { method: 'OPTIONS' }).catch(() => {});
   fetch('https://bufaflxlwojqfwymnabj.supabase.co/functions/v1/oliver-tts', { method: 'OPTIONS' }).catch(() => {});
@@ -632,30 +639,37 @@ async function enablePushNotifications() {
     }
 }
 
-async function sendLocalPushAlert(title, body) {
+async function sendLocalPushAlert(title, body, isAlarm = false) {
     // Fire local notification on this device
     if ('serviceWorker' in navigator && Notification.permission === 'granted') {
         try {
             const reg = await navigator.serviceWorker.ready;
-            reg.showNotification(title, {
+            const opts = {
                 body: body,
                 icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23010409%22/><text y=%22.9em%22 x=%2210%22 font-size=%2280%22>🌌</text></svg>',
-                badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>'
-            });
+                badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>',
+                tag: isAlarm ? 'oliver-alarm' : 'oliver-notif',
+                renotify: true,
+                actions: isAlarm ? [
+                    { action: 'snooze', title: '💤 Snooze 5 min' },
+                    { action: 'dismiss', title: '✓ Dismiss' }
+                ] : []
+            };
+            reg.showNotification(title, opts);
         } catch (e) {
             console.error("Local push failed:", e);
         }
     }
     // Also push to ALL subscribed devices via backend
-    pushAllDevices(title, body);
+    pushAllDevices(title, body, isAlarm);
 }
 
-async function pushAllDevices(title, body) {
+async function pushAllDevices(title, body, isAlarm = false) {
     try {
         await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-            body: JSON.stringify({ action: 'notify_all', title, body })
+            body: JSON.stringify({ action: 'notify_all', title, body, isAlarm })
         });
     } catch(e) { console.warn('pushAllDevices failed:', e); }
 }
@@ -780,6 +794,57 @@ async function playToolSound() {
 }
 
 const toolSound = { currentTime: 0, play: playToolSound };
+
+// --- ALARM / TIMER RINGING ---
+function startRinging(id, label, timeStr, isTimer = false) {
+  stopRinging(); // clear any prior chime
+  ringingId = id;
+  ringingLabel = label;
+  ringingTimeStr = timeStr;
+  ringingIsTimer = isTimer;
+  playToolSound();
+  alarmChimeInterval = setInterval(playToolSound, 4000);
+}
+
+function stopRinging(announce = false) {
+  if (alarmChimeInterval) { clearInterval(alarmChimeInterval); alarmChimeInterval = null; }
+  ringingId = null; ringingLabel = null; ringingTimeStr = null; ringingIsTimer = false;
+  if (announce) {
+    const msg = 'Alarm stopped.';
+    addMessage(msg, 'oliver');
+    speakText(msg, false, null);
+  }
+}
+
+function snoozeRinging() {
+  const label = ringingLabel || 'Alarm';
+  stopRinging();
+
+  const snoozeDate = new Date(Date.now() + 5 * 60 * 1000);
+  const h = snoozeDate.getHours(), m = snoozeDate.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const newTimeStr = h12 + ':' + m.toString().padStart(2, '0') + ' ' + ampm;
+
+  const newId = 'ui_' + (++uiId);
+  uiStore[newId] = getAlarmHTML(newId, newTimeStr, label + ' (Snoozed)');
+  addMessage('[[' + newId + ']]', 'oliver', null, null, null, false, false);
+  setTimeout(() => startAlarm(newId, newTimeStr, label + ' (Snoozed)'), 100);
+
+  const msg = 'Snoozed — I\'ll get you again at ' + newTimeStr + '.';
+  addMessage(msg, 'oliver');
+  speakText(msg, false, null);
+  pushAllDevices('💤 Snoozed', 'Alarm snoozed until ' + newTimeStr);
+}
+
+// Listen for service worker messages (push notification action buttons)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data.type === 'alarm_snooze') snoozeRinging();
+    if (event.data.type === 'alarm_dismiss') stopRinging(true);
+    if (event.data.type === 'timer_dismiss') stopRinging(false);
+  });
+}
 
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
@@ -963,8 +1028,19 @@ window.startTimer = function(tId, seconds, label, existingEndTime = null) {
                 delete timerData[tId];
                 removeWidget(tId);
                 const timerDoneMsg = 'Chris, your ' + (label || 'timer') + ' is done!';
-                speakText(timerDoneMsg, true);
-                pushAllDevices('⏱️ Timer Done', (label || 'Timer') + ' is finished!');
+                // Break through hold/mic states
+                isHolding = false;
+                oliverSleepMode = false;
+                if (isRecording) stopRecording(false);
+                if (currentAudio) { try { currentAudio.stop(); } catch(e) {} currentAudio = null; }
+                audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+                // Start looping chime
+                startRinging(tId, label || 'Timer', '', true);
+                const timerEl = addMessage(timerDoneMsg, 'oliver');
+                timerEl.classList.remove('hidden-voice');
+                try { const ctx = getAudioCtx(); if(ctx && ctx.state==='suspended') ctx.resume(); } catch(e) {}
+                speakText(timerDoneMsg, false, null);
+                pushAllDevices('⏱️ Timer Done', (label || 'Timer') + ' is finished!', false);
             }
         } else if (!document.getElementById(tId)) {
             if(remaining <= 0) { 
@@ -1014,12 +1090,37 @@ setInterval(() => {
         if(cleanAlarm === cleanCurrent && !alarmData[id].triggered) {
             alarmData[id].triggered = true;
             saveWidget(id, 'alarm', alarmData[id]);
-            const alarmMsg = 'Chris, it is ' + alarmData[id].timeStr + '. Your ' + (alarmData[id].label || 'alarm') + ' is going off!';
-            speakText(alarmMsg, true);
-            sendLocalPushAlert('⏰ ' + (alarmData[id].label || 'Alarm'), 'It\'s ' + alarmData[id].timeStr + ' — your alarm is going off!');
-            pushAllDevices('⏰ ' + (alarmData[id].label || 'Alarm'), 'It\'s ' + alarmData[id].timeStr + ' — your alarm is going off!');
+            const alarmLabel = alarmData[id].label || 'Alarm';
+            const alarmTime  = alarmData[id].timeStr;
+            const alarmMsg   = 'Chris, it\'s ' + alarmTime + '. Your ' + alarmLabel + ' is going off!';
+
+            // Break through hold / mic-active states so the alarm always plays
+            isHolding = false;
+            oliverSleepMode = false;
+            if (isRecording) stopRecording(false);
+            if (currentAudio) { try { currentAudio.stop(); } catch(e) {} currentAudio = null; }
+            audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+
+            // Start looping chime
+            startRinging(id, alarmLabel, alarmTime, false);
+
+            // Visual announcement in chat
+            const annEl = addMessage(alarmMsg, 'oliver');
+            annEl.classList.remove('hidden-voice');
+
+            // Resume AudioContext and speak
+            try { const ctx = getAudioCtx(); if(ctx && ctx.state==='suspended') ctx.resume(); } catch(e) {}
+            speakText(alarmMsg, false, null);
+
+            sendLocalPushAlert('⏰ ' + alarmLabel, 'It\'s ' + alarmTime + ' — ' + alarmLabel + '!', true);
+            pushAllDevices('⏰ ' + alarmLabel, 'It\'s ' + alarmTime + ' — ' + alarmLabel + '!', true);
+
+            // Flash the widget border
             const c = document.getElementById(id);
-            if (c) c.style.borderColor = "#00a8ff";
+            if (c) {
+                c.style.borderColor = '#00a8ff';
+                c.style.boxShadow = '0 0 24px rgba(0,168,255,0.5)';
+            }
         }
     }
 }, 10000);
@@ -1852,6 +1953,20 @@ function buildRecognition(){
       e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
     const liveText = (interim || final).toLowerCase().trim();
+
+    // If an alarm/timer is ringing, intercept snooze/stop commands first
+    if (ringingId !== null) {
+      if (!ringingIsTimer && liveText.match(/\b(snooze|5 more|five more|few more)\b/i)) {
+        clearTimeout(sentenceTimeout); interimEl.textContent = '';
+        snoozeRinging(); return;
+      }
+      if (liveText.match(/\b(stop|dismiss|cancel|turn off|shut up|enough|got it|okay|ok)\b/i)) {
+        clearTimeout(sentenceTimeout); interimEl.textContent = '';
+        stopRinging(false);
+        const msg = ringingIsTimer ? 'Timer stopped.' : 'Alarm dismissed.';
+        addMessage(msg, 'oliver'); speakText(msg, false, null); return;
+      }
+    }
 
     // Immediately interrupt if user says "Oliver" while he's speaking
     if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over"))) {
