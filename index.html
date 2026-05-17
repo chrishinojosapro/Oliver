@@ -575,7 +575,11 @@ window.addEventListener('load', async () => {
               } else if (w.type === 'alarm') {
                   const a = w.payload;
                   restoreHtml += getAlarmHTML(a.id, a.timeStr, a.label);
-                  setTimeout(() => { alarmData[a.id] = a; }, 100);
+                  setTimeout(() => { 
+                      // Set createdAt to 2 minutes ago so the 65s grace period doesn't block
+                      // alarms that were legitimately saved and restored from Supabase
+                      alarmData[a.id] = { ...a, createdAt: Date.now() - 120000 }; 
+                  }, 100);
               } else if (w.type === 'stopwatch') {
                   const s = w.payload;
                   restoreHtml += getStopwatchHTML(s.id);
@@ -1972,7 +1976,7 @@ function toggleContinuous(){
 }
 
 function startListening(){
-  if(isRecording || isMicStarting || isThinking || isSpeaking || isPlayingQueue || oliverSleepMode) return;
+  if(isRecording || isMicStarting || isThinking || oliverSleepMode) return;
   isMicStarting = true;
   recognition = buildRecognition();
   if(!recognition) { 
@@ -2005,22 +2009,33 @@ function buildRecognition(){
     }
     const liveText = (interim || final).toLowerCase().trim();
 
-    // If an alarm/timer is ringing, intercept snooze/stop commands first
+    // If an alarm/timer is ringing, intercept snooze/stop commands FIRST
+    // These take absolute priority over everything including mid-speech interrupts
     if (ringingId !== null) {
       if (!ringingIsTimer && liveText.match(/\b(snooze|5 more|five more|few more)\b/i)) {
         clearTimeout(sentenceTimeout); interimEl.textContent = '';
+        // Cut Oliver mid-sentence if he's speaking the alarm announcement
+        if(speechAbortController){ try{ speechAbortController.abort(); }catch(_){} speechAbortController=null; }
+        if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+        audioQueue = []; isPlayingQueue = false; isSpeaking = false;
         snoozeRinging(); return;
       }
       if (liveText.match(/\b(stop|dismiss|cancel|turn off|shut up|enough|got it|okay|ok)\b/i)) {
         clearTimeout(sentenceTimeout); interimEl.textContent = '';
+        // Cut Oliver mid-sentence if he's speaking the alarm announcement
+        if(speechAbortController){ try{ speechAbortController.abort(); }catch(_){} speechAbortController=null; }
+        if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+        audioQueue = []; isPlayingQueue = false; isSpeaking = false;
         stopRinging(false);
         const msg = ringingIsTimer ? 'Timer stopped.' : 'Alarm dismissed.';
-        addMessage(msg, 'oliver'); speakText(msg, false, null); return;
+        addMessage(msg, 'oliver');
+        speakText(msg, false, null); return;
       }
     }
 
-    // Immediately interrupt if user says "Oliver" while he's speaking
-    if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over"))) {
+    // Immediately interrupt if user says "Oliver", "stop", or "shut up" while he's speaking
+    const isStopCommand = /^(stop|oliver stop|stop oliver|shut up|quiet)[\s.!]*$/i.test(liveText);
+    if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || isStopCommand)) {
       pipelineGen++;
       window.hasInterrupted = true;
       justInterrupted = true;
@@ -2098,12 +2113,13 @@ function buildRecognition(){
     // After an interrupt, suppress the wake word itself from being sent as a message
     if(justInterrupted) {
       const stripped = liveText.replace(/\boliver\b|\bolive\b|\ball over\b/gi, '').trim();
-      if(!stripped || stripped.length < 3) {
-        // Only "Oliver" was said — clear interim and wait for actual message
+      // Also swallow "stop", "shut up" etc — they were part of the interrupt command
+      const isInterruptResidue = !stripped || stripped.length < 3 || /^(stop|shut up|quiet)[\s.!]*$/i.test(stripped);
+      if(isInterruptResidue) {
         if(final) { interimEl.textContent = ''; justInterrupted = false; }
         return;
       }
-      // They said "Oliver <something>" — treat <something> as the message
+      // They said "Oliver <something real>" — treat <something> as the message
       justInterrupted = false;
     }
 
@@ -2162,7 +2178,7 @@ function stopRecording(processCurrent = false){
 }
 
 setInterval(() => {
-  if (isContinuous && !isRecording && !isMicStarting && !isSpeaking && !isPlayingQueue && !isThinking && !oliverSleepMode) {
+  if (isContinuous && !isRecording && !isMicStarting && !isThinking && !oliverSleepMode) {
     startListening();
   }
 }, 1500);
