@@ -1299,7 +1299,7 @@ function getInboxHTML(tId, payload) {
 let activeSpotifyCardId = null;
 let currentSpotifyTrack = null;
 
-function updateOrInjectSpotifyCard(spData) {
+function updateOrInjectSpotifyCard(spData, playSound = false) {
   if(!activeSpotifyCardId || currentSpotifyTrack !== spData.trackName) {
     activeSpotifyCardId = 'sp_'+Date.now();
     currentSpotifyTrack = spData.trackName;
@@ -1334,7 +1334,7 @@ function updateOrInjectSpotifyCard(spData) {
     '</div>';
     
     addMessage(html, 'oliver', null, null, null, false, true);
-    toolSound.play();
+    if (playSound) toolSound.play();
     const card = document.getElementById(activeSpotifyCardId);
     if(card) {
       const art = document.getElementById(activeSpotifyCardId + '-art');
@@ -1707,7 +1707,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
               artistName: "Electric Youth",
               albumArt: "https://i.scdn.co/image/ab67616d00001e029c07ed104e12c145cd42c8d2",
               isPlaying: true
-          });
+          }, true);
       }, 500);
       return;
   }
@@ -1776,7 +1776,12 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
     const data = await res.json();
 
     if (data.spotify_data && data.spotify_data.isPlaying !== undefined) {
-       updateOrInjectSpotifyCard(data.spotify_data);
+       // Only play sound when user explicitly asked Oliver to control Spotify
+       const isSpotifyCommand = !isSilentCommand && (
+           textToSend.toLowerCase().match(/\b(play|pause|skip|next|previous|stop music|resume)\b/) ||
+           textToSend.includes('on spotify') || textToSend.includes('some music')
+       );
+       updateOrInjectSpotifyCard(data.spotify_data, !!isSpotifyCommand);
        spotifyIsPlaying = data.spotify_data.isPlaying;
     }
 
