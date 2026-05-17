@@ -633,6 +633,7 @@ async function enablePushNotifications() {
 }
 
 async function sendLocalPushAlert(title, body) {
+    // Fire local notification on this device
     if ('serviceWorker' in navigator && Notification.permission === 'granted') {
         try {
             const reg = await navigator.serviceWorker.ready;
@@ -645,6 +646,18 @@ async function sendLocalPushAlert(title, body) {
             console.error("Local push failed:", e);
         }
     }
+    // Also push to ALL subscribed devices via backend
+    pushAllDevices(title, body);
+}
+
+async function pushAllDevices(title, body) {
+    try {
+        await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+            body: JSON.stringify({ action: 'notify_all', title, body })
+        });
+    } catch(e) { console.warn('pushAllDevices failed:', e); }
 }
 
 function pollSpotifyStatus() {
@@ -949,7 +962,9 @@ window.startTimer = function(tId, seconds, label, existingEndTime = null) {
                 txt.style.color="#00a8ff"; 
                 delete timerData[tId];
                 removeWidget(tId);
-                speakText('Chris, your ' + (label || 'timer') + ' is done!', true);
+                const timerDoneMsg = 'Chris, your ' + (label || 'timer') + ' is done!';
+                speakText(timerDoneMsg, true);
+                pushAllDevices('⏱️ Timer Done', (label || 'Timer') + ' is finished!');
             }
         } else if (!document.getElementById(tId)) {
             if(remaining <= 0) { 
@@ -1002,6 +1017,7 @@ setInterval(() => {
             const alarmMsg = 'Chris, it is ' + alarmData[id].timeStr + '. Your ' + (alarmData[id].label || 'alarm') + ' is going off!';
             speakText(alarmMsg, true);
             sendLocalPushAlert('⏰ ' + (alarmData[id].label || 'Alarm'), 'It\'s ' + alarmData[id].timeStr + ' — your alarm is going off!');
+            pushAllDevices('⏰ ' + (alarmData[id].label || 'Alarm'), 'It\'s ' + alarmData[id].timeStr + ' — your alarm is going off!');
             const c = document.getElementById(id);
             if (c) c.style.borderColor = "#00a8ff";
         }
