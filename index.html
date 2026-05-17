@@ -198,7 +198,7 @@
   .timer-ring-fg { fill: none; stroke: #00a8ff; stroke-width: 4; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
   .timer-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   .timer-icon svg { width: 28px; height: 28px; fill: #00a8ff; }
-  .timer-digits { font-size: 3.5em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+  .timer-digits { font-size: 3.5em; font-weight: 600; color: white; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; white-space: nowrap; }
   .timer-label { font-size: 0.85em; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
   .sc-btn { 
     margin-top: 16px; width: 56px; height: 56px; border-radius: 50%; 
@@ -1093,7 +1093,7 @@ function getAlarmHTML(tId, timeStr, label) {
         '<div class="timer-icon"><svg viewBox="0 0 24 24" style="width:34px; height:34px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>' +
       '</div>' +
       '<div>' +
-        '<div class="timer-digits" style="font-size:2.8em;">' + timeStr + '</div>' +
+        '<div class="timer-digits" style="font-size:2.2em;">' + timeStr + '</div>' +
         '<div class="timer-label">' + (label || 'Alarm Set') + '</div>' +
       '</div>' +
       '<button class="sc-btn" onclick="stopAlarm(\'' + tId + '\')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
@@ -1280,7 +1280,7 @@ function formatMessageText(text) {
       setTimeout(() => startTimer(uId, parseInt(secs), label), 100);
       return '\n[[' + uId + ']]\n';
   });
-  text = text.replace(/<WIDGET:ALARM:([^:>]+):([^>]+)>/gi, (match, timeStr, label) => {
+  text = text.replace(/<WIDGET:ALARM:(\d{1,2}(?::\d{2})?\s*(?:[AP]M)?):([^>]+)>/gi, (match, timeStr, label) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getAlarmHTML(uId, timeStr.trim(), label.trim());
       setTimeout(() => startAlarm(uId, timeStr.trim(), label.trim()), 100);
