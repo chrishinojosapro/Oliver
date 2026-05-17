@@ -740,9 +740,44 @@ window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
 
-// 2. INITIALIZE AUDIO OBJECT FOR THE crisp UI SOUND EFFECT
-const toolSound = new Audio(SUPABASE_URL + '/storage/v1/object/public/assets/tool_sound.mp3');
-toolSound.volume = 0.45;
+// 2. UI SOUND — loaded once, played via WebAudioContext (works on iOS)
+const TOOL_SOUND_URL = SUPABASE_URL + '/storage/v1/object/public/assets/Generate_a_short_UI_-1778978258591.mp3';
+let toolSoundBuffer = null;
+let toolSoundLoading = false;
+
+async function loadToolSound() {
+  if (toolSoundBuffer || toolSoundLoading) return;
+  toolSoundLoading = true;
+  try {
+    const res = await fetch(TOOL_SOUND_URL);
+    const arr = await res.arrayBuffer();
+    const ctx = getAudioCtx();
+    if (ctx) toolSoundBuffer = await ctx.decodeAudioData(arr);
+  } catch(e) { console.warn('Tool sound load failed:', e); }
+  toolSoundLoading = false;
+}
+
+const toolSound = {
+  currentTime: 0,
+  play() {
+    try {
+      const ctx = getAudioCtx();
+      if (!ctx || !toolSoundBuffer) { loadToolSound(); return; }
+      if (ctx.state === 'suspended') ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = toolSoundBuffer;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.55;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(0);
+    } catch(e) { console.warn('Tool sound play failed:', e); }
+  }
+};
+
+// Pre-load on first interaction so it's ready to fire instantly
+document.addEventListener('click', () => loadToolSound(), { once: true });
+document.addEventListener('touchstart', () => loadToolSound(), { once: true });
 
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
@@ -1797,6 +1832,18 @@ function buildRecognition(){
     }
     const liveText = (interim || final).toLowerCase().trim();
 
+    // Immediately interrupt if user says "Oliver" while he's speaking
+    if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over"))) {
+      window.hasInterrupted = true;
+      clearTimeout(sentenceTimeout);
+      interimEl.textContent = '';
+      if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+      audioQueue = []; isPlayingQueue = false; isSpeaking = false;
+      stopRecording(false);
+      startListening();
+      return;
+    }
+
     if (isHolding) {
         if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("ready") || liveText.includes("i'm back")) {
             isHolding = false;
@@ -1812,7 +1859,8 @@ function buildRecognition(){
         return; 
     }
 
-    if (liveText.match(/^(hold on|hold on a second|hold on a minute|give me a sec|give me a second|give me a minute|wait a sec|wait a second|pause)( oliver)?$/i) || liveText.includes("oliver hold on") || liveText.includes("hold on oliver")) {
+    const isHoldPhrase = liveText.match(/^(hold on|hold on a second|hold on a minute|give me a sec|give me a second|give me a minute|wait a sec|wait a second|pause|thank you|thanks|thank you oliver|thanks oliver)( oliver)?$/i) || liveText.includes("oliver hold on") || liveText.includes("hold on oliver") || liveText.includes("thank you oliver") || liveText.includes("oliver thank you");
+    if (isHoldPhrase) {
         isHolding = true;
         interimEl.textContent = '';
         clearTimeout(sentenceTimeout);
@@ -1824,17 +1872,14 @@ function buildRecognition(){
         }
 
         stopRecording(false);
-        const msgEl = addMessage("Standing by. Say my name when you're ready.", "oliver", null, null, null, true);
+        const msgEl = addMessage("Of course. Say my name when you need me.", "oliver", null, null, null, true);
         msgEl.classList.remove('hidden-voice');
-        audioQueue.push({ text: "Standing by. Say my name when you're ready.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
+        audioQueue.push({ text: "Of course. Say my name when you need me.", runId: Date.now().toString(), isFiller: false, msgEl: msgEl });
         if (!isPlayingQueue) processAudioQueue();
         return;
     }
 
-    if (isSpeaking || isPlayingQueue) {
-      const isWakeWord = liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over") || liveText.includes("stop");
-      if (!isWakeWord) return;
-    }
+    if (isSpeaking || isPlayingQueue) return;
     if(isEcho(liveText)) return;
 
     if (!oliverSleepMode && (liveText.includes("oliver ignore me") || liveText.includes("ignore me oliver") || liveText.includes("go to sleep oliver"))) {
@@ -1852,16 +1897,6 @@ function buildRecognition(){
 
     if (liveText.includes("oliver stop") || liveText.includes("stop listening completely")) {
       stopRecording(false); toggleContinuous(); return;
-    }
-
-    if (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over")) {
-      if (isPlayingQueue || isSpeaking) {
-        window.hasInterrupted = true;
-        stopRecording(false);
-        if (currentAudio) { try{currentAudio.stop();}catch(e){} currentAudio = null; }
-        audioQueue = []; isPlayingQueue = false; isSpeaking = false;
-        startListening(); return;
-      }
     }
 
     if(liveText.length < 3) return;
