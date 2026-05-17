@@ -739,45 +739,34 @@ let uiId = 0;
 window.hasInterrupted = false;
 let isMicStarting = false;
 let sentenceTimeout;
+let pipelineGen = 0; // increments on interrupt to discard stale pipeline results
 
-// 2. UI SOUND — loaded once, played via WebAudioContext (works on iOS)
-const TOOL_SOUND_URL = SUPABASE_URL + '/storage/v1/object/public/assets/Generate_a_short_UI_-1778978258591.mp3';
-let toolSoundBuffer = null;
-let toolSoundLoading = false;
+// 2. UI SOUND — Audio element (no CORS needed), unlocked on first gesture
+const TOOL_SOUND_URL = 'https://bufaflxlwojqfwymnabj.supabase.co/storage/v1/object/public/assets/Generate_a_short_UI_-1778978258591.mp3';
+const toolAudio = new Audio(TOOL_SOUND_URL);
+toolAudio.volume = 0.65;
+toolAudio.preload = 'auto';
 
-async function loadToolSound() {
-  if (toolSoundBuffer || toolSoundLoading) return;
-  toolSoundLoading = true;
-  try {
-    const res = await fetch(TOOL_SOUND_URL);
-    const arr = await res.arrayBuffer();
-    const ctx = getAudioCtx();
-    if (ctx) toolSoundBuffer = await ctx.decodeAudioData(arr);
-  } catch(e) { console.warn('Tool sound load failed:', e); }
-  toolSoundLoading = false;
+function unlockToolAudio() {
+  // Play silently at volume 0 inside a user gesture to unlock the element on iOS
+  const prevVol = toolAudio.volume;
+  toolAudio.volume = 0;
+  toolAudio.play().then(() => {
+    toolAudio.pause();
+    toolAudio.currentTime = 0;
+    toolAudio.volume = prevVol;
+    console.log('[Oliver] Tool sound unlocked ✓');
+  }).catch(e => console.warn('[Oliver] Tool sound unlock:', e));
 }
 
-const toolSound = {
-  currentTime: 0,
-  play() {
-    try {
-      const ctx = getAudioCtx();
-      if (!ctx || !toolSoundBuffer) { loadToolSound(); return; }
-      if (ctx.state === 'suspended') ctx.resume();
-      const src = ctx.createBufferSource();
-      src.buffer = toolSoundBuffer;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.55;
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(0);
-    } catch(e) { console.warn('Tool sound play failed:', e); }
-  }
-};
+async function playToolSound() {
+  try {
+    toolAudio.currentTime = 0;
+    await toolAudio.play();
+  } catch(e) { console.warn('[Oliver] Tool sound play:', e); }
+}
 
-// Pre-load on first interaction so it's ready to fire instantly
-document.addEventListener('click', () => loadToolSound(), { once: true });
-document.addEventListener('touchstart', () => loadToolSound(), { once: true });
+const toolSound = { currentTime: 0, play: playToolSound };
 
 const oliverMemoryHistory = [];
 function addOliverMemory(text) {
@@ -861,6 +850,7 @@ function unlockAudio(){
     const buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();
     src.buffer=buf; src.connect(ctx.destination); src.start(0);
     audioUnlocked=true;
+    unlockToolAudio();
   } catch(e) { console.warn('Audio contextual unlock failed:', e); }
 }
 
@@ -1192,7 +1182,7 @@ function updateOrInjectSpotifyCard(spData) {
     '</div>';
     
     addMessage(html, 'oliver', null, null, null, false, true);
-  } else {
+    toolSound.play();
     const card = document.getElementById(activeSpotifyCardId);
     if(card) {
       const art = document.getElementById(activeSpotifyCardId + '-art');
@@ -1291,12 +1281,14 @@ function formatMessageText(text) {
   text = text.replace(/<WIDGET:EMAIL:(.*?)\|(.*?)\|(.*?)>/gi, (match, sender, subject, snippet) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getEmailHTML(uId, sender, subject, snippet);
+      setTimeout(() => toolSound.play(), 100);
       return '\n[[' + uId + ']]\n';
   });
   
   text = text.replace(/<WIDGET:INBOX:(.*?)>/gi, (match, payload) => {
       const uId = 'ui_' + (++uiId);
       uiStore[uId] = getInboxHTML(uId, payload);
+      setTimeout(() => toolSound.play(), 100);
       return '\n[[' + uId + ']]\n';
   });
 
@@ -1373,6 +1365,7 @@ function formatMessageText(text) {
   }
 
   if (events.length > 0) {
+    setTimeout(() => toolSound.play(), 100);
     events.sort((a, b) => {
       const parseTime = (str) => {
         if (!str) return 9999;
@@ -1562,6 +1555,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
   if (isThinking && !isSilentCommand) return;
 
   const runId = Date.now().toString();
+  const myGen = ++pipelineGen;
   let userMsgEl = null;
 
   try {
@@ -1652,7 +1646,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
       const { processed, hasCanvas } = extractCanvasAndMarkdown(rawText);
 
-      if (!isSilentCommand) {
+      if (!isSilentCommand && myGen === pipelineGen) {
         if (processed.trim() !== '') {
           const oliverMsgEl = addMessage(processed, 'oliver', null, null, null, speakReply);
           
@@ -1660,11 +1654,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
 
           if (hasInteractive) {
             if (speakReply) oliverMsgEl.classList.remove('hidden-voice');
-            
-            try {
-              toolSound.currentTime = 0;
-              toolSound.play();
-            } catch(e) { console.warn('Tool audio playback was blocked:', e); }
+            toolSound.play();
           }
 
           if (speakReply) {
@@ -1674,11 +1664,7 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
         }
 
         if (autoFollowUp) {
-          try {
-            toolSound.currentTime = 0;
-            toolSound.play();
-          } catch(e) { console.warn('Memory search audio blocked:', e); }
-
+          toolSound.play();
           setTimeout(() => {
             pipeline("[HIDDEN_PROMPT]: [SYSTEM MESSAGE: You asked for a moment. Please continue your internal thought process or tool execution now. If you need yet another cycle, append <CONTINUE> to the very end of your response.]", speakReply);
           }, 1200);
@@ -1834,6 +1820,7 @@ function buildRecognition(){
 
     // Immediately interrupt if user says "Oliver" while he's speaking
     if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over"))) {
+      pipelineGen++; // invalidate any in-flight pipeline
       window.hasInterrupted = true;
       clearTimeout(sentenceTimeout);
       interimEl.textContent = '';
