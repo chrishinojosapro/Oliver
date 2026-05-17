@@ -770,9 +770,15 @@ let pipelineGen = 0; // increments on interrupt to discard stale pipeline result
 
 // 2. UI SOUND — Audio element (no CORS needed), unlocked on first gesture
 const TOOL_SOUND_URL = 'https://bufaflxlwojqfwymnabj.supabase.co/storage/v1/object/public/assets/Generate_a_short_UI_-1778978258591.mp3';
+const ALARM_SOUND_URL = 'https://bufaflxlwojqfwymnabj.supabase.co/storage/v1/object/public/assets/ALRMClok-Alarm_clock_with_bri-Elevenlabs.mp3';
+
 const toolAudio = new Audio(TOOL_SOUND_URL);
 toolAudio.volume = 0.65;
 toolAudio.preload = 'auto';
+
+const alarmAudio = new Audio(ALARM_SOUND_URL);
+alarmAudio.volume = 1.0;
+alarmAudio.preload = 'auto';
 
 function unlockToolAudio() {
   // Play silently at volume 0 inside a user gesture to unlock the element on iOS
@@ -784,6 +790,13 @@ function unlockToolAudio() {
     toolAudio.volume = prevVol;
     console.log('[Oliver] Tool sound unlocked ✓');
   }).catch(e => console.warn('[Oliver] Tool sound unlock:', e));
+  // Unlock alarm audio at the same time
+  alarmAudio.volume = 0;
+  alarmAudio.play().then(() => {
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+    alarmAudio.volume = 1.0;
+  }).catch(() => {});
 }
 
 async function playToolSound() {
@@ -797,17 +810,22 @@ const toolSound = { currentTime: 0, play: playToolSound };
 
 // --- ALARM / TIMER RINGING ---
 function startRinging(id, label, timeStr, isTimer = false) {
-  stopRinging(); // clear any prior chime
+  stopRinging();
   ringingId = id;
   ringingLabel = label;
   ringingTimeStr = timeStr;
   ringingIsTimer = isTimer;
-  playToolSound();
-  alarmChimeInterval = setInterval(playToolSound, 4000);
+  // Play alarm sound, looping
+  alarmAudio.currentTime = 0;
+  alarmAudio.loop = true;
+  alarmAudio.play().catch(e => console.warn('[Oliver] Alarm sound play:', e));
 }
 
 function stopRinging(announce = false) {
   if (alarmChimeInterval) { clearInterval(alarmChimeInterval); alarmChimeInterval = null; }
+  alarmAudio.pause();
+  alarmAudio.currentTime = 0;
+  alarmAudio.loop = false;
   ringingId = null; ringingLabel = null; ringingTimeStr = null; ringingIsTimer = false;
   if (announce) {
     const msg = 'Alarm stopped.';
@@ -827,8 +845,8 @@ function snoozeRinging() {
   const newTimeStr = h12 + ':' + m.toString().padStart(2, '0') + ' ' + ampm;
 
   const newId = 'ui_' + (++uiId);
-  uiStore[newId] = getAlarmHTML(newId, newTimeStr, label + ' (Snoozed)');
-  addMessage('[[' + newId + ']]', 'oliver', null, null, null, false, false);
+  const snoozeHtml = getAlarmHTML(newId, newTimeStr, label + ' (Snoozed)');
+  addMessage(snoozeHtml, 'oliver', null, null, null, false, true);
   setTimeout(() => startAlarm(newId, newTimeStr, label + ' (Snoozed)'), 100);
 
   const msg = 'Snoozed — I\'ll get you again at ' + newTimeStr + '.';
@@ -1180,7 +1198,7 @@ function getTimerHTML(tId, seconds, label) {
         '<div class="timer-digits" id="' + tId + '-txt">' + format(seconds) + '</div>' +
         '<div class="timer-label">' + (label || 'Timer') + '</div>' +
       '</div>' +
-      '<button class="sc-btn" onclick="stopTimer(\'' + tId + '\')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
+      '<button class="sc-btn" onclick="stopTimer(\'' + tId + '\');stopRinging(false);"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
     '</div>';
 }
 
@@ -1197,7 +1215,10 @@ function getAlarmHTML(tId, timeStr, label) {
         '<div class="timer-digits" style="font-size:2.2em;">' + timeStr + '</div>' +
         '<div class="timer-label">' + (label || 'Alarm Set') + '</div>' +
       '</div>' +
-      '<button class="sc-btn" onclick="stopAlarm(\'' + tId + '\')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
+      '<div style="display:flex;gap:10px;margin-top:4px;">' +
+        '<button class="sc-btn" title="Snooze 5 min" onclick="snoozeRinging()" style="width:48px;height:48px;font-size:1.2em;background:rgba(0,150,255,0.12);">💤</button>' +
+        '<button class="sc-btn" title="Dismiss" onclick="stopAlarm(\'' + tId + '\');stopRinging(false);"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
+      '</div>' +
     '</div>';
 }
 
