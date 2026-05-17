@@ -1891,6 +1891,13 @@ async function speakText(text, isFiller = false, msgEl = null) {
     return;
   }
 
+  // If an interrupt cleared the queue while we were waiting, don't start speaking
+  if(window.hasInterrupted) {
+    window.hasInterrupted = false;
+    if(msgEl) msgEl.classList.remove('hidden-voice');
+    return;
+  }
+
   isSpeaking = true;
   addOliverMemory(ttsText);
   updateOrbState();
@@ -1900,15 +1907,23 @@ async function speakText(text, isFiller = false, msgEl = null) {
     if(ctx && ctx.state === 'suspended') await ctx.resume();
 
     speechAbortController = new AbortController();
+    const myAbortController = speechAbortController; // capture local ref
     const res = await fetch(XI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
       body: JSON.stringify({ text: ttsText }),
-      signal: speechAbortController.signal,
+      signal: myAbortController.signal,
     });
-    speechAbortController = null;
+    if(speechAbortController === myAbortController) speechAbortController = null;
 
     if(!res.ok) throw new Error('TTS ' + res.status + ': ' + (await res.text()));
+
+    // If the response isn't audio, surface the actual error instead of failing silently
+    const contentType = res.headers.get('Content-Type') || '';
+    if (!contentType.includes('audio') && !contentType.includes('octet-stream')) {
+      const body = await res.text();
+      throw new Error('TTS returned non-audio (' + contentType + '): ' + body);
+    }
 
     const arrayBuffer = await res.arrayBuffer();
     if(ctx) {
@@ -2012,7 +2027,7 @@ function buildRecognition(){
       clearTimeout(sentenceTimeout);
       interimEl.textContent = '';
       // Abort in-flight TTS fetch
-      if(speechAbortController){ try{ speechAbortController.abort(); }catch(_){} speechAbortController=null; }
+      if(speechAbortController){ try{ speechAbortController.abort(); }catch(_){} speechAbortController = null; }
       // Kill current audio node
       if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
       // Clear queue
