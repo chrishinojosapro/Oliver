@@ -752,6 +752,8 @@ let isContinuous  = false;
 let isThinking    = false;
 let recognition   = null;
 let currentAudio  = null;
+let speechAbortController = null;  // aborts in-flight TTS fetch on interrupt
+let justInterrupted = false;        // suppresses "oliver" wake word from being sent as a message
 let audioCtx      = null;
 let audioUnlocked = false;
 let audioQueue    = [];
@@ -1897,11 +1899,14 @@ async function speakText(text, isFiller = false, msgEl = null) {
     const ctx = getAudioCtx();
     if(ctx && ctx.state === 'suspended') await ctx.resume();
 
+    speechAbortController = new AbortController();
     const res = await fetch(XI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
       body: JSON.stringify({ text: ttsText }),
+      signal: speechAbortController.signal,
     });
+    speechAbortController = null;
 
     if(!res.ok) throw new Error('TTS ' + res.status + ': ' + (await res.text()));
 
@@ -1918,7 +1923,11 @@ async function speakText(text, isFiller = false, msgEl = null) {
       });
     }
   } catch(err) {
-    console.warn('TTS error:', err);
+    if(err.name === 'AbortError') {
+      console.log('[Oliver] TTS aborted cleanly');
+    } else {
+      console.warn('TTS error:', err);
+    }
     if(msgEl) msgEl.classList.remove('hidden-voice');
   } finally {
     currentAudio = null;
@@ -1997,14 +2006,20 @@ function buildRecognition(){
 
     // Immediately interrupt if user says "Oliver" while he's speaking
     if ((isSpeaking || isPlayingQueue) && (liveText.includes("oliver") || liveText.includes("olive") || liveText.includes("all over"))) {
-      pipelineGen++; // invalidate any in-flight pipeline
+      pipelineGen++;
       window.hasInterrupted = true;
+      justInterrupted = true;
       clearTimeout(sentenceTimeout);
       interimEl.textContent = '';
+      // Abort in-flight TTS fetch
+      if(speechAbortController){ try{ speechAbortController.abort(); }catch(_){} speechAbortController=null; }
+      // Kill current audio node
       if(currentAudio){ try{ currentAudio.stop(); }catch(_){} currentAudio=null; }
+      // Clear queue
       audioQueue = []; isPlayingQueue = false; isSpeaking = false;
-      stopRecording(false);
-      startListening();
+      updateOrbState();
+      // DON'T stop/restart mic — keep it running so Chris can speak immediately
+      // The justInterrupted flag will block "oliver" from being sent as a message
       return;
     }
 
@@ -2064,6 +2079,19 @@ function buildRecognition(){
     }
 
     if(liveText.length < 3) return;
+
+    // After an interrupt, suppress the wake word itself from being sent as a message
+    if(justInterrupted) {
+      const stripped = liveText.replace(/\boliver\b|\bolive\b|\ball over\b/gi, '').trim();
+      if(!stripped || stripped.length < 3) {
+        // Only "Oliver" was said — clear interim and wait for actual message
+        if(final) { interimEl.textContent = ''; justInterrupted = false; }
+        return;
+      }
+      // They said "Oliver <something>" — treat <something> as the message
+      justInterrupted = false;
+    }
+
     interimEl.textContent = interim || final;
     clearTimeout(sentenceTimeout);
     if(liveText.trim()) {
