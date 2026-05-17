@@ -1641,6 +1641,15 @@ async function pipeline(userText, speakReply=true, imageBase64=null, imageMime=n
       }
     } else if (data.reply) {
       let rawText = data.reply || '';
+
+      // Strip any leaked tool call markup the model accidentally includes in its text
+      rawText = rawText
+        .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+        .replace(/<function=.*?>[\s\S]*?<\/function>/gi, '')
+        .replace(/<parameter=.*?>[\s\S]*?<\/parameter>/gi, '')
+        .replace(/```tool_call[\s\S]*?```/gi, '')
+        .trim();
+
       let autoFollowUp = false;
 
       if (rawText.includes("<CONTINUE>")) {
